@@ -4,6 +4,7 @@ class Meta:
     name = "BOA"
     description = "It attempts to detect buffer overflow threats in C language files."
     ok_code = 0
+    modules_directory = 'modules'
 
 class Args:
     args_str   = [   'file']
