@@ -73,9 +73,17 @@ def main():
 
 	# TODO Load modules
 	# Through mod_loader we can get modules, but it is not necessary (sys.modules)
-	#mod_loader = ModulesImporter('constants', 'args_manager', 'unexistent_asdasdasd', 'unexistent_asdasdasd', 'boam_function_match')
-	#mod_loader.load()
+	mod_loader = ModulesImporter('constants', 'args_manager', 'unexistent_asdasdasd', 'unexistent_asdasdasd', 'boam_function_match')
+	mod_loader.load()
 	#mod_loader.get_module('boam_function_match').first_boam()
+
+	# Test
+	function_match = mod_loader.get_module('boam_function_match')
+
+	if (function_match != None):
+		function_match = function_match.BOAM_function_match('my args')
+
+	# End test
 
 	# TODO Load rules
 
