@@ -1,9 +1,9 @@
 
 
 # Own libs
-from boam_abstract import BOAM
+from boam_abstract import BOAM_abstract
 
-class BOAM_function_match(BOAM):
+class BOAM_function_match(BOAM_abstract):
     
     def __init__(self, args):
         super().__init__(args)

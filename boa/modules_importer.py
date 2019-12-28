@@ -11,19 +11,19 @@ from exceptions import BOAModuleNotLoaded
 import importlib.util
 import sys
 
-import tokenize
-
 class ModulesImporter:
 
-    def __init__(self, *modules):
+    def __init__(self, modules):
         self.modules = []
         self.loaded = []
+        self.nmodules = 0
+        self.nloaded = 0
 
         for module in modules:
             self.modules.append(module)
+            self.nmodules += 1
             self.loaded.append(False)
 
-    # TODO use custom exceptions to separate behaviour
     def load(self):
         index = -1
 
@@ -32,7 +32,7 @@ class ModulesImporter:
 
             try:
                 if module in sys.modules:
-                    eprint(f'Warning: module "{module}" cannot have that name because it collides with a sys module or has been already loaded. Skipping current module.')
+                    eprint(f"Warning: module '{module}' cannot have that name because it collides with a sys module or has been already loaded. Skipping current module.")
                     continue
 
                 file_path = f'{get_current_path(__file__)}/{Meta.modules_directory}/{module}.py'
@@ -40,32 +40,45 @@ class ModulesImporter:
                 
                 # Check if we could get the module spec
                 if (spec is None):
-                    eprint(f'Warning: module "{module}" could not be loaded. Skipping current module.')
+                    eprint(f"Warning: module '{module}' could not be loaded. Skipping current module.")
                     continue
 
                 new_module = importlib.util.module_from_spec(spec)
                 
                 # Check if the actual file path does exist
                 if (file_exists(file_path) == False):
-                    eprint(f'Warning: file "{file_path}" does not exist. Skipping current module.')
+                    eprint(f"Warning: file '{file_path}' does not exist. Skipping current module.")
                     continue
                 
                 sys.modules[module] = new_module
 
                 spec.loader.exec_module(new_module)
                 self.loaded[index] = True
+                self.nloaded += 1
 
-                print(f'Info: Module "{module}" successfully loaded.')
+                print(f"Info: Module '{module}' successfully loaded.")
+            except Exception as e:
+                eprint(f"Warning: {e}. Skipping current module.")
+                continue
+            except BaseException as e:
+                eprint(f"Warning: {e}. Skipping current module.")
+                continue
             except:
-                eprint(f'Warning: unknown error while loading module "{module}". Skipping current module.')
+                eprint(f"Warning: unknown error while loading module '{module}'. Skipping current module.")
                 continue
     
+    def is_module_loaded(self, module_name):
+        index = self.modules.index(module_name)
+
+        # Check if the module is loaded
+        if (self.loaded[index] == False):
+            return False
+        
+        return True
+
     def get_module(self, module_name):
         try:
-            index = self.modules.index(module_name)
-
-            # Check if the module is loaded
-            if (self.loaded[index] == False):
+            if (self.is_module_loaded(module_name) == False):
                 raise BOAModuleNotLoaded()
             # It should not happen
             elif (value_exists_in_array(sys.modules, module_name) == False):
@@ -73,10 +86,32 @@ class ModulesImporter:
 
             return sys.modules[module_name]
         except ValueError:
-            eprint(f'Error: could not get module "{module_name}" because it does not exist.')
+            eprint(f"Error: could not get module '{module_name}' because it does not exist.")
         except BOAModuleNotLoaded:
-            eprint(f'Error: could not get module "{module_name}" because it is not loaded.')
+            eprint(f"Error: could not get module '{module_name}' because it is not loaded.")
         except:
-            eprint(f'Error: could not get module "{module_name}". Unknown reason.')
+            eprint(f"Error: could not get module '{module_name}'. Unknown reason.")
         
         return None
+    
+    def get_instance(self, module_name, class_name):
+        module = self.get_module(module_name)
+        instance = None
+
+        if (module == None):
+            return
+        
+        try:
+            instance = getattr(sys.modules[module_name], class_name)
+        except AttributeError as e:
+            eprint(f"Error: {e}.")
+        except:
+            eprint(f"Error: unknown error while trying to get {module_name}.{class_name}.")
+        
+        return instance
+    
+    def get_nmodules(self):
+        return self.nmodules
+    
+    def get_nloaded(self):
+        return self.nloaded
