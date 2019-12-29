@@ -6,6 +6,7 @@ from args_manager import ArgsManager
 from exceptions import ParseError
 from util import eprint
 from modules_importer import ModulesImporter
+from main_loop import MainLoop
 
 # Pycparser libs
 from pycparser import c_parser, c_ast, parse_file
@@ -197,14 +198,15 @@ def main():
 		index += 1
 
 	# TODO Main loop based on BOAM_abstract (boam_abstract)
+	main_loop = MainLoop(instances, ast)
 
-
+	main_loop.initialize()
 
 	return Meta.ok_code
 
 if __name__ == "__main__":
 	rtn_code = main()
 
-	print(f"Exit status: {rtn_code}")
+	print(f"\nExit status: {rtn_code}")
 
 	exit(rtn_code)
