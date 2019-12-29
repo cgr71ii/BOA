@@ -5,7 +5,8 @@ class Meta:
     description = "It attempts to detect buffer overflow threats in C language files."
     ok_code = 0
     modules_directory = "modules"
-    abstract_module_class_name = "boam_abstract"
+    abstract_module_name = "boam_abstract"
+    abstract_module_class_name = "BOAM_abstract"
 
 class Args:
     args_str   = [   "file"]
@@ -34,6 +35,10 @@ class Error:
     error_module_some_mandatory_and_user_failed = 30
     error_module_some_mandatory_failed = 31
     error_module_some_user_failed = 32
+    error_module_cannot_load_instance = 33
+    error_module_some_instance_loading_failed = 34
+    error_module_cannot_remove_not_loaded_module = 35
 
     # Rules errors
-    error_rules_modules_classes_neq_length = 40
+    error_rules_modules_classes_args_neq_length = 40
+    error_rules_bad_naming_references = 41

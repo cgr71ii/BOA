@@ -33,27 +33,25 @@ def manage_args():
 def parse_c_file():
 	file_path = ArgsManager.args.file
 	ast = None
+	rtn_code = Meta.ok_code
 
 	# parse_file (__init__.py) returns an AST or ParseError if doesn't parse successfully
 	try:
 		ast = parse_file(file_path, use_cpp = False)
 	except ParseError:
 		eprint(f"Error: could not parse file '{file_path}'.")
-
-		return [Error.error_parse_parse, ast]
+		rtn_code = Error.error_parse_parse
 	except FileNotFoundError:
 		eprint(f"Error: file '{file_path}' not found.")
-
-		return [Error.error_file_not_found, ast]
+		rtn_code = Error.error_file_not_found
 	except:
 		eprint("Error: unknown error while parsing file.")
+		rtn_code = Error.error_unknown
 
-		return [Error.error_unknown, ast]
-
-	return [Meta.ok_code, ast]
+	return [rtn_code, ast]
 
 def load_modules(user_modules):
-	mandatory_modules = [Meta.abstract_module_class_name]
+	mandatory_modules = [Meta.abstract_module_name]
 	modules = mandatory_modules + user_modules
 
 	# Through mod_loader we can get modules, but it is not necessary (sys.modules)
@@ -86,6 +84,41 @@ def load_modules(user_modules):
 		
 	return [rtn_code, mod_loader]
 
+def load_instance(module_loader, module_name, class_name, module_args):
+	instance = module_loader.get_instance(module_name, class_name)
+
+	if (instance == None):
+		return [Error.error_module_cannot_load_instance, instance]
+
+	try:
+		instance = instance(module_args)
+		print(f"Info: {module_name}.{class_name} initialized.")
+	except Exception as e:
+		eprint(f"Error: {e}.")
+	except:
+		eprint(f"Error: could not load an instance of {module_name}.{class_name} (bad implementation of {abstract_module_name}.{abstract_module_class_name} in {module_name}.{class_name}?).")
+
+	return [Meta.ok_code, instance]
+
+def remove_not_loaded_modules(mod_loader, modules, classes, mods_args):
+	not_loaded_modules = mod_loader.get_not_loaded_modules()
+	rtn_code = Meta.ok_code
+
+	for not_loaded_module in not_loaded_modules:
+		try:
+			index = modules.index(not_loaded_module)
+
+			removed_module = modules.pop(index)
+			removed_class = classes.pop(index)
+			removed_mod_args = mods_args.pop(removed_class)
+
+			print(f"Info: {removed_module}.{removed_class}({removed_mod_args}) was removed.")
+		except:
+			eprint(f"Error: could not remove a module/class/arg while trying to remove module {not_loaded_module}.")
+			rtn_code = Error.error_module_cannot_remove_not_loaded_module
+
+	return rtn_code
+
 def main():
 	print(f"Welcome to {Meta.name} - Version {Meta.version}\n")
 
@@ -96,19 +129,23 @@ def main():
 		return rtn_code
 	
 	# TODO Parse and check rules (XML)
-	modules = []
-	classes = []
+	modules   = []
+	classes   = []
+	mods_args = {}	# {"class": {"arg1": "value2", "arg2": ["value2", "value3"]}}
 
 	# Parse XML ...
 	# Append ...
 
 	# FIXME Tmp for testing
-	modules = ["boam_function_match"]
-	classes = ["BOAM_function_match"]
+	modules   = ["boam_function_match"]
+	classes   = ["BOAM_function_match"]
+	mods_args = {"BOAM_function_match": {"methods": ["put", "printf"]}}
 
-	if (len(modules) != len(classes)):
-		eprint(f"Error: modules length ({len(modules)}) is not equal to classes length ({len(classes)}).")
-		return Error.error_rules_modules_classes_neq_length
+	if (len(modules) != len(classes) or
+		len(modules) != len(mods_args) or
+		len(classes) != len(mods_args)):
+		eprint(f"Error: modules length ({len(modules)}), classes length ({len(classes)}) and arguments length ({len(mods_args)}) are not equal.")
+		return Error.error_rules_modules_classes_args_neq_length
 	
 	# Parse C file
 	rtn = parse_c_file()
@@ -119,7 +156,7 @@ def main():
 		return rtn_code
 
 	# Load modules
-	rtn = load_modules(modules)	
+	rtn = load_modules(modules)
 	rtn_code = rtn[0]
 	mod_loader = rtn[1]
 	fail_if_some_user_module_failed = True	# TODO BOA arg
@@ -131,19 +168,37 @@ def main():
 		rtn_code != Error.error_module_some_user_failed):
 		return rtn_code
 
-	# TODO Load rules and instances with that rules as args
-
-	# Test
+	# Load rules and instances with that rules as args
+	instances = []
 	index = 0
-	while (index < len(modules)):
-		function_match = mod_loader.get_instance(modules[index], classes[index])
 
-		if (function_match != None):
-			function_match = function_match("my args")
+	# Remove not loaded modules
+	rtn_code = remove_not_loaded_modules(mod_loader, modules, classes, mods_args)
+
+	if (rtn_code != Meta.ok_code):
+		return rtn_code
+
+	while (index < len(modules)):
+		try:
+			mod_args = mods_args[classes[index]]
+		except KeyError as e:
+			eprint(f"Error: could not get {e} arguments due to a bad naming reference.")
+			return Error.error_rules_bad_naming_references
+
+		rtn = load_instance(mod_loader, modules[index], classes[index], mod_args)
+		rtn_code = rtn[0]
+		instance = rtn[1]
+
+		if (rtn_code != Meta.ok_code):
+			return rtn_code
+
+		instances.append(instance)
 
 		index += 1
 
-	# End test
+	# TODO Main loop based on BOAM_abstract (boam_abstract)
+
+
 
 	return Meta.ok_code
 

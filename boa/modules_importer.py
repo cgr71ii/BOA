@@ -60,9 +60,6 @@ class ModulesImporter:
             except Exception as e:
                 eprint(f"Warning: {e}. Skipping current module.")
                 continue
-            except BaseException as e:
-                eprint(f"Warning: {e}. Skipping current module.")
-                continue
             except:
                 eprint(f"Warning: unknown error while loading module '{module}'. Skipping current module.")
                 continue
@@ -99,7 +96,7 @@ class ModulesImporter:
         instance = None
 
         if (module == None):
-            return
+            return instance
         
         try:
             instance = getattr(sys.modules[module_name], class_name)
@@ -115,3 +112,15 @@ class ModulesImporter:
     
     def get_nloaded(self):
         return self.nloaded
+    
+    def get_not_loaded_modules(self):
+        index = 0
+        not_loaded_modules = []
+
+        while (index < len(self.modules)):
+            if (self.loaded[index] == False):
+                not_loaded_modules.append(self.modules[index])
+
+            index += 1
+
+        return not_loaded_modules
