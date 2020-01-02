@@ -143,8 +143,7 @@ def main():
 	mods_args = {"BOAM_function_match": {"methods": ["put", "printf"]}}
 
 	if (len(modules) != len(classes) or
-		len(modules) != len(mods_args) or
-		len(classes) != len(mods_args)):
+		len(modules) != len(mods_args)):
 		eprint(f"Error: modules length ({len(modules)}), classes length ({len(classes)}) and arguments length ({len(mods_args)}) are not equal.")
 		return Error.error_rules_modules_classes_args_neq_length
 	
@@ -200,7 +199,11 @@ def main():
 	# TODO Main loop based on BOAM_abstract (boam_abstract)
 	main_loop = MainLoop(instances, ast)
 
-	main_loop.initialize()
+	# It handles the loop work
+	rtn_code = main_loop.handle_loop()
+
+	if (rtn_code != Meta.ok_code):
+		return rtn_code
 
 	return Meta.ok_code
 

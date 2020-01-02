@@ -27,15 +27,15 @@ class BOAM_abstract:
     def process(self, token):
         pass
 
-    # This method will be invoked after each token is processed
-    # This method has the responsibility of save the records in the given report
-    @abstractmethod
-    def save(self, report):
-        pass
-
     # This method will be invoked before the next token is processed
     @abstractmethod
     def clean(self):
+        pass
+
+    # This method will be invoked after all tokens have been processed
+    # This method has the responsibility of save the records in the given report
+    @abstractmethod
+    def save(self, report):
         pass
 
     # This method will be invoked when all the tokens have been processed

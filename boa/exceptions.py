@@ -1,10 +1,12 @@
 
+
+# Own libs
+from util import get_name_from_class_instance
+
 class ParseError(Exception): pass
 
 class BOAModuleNotLoaded(Exception): pass
 
 class BOAM_exception(Exception):
     def __init__(self, message, module):
-        module_name = module.__class__.__module__
-        class_name = module.__class__.__name__
-        self.message = f"BOAM exception in {module_name}.{class_name}: {message}"
+        self.message = f"BOAM exception in {get_name_from_class_instance(module)}: {message}"

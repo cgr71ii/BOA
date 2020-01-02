@@ -35,3 +35,6 @@ def value_exists_in_array(array, value):
         return True
     except:
         return False
+
+def get_name_from_class_instance(instance):
+    return f"{instance.__class__.__module__}.{instance.__class__.__name__}"

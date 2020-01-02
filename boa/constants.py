@@ -42,3 +42,8 @@ class Error:
     # Rules errors
     error_rules_modules_classes_args_neq_length = 40
     error_rules_bad_naming_references = 41
+
+    # Main loop errors
+    error_loop_args_wrong_type = 50
+    error_loop_args_neq_length = 51
+    error_loop_module_exception = 52
