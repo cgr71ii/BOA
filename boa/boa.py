@@ -38,6 +38,8 @@ def parse_c_file():
 
 	# parse_file (__init__.py) returns an AST or ParseError if doesn't parse successfully
 	try:
+		# use_cpp = Use CPreProcessor
+		#ast = parse_file(file_path, use_cpp = True, cpp_path = "gcc", cpp_args = ["-E", r"-I/path/to/pycparser/utils/fake_libc_include"])
 		ast = parse_file(file_path, use_cpp = False)
 	except ParseError:
 		eprint(f"Error: could not parse file '{file_path}'.")
@@ -45,6 +47,9 @@ def parse_c_file():
 	except FileNotFoundError:
 		eprint(f"Error: file '{file_path}' not found.")
 		rtn_code = Error.error_file_not_found
+	except Exception as e:
+		eprint(f"Error: {e}.")
+		rtn_code = Error.error_unknown
 	except:
 		eprint("Error: unknown error while parsing file.")
 		rtn_code = Error.error_unknown
@@ -97,7 +102,7 @@ def load_instance(module_loader, module_name, class_name, module_args):
 	except Exception as e:
 		eprint(f"Error: {e}.")
 	except:
-		eprint(f"Error: could not load an instance of {module_name}.{class_name} (bad implementation of {abstract_module_name}.{abstract_module_class_name} in {module_name}.{class_name}?).")
+		eprint(f"Error: could not load an instance of {module_name}.{class_name} (bad implementation of {Meta.abstract_module_name}.{Meta.abstract_module_class_name} in {module_name}.{class_name}?).")
 
 	return [Meta.ok_code, instance]
 
@@ -140,7 +145,12 @@ def main():
 	# FIXME Tmp for testing
 	modules   = ["boam_function_match"]
 	classes   = ["BOAM_function_match"]
-	mods_args = {"BOAM_function_match": {"methods": ["put", "printf"]}}
+	mods_args = {"BOAM_function_match": 
+					{"methods": ["put", "printf", "strcpy"], 
+					 "severity": ["CRITICAL", "NORMAL", "HIGH"], 
+					 "description": ["The function 'put' can make crash your program when the input length is higher than the destination pointer", 
+					 				 "First argument has to be constant and not an user controlled input to avoid buffer overflow and data leakage",
+									 "Destination pointer length has to be greater than origin to avoid buffer overflow threats"]}}
 
 	if (len(modules) != len(classes) or
 		len(modules) != len(mods_args)):

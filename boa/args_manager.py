@@ -10,8 +10,6 @@ import argparse
 
 class ArgsManager:
 
-    args = []
-
     def __init__(self):
         self.parser = argparse.ArgumentParser(description = Meta.description)
     
