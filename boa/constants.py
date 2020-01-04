@@ -9,14 +9,16 @@ class Meta:
     abstract_module_class_name = "BOAM_abstract"
 
 class Args:
-    args_str   = [   "file"]
-    args_help  = [   "C language file to analyze."]
+    # Mandatory arguments has not to start with "--"
+    args_str   = [   "file",
+                     "rules_file"]
+    args_help  = [   "C language file to analyze.",
+                     "Rules file"]
 
-    opt_args_str  = [   "--pycparser_args", 
-                        "--rules_file"]
+    # Optional arguments has to start with "--"
+    opt_args_str  = [   ]
 
-    opt_args_help = [   "It defines the PYCPARSER args.", 
-                        "Path to the used rules to analyze the C file."]
+    opt_args_help = [   ]
 
 class Error:
     # General errors

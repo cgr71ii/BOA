@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<boa_rules> <!-- Mandatory -->
+    <parser>    <!-- Mandatory -->
+        <name>pycparser</name>  <!-- Mandatory -->
+        <lang_objective>C</lang_objective>  <!-- Mandatory -->
+        <module_name>module name in "parser_modules" directory</module_name>    <!-- Mandatory -->
+        <class_name>class name in the module</class_name>   <!-- Mandatory -->
+        <callback>  <!-- Mandatory -->
+            <method name="ast" callback="get_ast" />    <!-- Mandatory 'name' and 'callback' attributes -->
+            <method name="cfg" callback="get_cfg" />
+        </callback>
+    </parser>
+    <modules>
+        <module>    <!-- Mandatory: at least 1 -->
+            <module_name>module name in "modules" directory</module_name>   <!-- Mandatory -->
+            <class_name>class name in the module</class_name>   <!-- Mandatory -->
+            <args>  <!-- Optional -->
+                <dict>  <!-- Optional -->
+                    <element name="var1" value="val1" />    <!-- Mandatory 'name' and 'value' attributes -->
+                    <element name="var2" value="val2" />
+
+                    <list name="list">  <!-- Optional; Mandatory 'name' attribute -->
+                        <element value="list_val1" />    <!-- Mandatory 'value' attribute -->
+                        <element value="list_val2" />
+                    </list>
+                </dict>
+            </args>
+        </module>
+    </modules>
+</boa_rules>

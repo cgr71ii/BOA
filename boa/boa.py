@@ -7,12 +7,14 @@ from exceptions import ParseError
 from util import eprint
 from modules_importer import ModulesImporter
 from main_loop import MainLoop
-
-# Pycparser libs
-from pycparser import c_parser, c_ast, parse_file
+from rules_manager import RulesManager
 
 # Std libs
 import sys
+import os
+
+# Pycparser libs
+from pycparser import c_parser, c_ast, parse_file
 
 def manage_args():
 
@@ -35,12 +37,22 @@ def parse_c_file():
 	file_path = ArgsManager.args.file
 	ast = None
 	rtn_code = Meta.ok_code
+	pycparser_fake_libc_include_path = None
+
+	try:
+		pycparser_fake_libc_include_path = os.environ['PYCPARSER_FAKE_LIBC_INCLUDE_PATH']
+	except KeyError:
+		pass
+	except Exception as e:
+		eprint(f"Error: {e}.")
 
 	# parse_file (__init__.py) returns an AST or ParseError if doesn't parse successfully
 	try:
-		# use_cpp = Use CPreProcessor
-		#ast = parse_file(file_path, use_cpp = True, cpp_path = "gcc", cpp_args = ["-E", r"-I/path/to/pycparser/utils/fake_libc_include"])
-		ast = parse_file(file_path, use_cpp = False)
+		if (pycparser_fake_libc_include_path != None):
+			# use_cpp = Use CPreProcessor
+			ast = parse_file(file_path, use_cpp = True, cpp_path = "gcc", cpp_args = ["-E", f"-I{pycparser_fake_libc_include_path}"])
+		else:
+			ast = parse_file(file_path, use_cpp = False)
 	except ParseError:
 		eprint(f"Error: could not parse file '{file_path}'.")
 		rtn_code = Error.error_parse_parse
@@ -48,7 +60,7 @@ def parse_c_file():
 		eprint(f"Error: file '{file_path}' not found.")
 		rtn_code = Error.error_file_not_found
 	except Exception as e:
-		eprint(f"Error: {e}.")
+		eprint(f"Error: {e} (if you are using pycparser for a C file and using preprocess directives, try defining PYCPARSER_FAKE_LIBC_INCLUDE_PATH environmental variable to solve the problem).")
 		rtn_code = Error.error_unknown
 	except:
 		eprint("Error: unknown error while parsing file.")
@@ -138,6 +150,12 @@ def main():
 	modules   = []
 	classes   = []
 	mods_args = {}	# {"class": {"arg1": "value2", "arg2": ["value2", "value3"]}}
+	rules_manager = RulesManager(ArgsManager.args.rules_file)
+
+	rtn_code = rules_manager.open()
+
+	if (rtn_code != Meta.ok_code):
+		return rtn_code
 
 	# Parse XML ...
 	# Append ...
