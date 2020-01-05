@@ -44,6 +44,10 @@ class Error:
     # Rules errors
     error_rules_modules_classes_args_neq_length = 40
     error_rules_bad_naming_references = 41
+    error_rules_could_not_open_file = 42
+    error_rules_could_not_read_file = 43
+    error_rules_could_not_close_file = 44
+    error_rules_bad_checking = 45
 
     # Main loop errors
     error_loop_args_wrong_type = 50

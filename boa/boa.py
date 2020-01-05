@@ -157,6 +157,24 @@ def main():
 	if (rtn_code != Meta.ok_code):
 		return rtn_code
 
+	rtn_code = rules_manager.read()
+
+	if (rtn_code != Meta.ok_code):
+		return rtn_code
+
+	rtn_code = rules_manager.close()
+
+	if (rtn_code != Meta.ok_code):
+		return rtn_code
+
+	# TODO argument to make this optinal
+	if (not rules_manager.check_rules()):
+		return Error.error_rules_bad_checking
+	
+	rules = rules_manager.get_rules()
+
+	#print(f"Rules:\n----\n{rules}\n----")
+
 	# Parse XML ...
 	# Append ...
 

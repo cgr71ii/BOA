@@ -7,15 +7,15 @@
         <module_name>module name in "parser_modules" directory</module_name>    <!-- Mandatory -->
         <class_name>class name in the module</class_name>   <!-- Mandatory -->
         <callback>  <!-- Mandatory -->
-            <method name="ast" callback="get_ast" />    <!-- Mandatory 'name' and 'callback' attributes -->
+            <method name="ast" callback="get_ast" />    <!-- Mandatory: at least 1; Mandatory 'name' and 'callback' attributes -->
             <method name="cfg" callback="get_cfg" />
         </callback>
     </parser>
-    <modules>
+    <modules>   <!-- Mandatory -->
         <module>    <!-- Mandatory: at least 1 -->
             <module_name>module name in "modules" directory</module_name>   <!-- Mandatory -->
             <class_name>class name in the module</class_name>   <!-- Mandatory -->
-            <args>  <!-- Optional -->
+            <args>  <!-- Mandatory -->
                 <dict>  <!-- Optional -->
                     <element name="var1" value="val1" />    <!-- Mandatory 'name' and 'value' attributes -->
                     <element name="var2" value="val2" />
