@@ -167,11 +167,14 @@ def main():
 	if (rtn_code != Meta.ok_code):
 		return rtn_code
 
-	# TODO argument to make this optinal
-	if (not rules_manager.check_rules()):
+	# Check rules and process arguments from rule file
+	if (not rules_manager.check_rules(True)):
 		return Error.error_rules_bad_checking
 	
+	args = rules_manager.get_args()
 	rules = rules_manager.get_rules()
+
+	print(f"args: {args}")
 
 	#print(f"Rules:\n----\n{rules}\n----")
 

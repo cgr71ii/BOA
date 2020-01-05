@@ -16,13 +16,35 @@
             <module_name>module name in "modules" directory</module_name>   <!-- Mandatory -->
             <class_name>class name in the module</class_name>   <!-- Mandatory -->
             <args>  <!-- Mandatory -->
-                <dict>  <!-- Optional -->
-                    <element name="var1" value="val1" />    <!-- Mandatory 'name' and 'value' attributes -->
+                <dict>  <!--    Optional
+                                *** Mandatory and unique element as first arg ***
+                                Mandatory 'name' attribute in childs -->
+                    <element name="var1" value="val1" />    <!-- Mandatory 'value' attribute -->
                     <element name="var2" value="val2" />
 
-                    <list name="list">  <!-- Optional; Mandatory 'name' attribute -->
-                        <element value="list_val1" />    <!-- Mandatory 'value' attribute -->
-                        <element value="list_val2" />
+                    <list name="list1">  <!-- Optional -->
+                        <element value="list1_val1" />  <!-- 'name' attribute only is mandatory if direct parent is a 'dict' -->
+                        <element value="list1_val2" />
+                    </list>
+
+                    <dict name="dict">
+                        <list name="list2">
+                            <element value="list2_val1" />
+                        </list>
+                    </dict>
+
+                    <list name="list3">
+                        <element value="list3_val1" />
+                        
+                        <list>
+                            <element value="list_val1" />
+
+                            <dict>
+                                <dict name="dict">
+                                    <element name="var1" value="val1" />
+                                </dict>
+                            </dict>
+                        </list>
                     </list>
                 </dict>
             </args>

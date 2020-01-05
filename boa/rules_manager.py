@@ -3,6 +3,7 @@
 from constants import Meta
 from constants import Error
 from util import eprint
+from util import is_key_in_dict
 
 # Std libs
 import os
@@ -18,6 +19,7 @@ class RulesManager:
         self.xml = None
         self.xml_str = None
         self.rules = None
+        self.args = None
 
     def open(self):
         if (not os.path.exists(self.rules_file_path)):
@@ -54,65 +56,93 @@ class RulesManager:
             return Error.error_rules_could_not_close_file
 
         return Meta.ok_code
-    
-    def check_rules_arg(self, arg):
+
+    def check_rules_arg(self, arg, father, grandpa, save_args, args_reference):
         _arg = arg
 
+        if (self.args == None and save_args):
+            # Initialize args
+            self.args = {}
+
+        if (_arg == None):
+            return True
         if (type(_arg) is not list):
             _arg = [_arg]
 
         for __arg in _arg:
-            valid = False
+            # 1st checking
+            if (father == "args" and len(__arg) != 1):
+                return False
+            elif (father == "args"):
+                # Mandatory and unique element as first arg
+                if (is_key_in_dict(__arg, "dict")):
+                    # Recursive checking
+                    # TODO args_reference not finished
+                    return self.check_rules_arg(__arg["dict"], "dict", father, save_args)
+                else:
+                    return False
 
-            try:
-                # Optional
-                __arg["dict"]
-                valid = True
+            # nth checking
+            valid = 0
+
+            # Dict (optional)
+            if (is_key_in_dict(__arg, "dict")):
+                valid += 1
 
                 # Recursive checking
-                if (not self.check_rules_arg(__arg["dict"])):
+                if (not self.check_rules_arg(__arg["dict"], "dict", father, save_args)):
                     return False
-            except:
-                pass
 
-            try:
-                # Optional
-                __arg["list"]
-                valid = True
-
-                try:
-                    # Mandatory if "list"
-                    __arg["list"]["@name"]
-                except:
-                    return False
+            # List (optional)
+            if (is_key_in_dict(__arg, "list")):
+                valid += 1
 
                 # Recursive checking
-                if (not self.check_rules_arg(__arg["list"])):
+                if (not self.check_rules_arg(__arg["list"], "list", father, save_args)):
                     return False
-            except:
-                pass
 
-            try:
-                # Optional
-                __arg["element"]
-                valid = True
+            # Element (optional)
+            if (is_key_in_dict(__arg, "element")):
+                valid += 1
 
-                try:
-                    # Mandatory if "element"
-                    __arg["element"]["@name"]
-                    __arg["element"]["@value"]
-                except:
+                # Recursive checking
+                if (not self.check_rules_arg(__arg["element"], "element", father, save_args)):
                     return False
-            except:
-                pass
+            
+            name = None
+            value = None
 
-            if (not valid):
-                # Argument defined but not a valid one
+            # Attribute checking
+            # Elements inside a "dict" has to have the "name" attribute
+            if (grandpa == "dict"):
+                # Mandatory "name" attribute
+                if (is_key_in_dict(__arg, "@name")):
+                    name = __arg["@name"]
+                    valid += 1
+                else:
+                    return False
+            # "element" attributes
+            if (father == "element"):
+                if (grandpa != "dict" and grandpa != "list"):
+                    # An "element" has to be inside a dict or a list
+                    return False
+                # Mandatory "value" attribute
+                elif (is_key_in_dict(__arg, "@value")):
+                    value = __arg["@value"]
+                    valid += 1
+                else:
+                    return False
+
+            if (valid != len(__arg)):
+                # Argument defined but not all are valid
+                return False
+            elif (valid == 0 and father != "args"):
+                # No valid arguments defined inside the tag
                 return False
 
         return True
 
-    def check_rules(self):
+    def check_rules(self, save_args):
         if (self.rules == None):
             return False
 
@@ -172,7 +202,11 @@ class RulesManager:
                     args = [args]
 
                 for arg in args:
-                    if (not self.check_rules_arg(arg)):
+                    if (not self.check_rules_arg(arg, "args", "module", save_args, self.args)):
+                        if (save_args):
+                            # Reset the args because the args checking failed
+                            self.args = None
+
                         raise Exception("boa_rules.modules.module.args is not correct")
 
         except Exception as e:
@@ -183,3 +217,6 @@ class RulesManager:
 
     def get_rules(self):
         return self.rules
+
+    def get_args(self):
+        return self.args

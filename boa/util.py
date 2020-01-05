@@ -1,6 +1,9 @@
+
+# Std libs
 from __future__ import print_function
 import sys
 import os
+import collections
 
 '''
 Print to stderr
@@ -38,3 +41,14 @@ def value_exists_in_array(array, value):
 
 def get_name_from_class_instance(instance):
     return f"{instance.__class__.__module__}.{instance.__class__.__name__}"
+
+def is_key_in_dict(d, key):
+    try:
+        d[key]
+
+        return True
+    except KeyError:
+        return False
+    except Exception as e:
+        eprint(f"Error: not expected error while checking if key is in dict: {e}.")
+        return False
