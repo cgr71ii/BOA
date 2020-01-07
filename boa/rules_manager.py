@@ -7,6 +7,7 @@ from util import is_key_in_dict
 
 # Std libs
 import os
+import copy
 
 # 3rd libs
 import xmltodict
@@ -56,13 +57,54 @@ class RulesManager:
             return Error.error_rules_could_not_close_file
 
         return Meta.ok_code
+    
+    # This method will be called by 'check_rules_arg' with the 
+    #   purpose of get recursively the args from the rules file
+    def check_rules_arg_recursive(self, arg, element, father, arg_reference, args_reference, save_args):
+        # Make a list if it is not
+        _element = arg[element]
+        if (type(_element) is not list):
+            _element = [_element]
+
+        for __element in _element:
+            # Necessary deep copy of 'arg_reference' to avoid 'same reference' problems
+            #_arg_reference = arg_reference
+            _arg_reference = None
+
+            if (arg_reference != None):
+                _arg_reference = copy.deepcopy(arg_reference)
+            elif (element == "element"):
+                if (not is_key_in_dict(__element, "@value")):
+                    return False
+                
+                _arg_reference = __element["@value"]
+            else:
+                # It should not happen
+                return False
+
+            if (father == "dict"):
+                if (not is_key_in_dict(__element, "@name")):
+                    return False
+                
+                name = __element["@name"]
+                args_reference[name] = _arg_reference
+            elif (father == "list"):
+                args_reference.append(_arg_reference)
+            else:
+                # It should not happen
+                return False
+
+            # Recursive checking
+            if (not self.check_rules_arg(__element, element, father, save_args, _arg_reference)):
+                return False
 
     def check_rules_arg(self, arg, father, grandpa, save_args, args_reference):
         _arg = arg
 
-        if (self.args == None and save_args):
-            # Initialize args
-            self.args = {}
+        if (father == "args" and save_args):
+            if (type(args_reference) is not dict or len(args_reference) != 0):
+                eprint(f"Error: check_rules_arg have to get an empty 'dict' as first args reference.")
+                return False
 
         if (_arg == None):
             return True
@@ -77,8 +119,7 @@ class RulesManager:
                 # Mandatory and unique element as first arg
                 if (is_key_in_dict(__arg, "dict")):
                     # Recursive checking
-                    # TODO args_reference not finished
-                    return self.check_rules_arg(__arg["dict"], "dict", father, save_args)
+                    return self.check_rules_arg(__arg["dict"], "dict", father, save_args, args_reference)
                 else:
                     return False
 
@@ -88,36 +129,68 @@ class RulesManager:
             # Dict (optional)
             if (is_key_in_dict(__arg, "dict")):
                 valid += 1
+                arg_reference = {}
 
                 # Recursive checking
-                if (not self.check_rules_arg(__arg["dict"], "dict", father, save_args)):
-                    return False
+                self.check_rules_arg_recursive(__arg, "dict", father, arg_reference, args_reference, save_args)
 
             # List (optional)
             if (is_key_in_dict(__arg, "list")):
                 valid += 1
 
-                # Recursive checking
-                if (not self.check_rules_arg(__arg["list"], "list", father, save_args)):
-                    return False
+                # If we want to save the args, we need a call for each args processing in case of a list (>1 list at same deepness)
+                # However, in the case we need not, the same number of calls will be processed in the next call, so we make the job now and we avoid to complex the logic
+                #if (type(__arg["list"]) is list and save_args):
+                #    for _list in __arg["list"]:
+                #       # Recursive checking
+                #       if (not self.check_rules_arg(_list, "list", father, save_args, args_reference)):
+                #           return False
+                # Avoid to complex the logic:
+                #else:
+                #    # Recursive checking
+                #    if (not self.check_rules_arg(__arg["list"], "list", father, save_args, args_reference)):
+                #        return False
+
+                # Make a list if it is not
+                #_list = __arg["list"]
+                #if (type(__arg["list"]) is not list):
+                #    _list = [_list]
+#
+                #for __list in _list:
+                #    arg_reference = []
+#
+                #    if (father == "dict"):
+                #        if (not is_key_in_dict(__list, "@name")):
+                #            return False
+                #        
+                #        name = __list["@name"]
+                #        args_reference[name] = arg_reference
+                #    elif (father == "list"):
+                #        args_reference.append(arg_reference)
+                #    else:
+                #        # It should not happen
+                #        return False
+#
+                #    # Recursive checking
+                #    if (not self.check_rules_arg(__list, "list", father, save_args, arg_reference)):
+                #        return False
+
+                arg_reference = []
+                self.check_rules_arg_recursive(__arg, "list", father, arg_reference, args_reference, save_args)
 
             # Element (optional)
             if (is_key_in_dict(__arg, "element")):
                 valid += 1
 
                 # Recursive checking
-                if (not self.check_rules_arg(__arg["element"], "element", father, save_args)):
-                    return False
-            
-            name = None
-            value = None
+                self.check_rules_arg_recursive(__arg, "element", father, None, args_reference, save_args)
 
             # Attribute checking
             # Elements inside a "dict" has to have the "name" attribute
             if (grandpa == "dict"):
                 # Mandatory "name" attribute
                 if (is_key_in_dict(__arg, "@name")):
-                    name = __arg["@name"]
+                    __arg["@name"]
                     valid += 1
                 else:
                     return False
@@ -128,7 +201,7 @@ class RulesManager:
                     return False
                 # Mandatory "value" attribute
                 elif (is_key_in_dict(__arg, "@value")):
-                    value = __arg["@value"]
+                    __arg["@value"]
                     valid += 1
                 else:
                     return False
@@ -201,8 +274,14 @@ class RulesManager:
                 if (type(args) is not list):
                     args = [args]
 
+                arg_reference = {}
+
+                if (save_args and self.args == None):
+                    # Initialize args to dict to work with the reference
+                    self.args = arg_reference
+
                 for arg in args:
-                    if (not self.check_rules_arg(arg, "args", "module", save_args, self.args)):
+                    if (not self.check_rules_arg(arg, "args", "module", save_args, arg_reference)):
                         if (save_args):
                             # Reset the args because the args checking failed
                             self.args = None

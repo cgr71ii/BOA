@@ -15,7 +15,10 @@
         <module>    <!-- Mandatory: at least 1 -->
             <module_name>module name in "modules" directory</module_name>   <!-- Mandatory -->
             <class_name>class name in the module</class_name>   <!-- Mandatory -->
-            <args>  <!-- Mandatory -->
+            <args>  <!--    Mandatory
+                            If you use 'list', 'dict' and 'element' in combination at the same deepness, the result will not be sorted in the same way you wrote the rules
+                            If you no use these elements in combination, the result will be sorted
+                            Default sorting: 1st dicts; 2nd lists; 3rd elements -->
                 <dict>  <!--    Optional
                                 *** Mandatory and unique element as first arg ***
                                 Mandatory 'name' attribute in childs -->
