@@ -60,7 +60,7 @@ class RulesManager:
     
     # This method will be called by 'check_rules_arg' with the 
     #   purpose of get recursively the args from the rules file
-    def check_rules_arg_recursive(self, arg, element, father, arg_reference, args_reference, save_args):
+    def check_rules_arg_recursive(self, arg, element, father, arg_reference, args_reference, save_args, sort_args):
         # Make a list if it is not
         _element = arg[element]
         if (type(_element) is not list):
@@ -95,10 +95,10 @@ class RulesManager:
                 return False
 
             # Recursive checking
-            if (not self.check_rules_arg(__element, element, father, save_args, _arg_reference)):
+            if (not self.check_rules_arg(__element, element, father, save_args, _arg_reference, sort_args)):
                 return False
 
-    def check_rules_arg(self, arg, father, grandpa, save_args, args_reference):
+    def check_rules_arg(self, arg, father, grandpa, save_args, args_reference, sort_args):
         _arg = arg
 
         if (father == "args" and save_args):
@@ -119,7 +119,7 @@ class RulesManager:
                 # Mandatory and unique element as first arg
                 if (is_key_in_dict(__arg, "dict")):
                     # Recursive checking
-                    return self.check_rules_arg(__arg["dict"], "dict", father, save_args, args_reference)
+                    return self.check_rules_arg(__arg["dict"], "dict", father, save_args, args_reference, sort_args)
                 else:
                     return False
 
@@ -132,7 +132,7 @@ class RulesManager:
                 arg_reference = {}
 
                 # Recursive checking
-                self.check_rules_arg_recursive(__arg, "dict", father, arg_reference, args_reference, save_args)
+                self.check_rules_arg_recursive(__arg, "dict", father, arg_reference, args_reference, save_args, sort_args)
 
             # List (optional)
             if (is_key_in_dict(__arg, "list")):
@@ -176,14 +176,14 @@ class RulesManager:
                 #        return False
 
                 arg_reference = []
-                self.check_rules_arg_recursive(__arg, "list", father, arg_reference, args_reference, save_args)
+                self.check_rules_arg_recursive(__arg, "list", father, arg_reference, args_reference, save_args, sort_args)
 
             # Element (optional)
             if (is_key_in_dict(__arg, "element")):
                 valid += 1
 
                 # Recursive checking
-                self.check_rules_arg_recursive(__arg, "element", father, None, args_reference, save_args)
+                self.check_rules_arg_recursive(__arg, "element", father, None, args_reference, save_args, sort_args)
 
             # Attribute checking
             # Elements inside a "dict" has to have the "name" attribute
@@ -263,25 +263,39 @@ class RulesManager:
                 modules = [modules]
             
             for module in modules:
-                if (len(module) != 3):
+                args_sorting_defined_test = False
+
+                if (len(module) == 4):
+                    args_sorting_defined_test = True
+                elif (len(module) != 3):
                     raise Exception("boa_rules.modules.module has not the expected #elements")
 
                 module["module_name"]
                 module["class_name"]
                 
                 args = module["args"]
+                sort_args = False
+
+                try:
+                    if (module["args_sorting"].lower() == "true"):
+                        sort_args = True
+                except:
+                    if (args_sorting_defined_test):
+                        raise Exception("boa_rules.modules.module has not the expected #elements")
 
                 if (type(args) is not list):
                     args = [args]
 
                 arg_reference = {}
 
+                # FIXME args are being saved directly in self.args instead of be module dependent!!
+
                 if (save_args and self.args == None):
                     # Initialize args to dict to work with the reference
                     self.args = arg_reference
 
                 for arg in args:
-                    if (not self.check_rules_arg(arg, "args", "module", save_args, arg_reference)):
+                    if (not self.check_rules_arg(arg, "args", "module", save_args, arg_reference, sort_args)):
                         if (save_args):
                             # Reset the args because the args checking failed
                             self.args = None
