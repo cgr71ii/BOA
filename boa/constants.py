@@ -48,6 +48,7 @@ class Error:
     error_rules_could_not_read_file = 43
     error_rules_could_not_close_file = 44
     error_rules_bad_checking = 45
+    error_rules_args_not_found = 46
 
     # Main loop errors
     error_loop_args_wrong_type = 50

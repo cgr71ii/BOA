@@ -16,6 +16,25 @@
             <class_name>BOAM_function_match</class_name>
             <args>
                 <dict>
+                    <!-- Old -->
+                    <!--
+                    <list name="methods">
+                        <element value="put" />
+                        <element value="printf" />
+                        <element value="strcpy" />
+                    </list>
+                    <list name="severity">
+                        <element value="CRITICAL" />
+                        <element value="NORMAL" />
+                        <element value="HIGH" />
+                    </list>
+                    <list name="description">
+                        <element value="The function 'put' can make crash your program when the input length is higher than the destination pointer" />
+                        <element value="First argument has to be constant and not an user controlled input to avoid buffer overflow and data leakage" />
+                        <element value="Destination pointer length has to be greater than origin to avoid buffer overflow threats" />
+                    </list>
+                    -->
+                    <!-- New -->
                     <list name="methods">
                         <dict>
                             <element name="method" value="put" />

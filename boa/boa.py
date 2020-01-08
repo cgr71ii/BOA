@@ -5,6 +5,7 @@ from constants import Error
 from args_manager import ArgsManager
 from exceptions import ParseError
 from util import eprint
+from util import is_key_in_dict
 from modules_importer import ModulesImporter
 from main_loop import MainLoop
 from rules_manager import RulesManager
@@ -146,10 +147,6 @@ def main():
 	if (rtn_code != Meta.ok_code):
 		return rtn_code
 	
-	# TODO Parse and check rules (XML)
-	modules   = []
-	classes   = []
-	mods_args = {}	# {"class": {"arg1": "value2", "arg2": ["value2", "value3"]}}
 	rules_manager = RulesManager(ArgsManager.args.rules_file)
 
 	rtn_code = rules_manager.open()
@@ -171,25 +168,39 @@ def main():
 	if (not rules_manager.check_rules(True)):
 		return Error.error_rules_bad_checking
 	
+	modules   = []
+	classes   = []
+	mods_args = {}	# {"class": {"arg1": "value2", "arg2": ["value2", "value3"]}}
+
 	args = rules_manager.get_args()
-	rules = rules_manager.get_rules()
+	rmodules = rules_manager.get_rules("boa_rules.modules.module", True)
 
-	print(f"args: {args}")
+	for m in rmodules:
+		module_name = m["module_name"]
+		class_name = m["class_name"]
 
-	#print(f"Rules:\n----\n{rules}\n----")
+		modules.append(module_name)
+		classes.append(class_name)
+		
+		if (not is_key_in_dict(args, f"{module_name}.{class_name}")):
+			eprint(f"Error: args for module {module_name}.{class_name} not found.")
+			return Error.error_rules_args_not_found
 
-	# Parse XML ...
-	# Append ...
+		mods_args[f"{module_name}.{class_name}"] = args[f"{module_name}.{class_name}"]
+
+	#print(f"modules: {modules}")
+	#print(f"classes: {classes}")
+	#print(f"mods_args: {mods_args}")
 
 	# FIXME Tmp for testing
-	modules   = ["boam_function_match"]
-	classes   = ["BOAM_function_match"]
-	mods_args = {"BOAM_function_match": 
-					{"methods": ["put", "printf", "strcpy"], 
-					 "severity": ["CRITICAL", "NORMAL", "HIGH"], 
-					 "description": ["The function 'put' can make crash your program when the input length is higher than the destination pointer", 
-					 				 "First argument has to be constant and not an user controlled input to avoid buffer overflow and data leakage",
-									 "Destination pointer length has to be greater than origin to avoid buffer overflow threats"]}}
+	#modules   = ["boam_function_match"]
+	#classes   = ["BOAM_function_match"]
+	#mods_args = {"boam_function_match.BOAM_function_match": 
+	#				{"methods": ["put", "printf", "strcpy"], 
+	#				 "severity": ["CRITICAL", "NORMAL", "HIGH"], 
+	#				 "description": ["The function 'put' can make crash your program when the input length is higher than the destination pointer", 
+	#				 				 "First argument has to be constant and not an user controlled input to avoid buffer overflow and data leakage",
+	#								 "Destination pointer length has to be greater than origin to avoid buffer overflow threats"]}}
 
 	if (len(modules) != len(classes) or
 		len(modules) != len(mods_args)):
@@ -229,7 +240,7 @@ def main():
 
 	while (index < len(modules)):
 		try:
-			mod_args = mods_args[classes[index]]
+			mod_args = mods_args[f"{modules[index]}.{classes[index]}"]
 		except KeyError as e:
 			eprint(f"Error: could not get {e} arguments due to a bad naming reference.")
 			return Error.error_rules_bad_naming_references

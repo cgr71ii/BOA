@@ -392,8 +392,25 @@ class RulesManager:
 
         return True
 
-    def get_rules(self):
-        return self.rules
+    def get_rules(self, path = None, list_type = False):
+        if (path == None):
+            return self.rules
+        else:
+            rules = self.rules
+
+            for p in path.split("."):
+                try:
+                    rules = rules[p]
+                except Exception as e:
+                    eprint(f"Error: could not get the rules concrete rules: {e}. Returning all the rules.")
+
+                    return self.rules
+
+            if (list_type):
+                if (type(rules) is not list):
+                    rules = [rules]
+
+            return rules
 
     def set_args(self, module, arg):
         if (self.args == None):
