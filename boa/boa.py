@@ -188,20 +188,6 @@ def main():
 
 		mods_args[f"{module_name}.{class_name}"] = args[f"{module_name}.{class_name}"]
 
-	#print(f"modules: {modules}")
-	#print(f"classes: {classes}")
-	#print(f"mods_args: {mods_args}")
-
-	# FIXME Tmp for testing
-	#modules   = ["boam_function_match"]
-	#classes   = ["BOAM_function_match"]
-	#mods_args = {"boam_function_match.BOAM_function_match": 
-	#				{"methods": ["put", "printf", "strcpy"], 
-	#				 "severity": ["CRITICAL", "NORMAL", "HIGH"], 
-	#				 "description": ["The function 'put' can make crash your program when the input length is higher than the destination pointer", 
-	#				 				 "First argument has to be constant and not an user controlled input to avoid buffer overflow and data leakage",
-	#								 "Destination pointer length has to be greater than origin to avoid buffer overflow threats"]}}
-
 	if (len(modules) != len(classes) or
 		len(modules) != len(mods_args)):
 		eprint(f"Error: modules length ({len(modules)}), classes length ({len(classes)}) and arguments length ({len(mods_args)}) are not equal.")
