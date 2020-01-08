@@ -98,6 +98,20 @@ class RulesManager:
             if (not self.check_rules_arg(__element, element, father, save_args, _arg_reference, sort_args)):
                 return False
 
+    def get_index_from_tuple_with_dict_flavour(self, t, value, key_position = 0):
+        index = 0
+
+        if (type(t) is not list):
+            t = [t]
+
+        for i in t:
+            if (i[key_position] == value):
+                return index
+
+            index += 1
+
+        return None
+
     def check_rules_arg(self, arg, father, grandpa, save_args, args_reference, sort_args):
         _arg = arg
 
@@ -111,7 +125,21 @@ class RulesManager:
         if (type(_arg) is not list):
             _arg = [_arg]
 
+        sort_args_calling_queue = {}
+        sort_args_arg_list = None
+        index = 0
+
         for __arg in _arg:
+            #print(f"grandpa:father -> {grandpa}:{father}")
+            #print(f"args_reference: {args_reference}")
+            #print(f"type(__arg): {type(__arg)}")
+            #print(f"len(__arg): {len(__arg)}")
+            #print(f"__arg: {__arg}")
+            #print(f"__arg")
+
+            if (sort_args and sort_args_arg_list == None):
+                sort_args_arg_list = list(__arg.items())
+
             # 1st checking
             if (father == "args" and len(__arg) != 1):
                 return False
@@ -130,14 +158,27 @@ class RulesManager:
             if (is_key_in_dict(__arg, "dict")):
                 valid += 1
                 arg_reference = {}
+                sort_args_index = None
 
-                # Recursive checking
-                self.check_rules_arg_recursive(__arg, "dict", father, arg_reference, args_reference, save_args, sort_args)
+                if (sort_args):
+                    sort_args_index = self.get_index_from_tuple_with_dict_flavour(sort_args_arg_list, "dict")
+
+                if (sort_args_index != None):
+                    # Sorting calls
+                    sort_args_calling_queue[str(sort_args_index)] = "dict"
+                    sort_args_calling_queue[f"{str(sort_args_index)}.arg_reference"] = arg_reference
+                else:
+                    if (sort_args_index == None and sort_args):
+                        eprint(f"Warning: args sorting failed. The result might be disordered.")
+
+                    # Recursive checking
+                    self.check_rules_arg_recursive(__arg, "dict", father, arg_reference, args_reference, save_args, sort_args)
 
             # List (optional)
             if (is_key_in_dict(__arg, "list")):
-                valid += 1
-
+                #valid += 1
+                #arg_reference = []
+                #
                 # If we want to save the args, we need a call for each args processing in case of a list (>1 list at same deepness)
                 # However, in the case we need not, the same number of calls will be processed in the next call, so we make the job now and we avoid to complex the logic
                 #if (type(__arg["list"]) is list and save_args):
@@ -150,15 +191,15 @@ class RulesManager:
                 #    # Recursive checking
                 #    if (not self.check_rules_arg(__arg["list"], "list", father, save_args, args_reference)):
                 #        return False
-
+                #
                 # Make a list if it is not
                 #_list = __arg["list"]
                 #if (type(__arg["list"]) is not list):
                 #    _list = [_list]
-#
+                #
                 #for __list in _list:
                 #    arg_reference = []
-#
+                #
                 #    if (father == "dict"):
                 #        if (not is_key_in_dict(__list, "@name")):
                 #            return False
@@ -170,20 +211,58 @@ class RulesManager:
                 #    else:
                 #        # It should not happen
                 #        return False
-#
+                #
                 #    # Recursive checking
                 #    if (not self.check_rules_arg(__list, "list", father, save_args, arg_reference)):
                 #        return False
 
+                valid += 1
                 arg_reference = []
-                self.check_rules_arg_recursive(__arg, "list", father, arg_reference, args_reference, save_args, sort_args)
+                sort_args_index = None
+
+                if (sort_args):
+                    sort_args_index = self.get_index_from_tuple_with_dict_flavour(sort_args_arg_list, "list")
+
+                if (sort_args_index != None):
+                    # Sorting calls
+                    sort_args_calling_queue[str(sort_args_index)] = "list"
+                    sort_args_calling_queue[f"{str(sort_args_index)}.arg_reference"] = arg_reference
+                else:
+                    if (sort_args_index == None and sort_args):
+                        eprint(f"Warning: args sorting failed. The result might be disordered.")
+                        
+                    # Recursive checking
+                    self.check_rules_arg_recursive(__arg, "list", father, arg_reference, args_reference, save_args, sort_args)
 
             # Element (optional)
             if (is_key_in_dict(__arg, "element")):
                 valid += 1
+                arg_reference = None
+                sort_args_index = None
 
-                # Recursive checking
-                self.check_rules_arg_recursive(__arg, "element", father, None, args_reference, save_args, sort_args)
+                if (sort_args):
+                    sort_args_index = self.get_index_from_tuple_with_dict_flavour(sort_args_arg_list, "element")
+
+                if (sort_args_index != None):
+                    # Sorting calls
+                    sort_args_calling_queue[str(sort_args_index)] = "element"
+                    sort_args_calling_queue[f"{str(sort_args_index)}.arg_reference"] = arg_reference
+                else:
+                    if (sort_args_index == None and sort_args):
+                        eprint(f"Warning: args sorting failed. The result might be disordered.")
+
+                    # Recursive checking
+                    self.check_rules_arg_recursive(__arg, "element", father, arg_reference, args_reference, save_args, sort_args)
+
+            # If sort_args, make the calls now orderly
+            if (sort_args and sort_args_arg_list != None):
+                for i in range(len(sort_args_arg_list)):
+                    if (is_key_in_dict(sort_args_calling_queue, str(i))):
+                        element = sort_args_calling_queue[str(i)]
+                        arg_reference = sort_args_calling_queue[f"{str(i)}.arg_reference"]
+
+                        self.check_rules_arg_recursive(__arg, element, father, arg_reference, args_reference, save_args, sort_args)
+
 
             # Attribute checking
             # Elements inside a "dict" has to have the "name" attribute
@@ -212,6 +291,8 @@ class RulesManager:
             elif (valid == 0 and father != "args"):
                 # No valid arguments defined inside the tag
                 return False
+
+            index += 1
 
         return True
 

@@ -18,7 +18,20 @@
             <args_sorting>true</args_sorting> <!--  Optional
                                                     Default value: false
                                                     Allowed value: true
-                                                    Other values: default value -->
+                                                    Other values: default value
+                                                    It makes a PARTIAL sorting: when combining elements, 
+                                                        elements of the same type will be group depending 
+                                                        on the element that first was parsed.
+                                                        Example:
+                                                        element1 | list1 | element2 | dict1 | list2
+                                                        Without partial sorting:
+                                                        dict1 | list1 | list2 | element1 element2
+                                                        With partial sorting:
+                                                        element1 | element2 | list1 | list2 | dict1
+                                                    If you want the elements totally sorted combining them:
+                                                        combine elements, enable this option and write the
+                                                        elements without jumps (first all the "dict", "list"
+                                                        or "element" elements, ...) -->
             <args>  <!--    Mandatory
                             If you use 'list', 'dict' and 'element' in combination at the same deepness, the result will not be sorted in the same way you wrote the rules
                             If you no use these elements in combination, the result will be sorted
@@ -52,6 +65,8 @@
                                 </dict>
                             </dict>
                         </list>
+
+                        <element value="list3_val2" />
                     </list>
                 </dict>
             </args>
@@ -65,6 +80,38 @@
 
                     <list name="dict_list_element">
                         <element value="list_element" />
+                        
+                        <list>
+                            <list>
+
+                            </list>
+                            <dict>
+
+                            </dict>
+                        </list>
+                    </list>
+                </dict>
+            </args>
+        </module>
+        <module>
+            <module_name>Other module with args_sorting</module_name>
+            <class_name>Other class with args_sorting</class_name>
+            <args_sorting>true</args_sorting>
+            <args>
+                <dict>
+                    <element name="dict_element" value="dict_value" />
+
+                    <list name="dict_list_element">
+                        <element value="list_element" />
+                        
+                        <list>
+                            <list>
+
+                            </list>
+                            <dict>
+
+                            </dict>
+                        </list>
                     </list>
                 </dict>
             </args>
