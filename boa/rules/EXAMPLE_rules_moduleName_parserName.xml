@@ -56,5 +56,18 @@
                 </dict>
             </args>
         </module>
+        <module>
+            <module_name>Other module</module_name>
+            <class_name>Other class</class_name>
+            <args>
+                <dict>
+                    <element name="dict_element" value="dict_value" />
+
+                    <list name="dict_list_element">
+                        <element value="list_element" />
+                    </list>
+                </dict>
+            </args>
+        </module>
     </modules>
 </boa_rules>

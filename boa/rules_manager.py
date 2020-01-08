@@ -270,8 +270,8 @@ class RulesManager:
                 elif (len(module) != 3):
                     raise Exception("boa_rules.modules.module has not the expected #elements")
 
-                module["module_name"]
-                module["class_name"]
+                module_name = module["module_name"]
+                class_name = module["class_name"]
                 
                 args = module["args"]
                 sort_args = False
@@ -288,11 +288,9 @@ class RulesManager:
 
                 arg_reference = {}
 
-                # FIXME args are being saved directly in self.args instead of be module dependent!!
-
                 if (save_args and self.args == None):
                     # Initialize args to dict to work with the reference
-                    self.args = arg_reference
+                    self.args = {}
 
                 for arg in args:
                     if (not self.check_rules_arg(arg, "args", "module", save_args, arg_reference, sort_args)):
@@ -301,6 +299,11 @@ class RulesManager:
                             self.args = None
 
                         raise Exception("boa_rules.modules.module.args is not correct")
+
+                if (save_args and not self.set_args(f"{module_name}.{class_name}", arg_reference)):
+                    # Reset the args because we could not set the args
+                    self.args = None
+                    raise Exception("boa_rules.modules.module is not correct (f'{module's name}.{class's name}' already set?)")
 
         except Exception as e:
             eprint(f"Warning: rules did not pass the checking: {e}.")
@@ -311,5 +314,32 @@ class RulesManager:
     def get_rules(self):
         return self.rules
 
-    def get_args(self):
-        return self.args
+    def set_args(self, module, arg):
+        if (self.args == None):
+            self.args = {}
+        elif (type(self.args) is not dict):
+            eprint("Error: args type is not a dict.")
+            return False
+        elif (is_key_in_dict(self.args, module)):
+            eprint(f"Warning: args for module '{module}' already exists. Overwriting it.")
+
+        try:
+            self.args[module] = arg
+
+            return True
+        except Exception as e:
+            eprint(f"Error: {e}.")
+
+            return False
+
+    def get_args(self, module = None):
+        if (module == None):
+            return self.args
+
+        if (self.args != None and
+            type(self.args) is dict and
+            is_key_in_dict(self.args, module)):
+            return self.args[module]
+        else:
+            eprint(f"Warning: could not get the args for module '{module}'.")
+            return None
