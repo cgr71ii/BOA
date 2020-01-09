@@ -1,7 +1,7 @@
 
 # Own libs
 from boam_abstract import BOAM_abstract
-from exceptions import BOAM_exception
+from own_exceptions import BOAM_exception
 
 class BOAM_function_match(BOAM_abstract):
     

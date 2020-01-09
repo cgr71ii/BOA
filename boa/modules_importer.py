@@ -5,7 +5,7 @@ from util import eprint
 from util import get_current_path
 from util import file_exists
 from util import value_exists_in_array
-from exceptions import BOAModuleNotLoaded
+from own_exceptions import BOAModuleNotLoaded
 
 # Std libs
 import importlib.util

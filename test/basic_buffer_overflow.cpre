@@ -1,0 +1,27 @@
+# 1 "test/basic_buffer_overflow.c"
+# 1 "<interno>"
+# 1 "<línea-de-órdenes>"
+# 31 "<línea-de-órdenes>"
+# 1 "/usr/include/stdc-predef.h" 1 3 4
+# 32 "<línea-de-órdenes>" 2
+# 1 "test/basic_buffer_overflow.c"
+
+
+
+int main(int argc, char** argv)
+{
+    char name[20];
+
+    if (argc > 1)
+    {
+        strcpy(name, argv[1]);
+    }
+    else
+    {
+        strcpy(name, "Jak");
+    }
+
+    printf("Hello, %s.\n", name);
+
+    return 0;
+}

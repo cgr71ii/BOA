@@ -3,7 +3,7 @@
 from constants import Meta
 from constants import Error
 from util import eprint
-from exceptions import BOAM_exception
+from own_exceptions import BOAM_exception
 from pycparser_ast_preorder_visitor import PreorderVisitor
 from util import get_name_from_class_instance
 

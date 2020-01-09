@@ -2,11 +2,11 @@
 # Std libs
 from abc import ABCMeta, abstractmethod
 
-'''
+"""
 Advice: use exception with descriptive messages if you want 
         to know descriptive information about your errors.
-        You can use exceptions.BOAM_exception for that purpose
-'''
+        You can use own_exceptions.BOAM_exception for that purpose
+"""
 
 # This  file name has to match with constants.Meta.abstract_module_name
 # This class name has to match with constants.Meta.abstract_module_class_name
