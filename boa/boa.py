@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 
-"""
-BOA main file
--------------
+"""BOA main file
 
 This file handles the high level interaction with BOA.
 
 Main tasks:
- - It handles args
- - It handles parser modules
- - It handles code modules (BOA's goal)
- - It handles the general flow
-
+    It handles args\n
+    It handles parser modules\n
+    It handles code modules (BOA's goal)\n
+    It handles the general flow\n
 """
 
 # Std libs
@@ -32,13 +29,12 @@ from modules_importer import ModulesImporter
 from main_loop import MainLoop
 from rules_manager import RulesManager
 
-"""
-It handles BOA's general args through ArgsManager class.
-
-Returns: status code
-Dependencies: args_manager.ArgsManager
-"""
 def manage_args():
+    """It handles BOA's general args through ArgsManager class.
+
+    Returns:
+        int: status code
+    """
 
     if len(sys.argv) == 1:
         sys.argv.append("-h")
@@ -55,13 +51,16 @@ def manage_args():
 
     return Meta.ok_code
 
-"""
-It parses the code file which is passed through the args.
-
-Returns: [status code, AST (Abstract Syntax Tree)]
-Dependencies: args_manager.ArgsManager, pycparser
-"""
 def parse_c_file():
+    """It parses the code file which is passed through the args.
+
+    Returns:
+        list: list containing:
+
+            int: status code\n
+            AST (Abstract Syntax Tree)
+    """
+
     file_path = ArgsManager.args.file
     ast = None
     rtn_code = Meta.ok_code
@@ -92,13 +91,16 @@ def parse_c_file():
 
     return [rtn_code, ast]
 
-"""
-It handles the modules loading through ModulesImporter class.
-
-Returns: [status code, ModulesImporter instance]
-Dependencies: modules_importer.ModulesImporter
-"""
 def load_modules(user_modules):
+    """It handles the modules loading through ModulesImporter class.
+
+    Returns:
+        list: list contining:
+
+            int: status code\n
+            ModulesImporter: ModulesImporter instance
+    """
+
     mandatory_modules = [Meta.abstract_module_name]
     modules = mandatory_modules + user_modules
 
@@ -132,12 +134,19 @@ def load_modules(user_modules):
 
     return [rtn_code, mod_loader]
 
-"""
-It handles the instances loading throught a ModulesImporter instance
-
-Returns: [status code, loaded instance]
-"""
 def load_instance(module_loader, module_name, class_name, module_args):
+    """It handles the instances loading throught a ModulesImporter instance
+
+    rtn_code (int): status code\n
+    instance: loaded instance
+
+    Returns:
+        list: list containing:
+
+            int: status code\n
+            loaded instance
+    """
+
     instance = module_loader.get_instance(module_name, class_name)
 
     if instance is None:
@@ -153,13 +162,14 @@ def load_instance(module_loader, module_name, class_name, module_args):
 
     return [Meta.ok_code, instance]
 
-"""
-It handles the non-loaded modules errors (it is optional to continue if 
- some modules did not be loaded properly) through a ModulesImporter instance
-
-Returns: status code
-"""
 def remove_not_loaded_modules(mod_loader, modules, classes, mods_args):
+    """It handles the non-loaded modules errors (it is optional to continue if
+    some modules did not be loaded properly) through a ModulesImporter instance
+
+    Returns:
+        int: status code
+    """
+
     not_loaded_modules = mod_loader.get_not_loaded_modules()
     rtn_code = Meta.ok_code
 
@@ -179,14 +189,17 @@ def remove_not_loaded_modules(mod_loader, modules, classes, mods_args):
 
     return rtn_code
 
-"""
-It handles the rules file (parsing, checking and processing)
- through RulesManager class
-
-Returns: [status code, RulesManager instance]
-Dependencies: rules_manager.RulesManager
-"""
 def manage_rules_file():
+    """It handles the rules file (parsing, checking and processing)
+    through RulesManager class
+
+    Returns:
+        list: list contining:
+
+            int: status code\n
+            RulesManager: RulesManager instance
+    """
+
     rules_manager = RulesManager(ArgsManager.args.rules_file)
 
     # Open file
@@ -212,13 +225,13 @@ def manage_rules_file():
 
     return [Meta.ok_code, rules_manager]
 
-"""
-It handles the main loop through MainLoop class
-
-Returns: status code
-Dependencies: main_loop.MainLoop
-"""
 def manage_main_loop(instances, ast):
+    """It handles the main loop through MainLoop class
+
+    Returns:
+        int: status code
+    """
+
     main_loop = MainLoop(instances, ast)
 
     # It handles the loop work
@@ -226,12 +239,13 @@ def manage_main_loop(instances, ast):
 
     return rtn_code
 
-"""
-It handles the main BOA's flow at a high level
-
-Returns: status code
-"""
 def main():
+    """It handles the main BOA's flow at a high level
+
+    Returns:
+        int: status code
+    """
+
     print(f"Welcome to {Meta.name} - Version {Meta.version}\n")
 
     # Parse and check args

@@ -3,7 +3,7 @@
 from constants import Meta
 from constants import Error
 from util import eprint
-from own_exceptions import BOAM_exception
+from own_exceptions import BOAModuleException
 from pycparser_ast_preorder_visitor import PreorderVisitor
 from util import get_name_from_class_instance
 
@@ -80,7 +80,7 @@ class MainLoop:
                         getattr(instance, methods_name[index])()
                     else:
                         getattr(instance, methods_name[index])(args[index])
-                except BOAM_exception as e:
+                except BOAModuleException as e:
                     eprint(f"Error: {e.message}.")
                     exception = True
                 except Exception as e:

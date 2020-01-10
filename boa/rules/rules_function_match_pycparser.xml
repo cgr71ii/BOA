@@ -5,7 +5,7 @@
         <name>pycparser</name>
         <lang_objective>C</lang_objective>
         <module_name>boapm_pycparser</module_name>
-        <class_name>BOAPM_pycparser</class_name>
+        <class_name>BOAParserModulePycparser</class_name>
         <callback>
             <method name="ast" callback="get_ast" />
         </callback>
@@ -13,7 +13,7 @@
     <modules>
         <module>
             <module_name>boam_function_match</module_name>
-            <class_name>BOAM_function_match</class_name>
+            <class_name>BOAModuleFunctionMatch</class_name>
             <args>
                 <dict>
                     <!-- Old -->

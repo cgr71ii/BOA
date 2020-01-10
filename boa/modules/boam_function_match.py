@@ -1,9 +1,9 @@
 
 # Own libs
-from boam_abstract import BOAM_abstract
-from own_exceptions import BOAM_exception
+from boam_abstract import BOAModuleAbstract
+from own_exceptions import BOAModuleException
 
-class BOAM_function_match(BOAM_abstract):
+class BOAModuleFunctionMatch(BOAModuleAbstract):
     
     def initialize(self):
         #print("Calling to initialize.")
@@ -15,7 +15,7 @@ class BOAM_function_match(BOAM_abstract):
             method_name = method["method"]
 
             if (method_name in self.all_methods_name):
-                raise BOAM_exception(f"method '{method_name}' duplicated in rules", self)
+                raise BOAModuleException(f"method '{method_name}' duplicated in rules", self)
 
             self.all_methods_name.append(method_name)
             self.all_methods_reference.append(method)
