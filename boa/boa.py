@@ -298,7 +298,10 @@ def main():
     rtn = load_modules(modules)
     rtn_code = rtn[0]
     mod_loader = rtn[1]
-    fail_if_some_user_module_failed = True	# TODO BOA arg
+    fail_if_some_user_module_failed = False
+
+    if ArgsManager.args.no_fail is not None:
+        fail_if_some_user_module_failed = True
 
     if (rtn_code == Error.error_module_some_user_failed and fail_if_some_user_module_failed):
         return rtn_code

@@ -8,7 +8,7 @@ import os
 Print to stderr
 '''
 def eprint(*args, **kwargs):
-    print(*args, file = sys.stderr, **kwargs)
+    print(*args, file=sys.stderr, **kwargs)
 
 '''
 It returns the path where this current script is
@@ -21,7 +21,7 @@ We can give other start point through path argument
 
 IMPORTANT: it does not finish with slash
 '''
-def get_current_path(path = __file__):
+def get_current_path(path=__file__):
     real_path_to_script = os.path.realpath(path)
     real_path = os.path.split(real_path_to_script)[0]
 
@@ -41,9 +41,9 @@ def value_exists_in_array(array, value):
 def get_name_from_class_instance(instance):
     return f"{instance.__class__.__module__}.{instance.__class__.__name__}"
 
-def is_key_in_dict(d, key):
+def is_key_in_dict(dictionary, key):
     try:
-        d[key]
+        dictionary[key]
 
         return True
     except KeyError:

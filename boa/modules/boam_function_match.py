@@ -4,27 +4,25 @@ from boam_abstract import BOAModuleAbstract
 from own_exceptions import BOAModuleException
 
 class BOAModuleFunctionMatch(BOAModuleAbstract):
-    
+
     def initialize(self):
-        #print("Calling to initialize.")
-        
         self.all_methods_name = []
         self.all_methods_reference = []
 
         for method in self.args["methods"]:
             method_name = method["method"]
 
-            if (method_name in self.all_methods_name):
+            if method_name in self.all_methods_name:
                 raise BOAModuleException(f"method '{method_name}' duplicated in rules", self)
 
             self.all_methods_name.append(method_name)
             self.all_methods_reference.append(method)
 
     def process(self, token):
-        if (str(type(token)) == "<class 'pycparser.c_ast.FuncCall'>"):
+        if str(type(token)) == "<class 'pycparser.c_ast.FuncCall'>":
             function_name = token.name.name
 
-            if (function_name in self.all_methods_name):
+            if function_name in self.all_methods_name:
                 index = self.all_methods_name.index(function_name)
                 row = str(token.coord).split(':')[-2]
                 col = str(token.coord).split(':')[-1]
@@ -34,13 +32,10 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
                 print(f"{self.__class__.__name__}: {function_name}:{row}:{col} -> {severity} -> {description}")
 
     def clean(self):
-        #print("Calling to clean.")
         pass
 
     def save(self, report):
-        #print("Calling to save.")
         pass
 
     def finish(self):
-        #print("Calling to finish.")
         pass

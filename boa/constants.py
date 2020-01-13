@@ -10,15 +10,14 @@ class Meta:
 
 class Args:
     # Mandatory arguments has not to start with "--"
-    args_str   = [   "file",
-                     "rules_file"]
-    args_help  = [   "C language file to analyze.",
-                     "Rules file"]
+    args_str = ["file",
+                "rules_file"]
+    args_help = ["C language file to analyze.",
+                 "Rules file"]
 
     # Optional arguments has to start with "--"
-    opt_args_str  = [   ]
-
-    opt_args_help = [   ]
+    opt_args_str = ["--no-fail"]
+    opt_args_help = ["If a user module loading fails, BOA will stop."]
 
 class Error:
     # General errors

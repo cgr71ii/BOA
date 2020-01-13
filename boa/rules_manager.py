@@ -1,16 +1,16 @@
 
-# Own libs
-from constants import Meta
-from constants import Error
-from util import eprint
-from util import is_key_in_dict
-
 # Std libs
 import os
 import copy
 
 # 3rd libs
 import xmltodict
+
+# Own libs
+from constants import Meta
+from constants import Error
+from util import eprint
+from util import is_key_in_dict
 
 class RulesManager:
 
@@ -23,7 +23,7 @@ class RulesManager:
         self.args = None
 
     def open(self):
-        if (not os.path.exists(self.rules_file_path)):
+        if not os.path.exists(self.rules_file_path):
             eprint(f"Error: file '{self.rules_file_path}' does not exist.")
             return Error.error_file_not_found
 
@@ -34,7 +34,7 @@ class RulesManager:
             return Error.error_rules_could_not_open_file
 
         return Meta.ok_code
-        
+
     def read(self):
         try:
             self.xml = self.file.readlines()
@@ -48,7 +48,7 @@ class RulesManager:
             eprint(f"Error: {e}.")
             return Error.error_rules_could_not_read_file
         return Meta.ok_code
-    
+
     def close(self):
         try:
             self.file.close()
@@ -57,13 +57,13 @@ class RulesManager:
             return Error.error_rules_could_not_close_file
 
         return Meta.ok_code
-    
-    # This method will be called by 'check_rules_arg' with the 
+
+    # This method will be called by 'check_rules_arg' with the
     #   purpose of get recursively the args from the rules file
     def check_rules_arg_recursive(self, arg, element, father, arg_reference, args_reference, save_args, sort_args):
         # Make a list if it is not
         _element = arg[element]
-        if (type(_element) is not list):
+        if type(_element) is not list:
             _element = [_element]
 
         for __element in _element:
@@ -71,41 +71,43 @@ class RulesManager:
             #_arg_reference = arg_reference
             _arg_reference = None
 
-            if (arg_reference != None):
+            if arg_reference is not None:
                 _arg_reference = copy.deepcopy(arg_reference)
-            elif (element == "element"):
-                if (not is_key_in_dict(__element, "@value")):
+            elif element == "element":
+                if not is_key_in_dict(__element, "@value"):
                     return False
-                
+
                 _arg_reference = __element["@value"]
             else:
                 # It should not happen
                 return False
 
-            if (father == "dict"):
-                if (not is_key_in_dict(__element, "@name")):
+            if father == "dict":
+                if not is_key_in_dict(__element, "@name"):
                     return False
-                
+
                 name = __element["@name"]
                 args_reference[name] = _arg_reference
-            elif (father == "list"):
+            elif father == "list":
                 args_reference.append(_arg_reference)
             else:
                 # It should not happen
                 return False
 
             # Recursive checking
-            if (not self.check_rules_arg(__element, element, father, save_args, _arg_reference, sort_args)):
+            if not self.check_rules_arg(__element, element, father, save_args, _arg_reference, sort_args):
                 return False
 
-    def get_index_from_tuple_with_dict_flavour(self, t, value, key_position = 0):
+        return True
+
+    def get_index_from_tuple_with_dict_flavour(self, tupl, value, key_position=0):
         index = 0
 
-        if (type(t) is not list):
-            t = [t]
+        if type(tupl) is not list:
+            tupl = [tupl]
 
-        for i in t:
-            if (i[key_position] == value):
+        for i in tupl:
+            if i[key_position] == value:
                 return index
 
             index += 1
@@ -120,9 +122,9 @@ class RulesManager:
                 eprint(f"Error: check_rules_arg have to get an empty 'dict' as first args reference.")
                 return False
 
-        if (_arg == None):
+        if _arg is None:
             return True
-        if (type(_arg) is not list):
+        if type(_arg) is not list:
             _arg = [_arg]
 
         sort_args_calling_queue = {}
@@ -137,45 +139,45 @@ class RulesManager:
             #print(f"__arg: {__arg}")
             #print(f"__arg")
 
-            if (sort_args and sort_args_arg_list == None):
+            if (sort_args and sort_args_arg_list is None):
                 sort_args_arg_list = list(__arg.items())
 
             # 1st checking
             if (father == "args" and len(__arg) != 1):
                 return False
-            elif (father == "args"):
+            if father == "args":
                 # Mandatory and unique element as first arg
-                if (is_key_in_dict(__arg, "dict")):
+                if is_key_in_dict(__arg, "dict"):
                     # Recursive checking
                     return self.check_rules_arg(__arg["dict"], "dict", father, save_args, args_reference, sort_args)
-                else:
-                    return False
+
+                return False
 
             # nth checking
             valid = 0
 
             # Dict (optional)
-            if (is_key_in_dict(__arg, "dict")):
+            if is_key_in_dict(__arg, "dict"):
                 valid += 1
                 arg_reference = {}
                 sort_args_index = None
 
-                if (sort_args):
+                if sort_args:
                     sort_args_index = self.get_index_from_tuple_with_dict_flavour(sort_args_arg_list, "dict")
 
-                if (sort_args_index != None):
+                if sort_args_index is not None:
                     # Sorting calls
                     sort_args_calling_queue[str(sort_args_index)] = "dict"
                     sort_args_calling_queue[f"{str(sort_args_index)}.arg_reference"] = arg_reference
                 else:
-                    if (sort_args_index == None and sort_args):
+                    if (sort_args_index is None and sort_args):
                         eprint(f"Warning: args sorting failed. The result might be disordered.")
 
                     # Recursive checking
                     self.check_rules_arg_recursive(__arg, "dict", father, arg_reference, args_reference, save_args, sort_args)
 
             # List (optional)
-            if (is_key_in_dict(__arg, "list")):
+            if is_key_in_dict(__arg, "list"):
                 #valid += 1
                 #arg_reference = []
                 #
@@ -203,7 +205,7 @@ class RulesManager:
                 #    if (father == "dict"):
                 #        if (not is_key_in_dict(__list, "@name")):
                 #            return False
-                #        
+                #
                 #        name = __list["@name"]
                 #        args_reference[name] = arg_reference
                 #    elif (father == "list"):
@@ -220,44 +222,44 @@ class RulesManager:
                 arg_reference = []
                 sort_args_index = None
 
-                if (sort_args):
+                if sort_args:
                     sort_args_index = self.get_index_from_tuple_with_dict_flavour(sort_args_arg_list, "list")
 
-                if (sort_args_index != None):
+                if sort_args_index is not None:
                     # Sorting calls
                     sort_args_calling_queue[str(sort_args_index)] = "list"
                     sort_args_calling_queue[f"{str(sort_args_index)}.arg_reference"] = arg_reference
                 else:
-                    if (sort_args_index == None and sort_args):
+                    if (sort_args_index is None and sort_args):
                         eprint(f"Warning: args sorting failed. The result might be disordered.")
-                        
+
                     # Recursive checking
                     self.check_rules_arg_recursive(__arg, "list", father, arg_reference, args_reference, save_args, sort_args)
 
             # Element (optional)
-            if (is_key_in_dict(__arg, "element")):
+            if is_key_in_dict(__arg, "element"):
                 valid += 1
                 arg_reference = None
                 sort_args_index = None
 
-                if (sort_args):
+                if sort_args:
                     sort_args_index = self.get_index_from_tuple_with_dict_flavour(sort_args_arg_list, "element")
 
-                if (sort_args_index != None):
+                if sort_args_index is not None:
                     # Sorting calls
                     sort_args_calling_queue[str(sort_args_index)] = "element"
                     sort_args_calling_queue[f"{str(sort_args_index)}.arg_reference"] = arg_reference
                 else:
-                    if (sort_args_index == None and sort_args):
+                    if (sort_args_index is None and sort_args):
                         eprint(f"Warning: args sorting failed. The result might be disordered.")
 
                     # Recursive checking
                     self.check_rules_arg_recursive(__arg, "element", father, arg_reference, args_reference, save_args, sort_args)
 
             # If sort_args, make the calls now orderly
-            if (sort_args and sort_args_arg_list != None):
+            if (sort_args and sort_args_arg_list is not None):
                 for i in range(len(sort_args_arg_list)):
-                    if (is_key_in_dict(sort_args_calling_queue, str(i))):
+                    if is_key_in_dict(sort_args_calling_queue, str(i)):
                         element = sort_args_calling_queue[str(i)]
                         arg_reference = sort_args_calling_queue[f"{str(i)}.arg_reference"]
 
@@ -266,29 +268,29 @@ class RulesManager:
 
             # Attribute checking
             # Elements inside a "dict" has to have the "name" attribute
-            if (grandpa == "dict"):
+            if grandpa == "dict":
                 # Mandatory "name" attribute
-                if (is_key_in_dict(__arg, "@name")):
+                if is_key_in_dict(__arg, "@name"):
                     __arg["@name"]
                     valid += 1
                 else:
                     return False
             # "element" attributes
-            if (father == "element"):
-                if (grandpa != "dict" and grandpa != "list"):
+            if father == "element":
+                if (grandpa not in ["dict", "list"]):
                     # An "element" has to be inside a dict or a list
                     return False
                 # Mandatory "value" attribute
-                elif (is_key_in_dict(__arg, "@value")):
+                if is_key_in_dict(__arg, "@value"):
                     __arg["@value"]
                     valid += 1
                 else:
                     return False
 
-            if (valid != len(__arg)):
+            if valid != len(__arg):
                 # Argument defined but not all are valid
                 return False
-            elif (valid == 0 and father != "args"):
+            if (valid == 0 and father != "args"):
                 # No valid arguments defined inside the tag
                 return False
 
@@ -297,18 +299,18 @@ class RulesManager:
         return True
 
     def check_rules(self, save_args):
-        if (self.rules == None):
+        if self.rules is None:
             return False
 
         try:
             self.rules["boa_rules"]
 
-            if (len(self.rules["boa_rules"]) != 2):
+            if len(self.rules["boa_rules"]) != 2:
                 raise Exception("boa_rules has not the expected #elements")
 
             self.rules["boa_rules"]["parser"]
 
-            if (len(self.rules["boa_rules"]["parser"]) != 5):
+            if len(self.rules["boa_rules"]["parser"]) != 5:
                 raise Exception("boa_rules.parser has not the expected #elements")
 
             self.rules["boa_rules"]["parser"]["name"]
@@ -318,16 +320,16 @@ class RulesManager:
             self.rules["boa_rules"]["parser"]["callback"]
             self.rules["boa_rules"]["parser"]["callback"]["method"]
 
-            if (len(self.rules["boa_rules"]["parser"]["callback"]) != 1):
+            if len(self.rules["boa_rules"]["parser"]["callback"]) != 1:
                 raise Exception("boa_rules.parser.callback has not the expected #elements")
 
             methods = self.rules["boa_rules"]["parser"]["callback"]["method"]
 
-            if (type(methods) is not list):
+            if type(methods) is not list:
                 methods = [methods]
 
             for method in methods:
-                if (len(method) != 2):
+                if len(method) != 2:
                     raise Exception("boa_rules.parser.callback.method has not the expected #elements")
 
                 method["@name"]
@@ -335,47 +337,47 @@ class RulesManager:
 
             self.rules["boa_rules"]["modules"]
 
-            if (len(self.rules["boa_rules"]["modules"]) != 1):
+            if len(self.rules["boa_rules"]["modules"]) != 1:
                 raise Exception("boa_rules.modules has not the expected #elements")
 
             modules = self.rules["boa_rules"]["modules"]["module"]
 
-            if (type(modules) is not list):
+            if type(modules) is not list:
                 modules = [modules]
-            
+
             for module in modules:
                 args_sorting_defined_test = False
 
-                if (len(module) == 4):
+                if len(module) == 4:
                     args_sorting_defined_test = True
-                elif (len(module) != 3):
+                elif len(module) != 3:
                     raise Exception("boa_rules.modules.module has not the expected #elements")
 
                 module_name = module["module_name"]
                 class_name = module["class_name"]
-                
+
                 args = module["args"]
                 sort_args = False
 
                 try:
-                    if (module["args_sorting"].lower() == "true"):
+                    if module["args_sorting"].lower() == "true":
                         sort_args = True
                 except:
-                    if (args_sorting_defined_test):
+                    if args_sorting_defined_test:
                         raise Exception("boa_rules.modules.module has not the expected #elements")
 
-                if (type(args) is not list):
+                if type(args) is not list:
                     args = [args]
 
                 arg_reference = {}
 
-                if (save_args and self.args == None):
+                if (save_args and self.args is None):
                     # Initialize args to dict to work with the reference
                     self.args = {}
 
                 for arg in args:
-                    if (not self.check_rules_arg(arg, "args", "module", save_args, arg_reference, sort_args)):
-                        if (save_args):
+                    if not self.check_rules_arg(arg, "args", "module", save_args, arg_reference, sort_args):
+                        if save_args:
                             # Reset the args because the args checking failed
                             self.args = None
 
@@ -392,33 +394,33 @@ class RulesManager:
 
         return True
 
-    def get_rules(self, path = None, list_type = False):
-        if (path == None):
+    def get_rules(self, path=None, list_type=False):
+        if path is None:
             return self.rules
-        else:
-            rules = self.rules
 
-            for p in path.split("."):
-                try:
-                    rules = rules[p]
-                except Exception as e:
-                    eprint(f"Error: could not get the rules concrete rules: {e}. Returning all the rules.")
+        rules = self.rules
 
-                    return self.rules
+        for p in path.split("."):
+            try:
+                rules = rules[p]
+            except Exception as e:
+                eprint(f"Error: could not get the rules concrete rules: {e}. Returning all the rules.")
 
-            if (list_type):
-                if (type(rules) is not list):
-                    rules = [rules]
+                return self.rules
 
-            return rules
+        if list_type:
+            if type(rules) is not list:
+                rules = [rules]
+
+        return rules
 
     def set_args(self, module, arg):
-        if (self.args == None):
+        if self.args is None:
             self.args = {}
-        elif (type(self.args) is not dict):
+        elif type(self.args) is not dict:
             eprint("Error: args type is not a dict.")
             return False
-        elif (is_key_in_dict(self.args, module)):
+        elif is_key_in_dict(self.args, module):
             eprint(f"Warning: args for module '{module}' already exists. Overwriting it.")
 
         try:
@@ -430,14 +432,14 @@ class RulesManager:
 
             return False
 
-    def get_args(self, module = None):
-        if (module == None):
+    def get_args(self, module=None):
+        if module is None:
             return self.args
 
-        if (self.args != None and
-            type(self.args) is dict and
-            is_key_in_dict(self.args, module)):
+        if (self.args is not None and
+                type(self.args) is dict and
+                is_key_in_dict(self.args, module)):
             return self.args[module]
-        else:
-            eprint(f"Warning: could not get the args for module '{module}'.")
-            return None
+
+        eprint(f"Warning: could not get the args for module '{module}'.")
+        return None

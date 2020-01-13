@@ -2,13 +2,9 @@
 # Own libs
 from constants import Meta
 from constants import Error
-from util import eprint
+from util import eprint, get_name_from_class_instance
 from own_exceptions import BOAModuleException
 from pycparser_ast_preorder_visitor import PreorderVisitor
-from util import get_name_from_class_instance
-
-# Pycparser libs
-from pycparser.c_ast import NodeVisitor
 
 class MainLoop:
     def __init__(self, instances, ast):
@@ -29,9 +25,9 @@ class MainLoop:
         self.initialize_instances()
 
         # Process and clean
-        pv = PreorderVisitor()
+        visitor = PreorderVisitor(self.process_and_clean_instances)
 
-        pv.visit(self.ast, self.process_and_clean_instances)
+        visitor.visit(self.ast)
 
         # Save (report) and finish
         # TODO reports have been not implemented yet
@@ -41,16 +37,16 @@ class MainLoop:
 
     def loop(self, methods_name, error_verbs, args, force_invocation):
         if (type(methods_name) is not list or
-            type(error_verbs) is not list or
-            type(args) is not list or
-            type(force_invocation) is not list):
+                type(error_verbs) is not list or
+                type(args) is not list or
+                type(force_invocation) is not list):
             eprint(f"Error: arguments are not lists in main loop.")
             self.rtn_code = Error.error_loop_args_wrong_type
             return
 
         if (len(methods_name) != len(error_verbs) or
-            len(methods_name) != len(args) or
-            len(methods_name) != len(force_invocation)):
+                len(methods_name) != len(args) or
+                len(methods_name) != len(force_invocation)):
             eprint(f"Error: length in arguments are not equal in main loop.")
             self.rtn_code = Error.error_loop_args_neq_length
             return
@@ -59,13 +55,13 @@ class MainLoop:
             index = 0
             name = get_name_from_class_instance(instance)
 
-            while (index < len(methods_name)):
+            while index < len(methods_name):
                 # Warn about skipping action if any failure happended in the past
                 if (name not in self.instances_names and not force_invocation[index]):
                     instance_method_name = f"{name}.{methods_name[index]}"
 
                     # Warn only once
-                    if (instance_method_name not in self.instances_warned):
+                    if instance_method_name not in self.instances_warned:
                         eprint(f"Warning: skipping invocation to {instance_method_name} due to previous errors.")
                         self.instances_warned.append(instance_method_name)
 
@@ -76,7 +72,7 @@ class MainLoop:
 
                 # Invoke method and handle exceptions
                 try:
-                    if (args[index] == None):
+                    if args[index] is None:
                         getattr(instance, methods_name[index])()
                     else:
                         getattr(instance, methods_name[index])(args[index])
@@ -89,10 +85,10 @@ class MainLoop:
                 except:
                     eprint(f"Error: could not {error_verbs[index]} the instance {get_name_from_class_instance(instance)}.")
                     exception = True
-            
+
                 # Something failed. Warn about this in the future
-                if (exception):
-                    if (name in self.instances_names):
+                if exception:
+                    if name in self.instances_names:
                         self.instances_names.remove(name)
                         self.rtn_code = Error.error_loop_module_exception
 
