@@ -16,6 +16,8 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('../../modules'))
+sys.path.insert(0, os.path.abspath('../../parser_modules'))
 sys.setrecursionlimit(1500)
 
 # -- Project information -----------------------------------------------------
@@ -59,3 +61,6 @@ html_theme = 'classic'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# Own configuration
+todo_include_todos = True

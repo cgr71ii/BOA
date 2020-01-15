@@ -1,5 +1,5 @@
 
-.. _main-modules-boam-abstract:
+.. _lifecycle-modules-boam-abstract:
 
 BOAModule AST interface
 =======================

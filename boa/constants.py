@@ -1,5 +1,19 @@
 
+"""File with constant values.
+
+This file contains constant information about BOA.
+
+It contains multiple classes:\n
+1. Meta class: it contains information about BOA.
+2. Args class: it contains the mandatory and optional BOA arguments.
+3. Error class: it contains status code with a descriptive name.
+"""
+
 class Meta:
+    """Meta class.
+
+    It contains information about BOA like the version, the description, ...
+    """
     version = 0.1
     name = "BOA"
     description = "It attempts to detect buffer overflow threats in C language files."
@@ -9,6 +23,13 @@ class Meta:
     abstract_module_class_name = "BOAM_abstract"
 
 class Args:
+    """Args class.
+
+    It contains information about which kind of argumentes
+    can be suplied to BOA. Concretely, in this class can
+    be specified the name and the description of the
+    mandatory and optional arguments.
+    """
     # Mandatory arguments has not to start with "--"
     args_str = ["file",
                 "rules_file"]
@@ -20,6 +41,18 @@ class Args:
     opt_args_help = ["If a user module loading fails, BOA will stop."]
 
 class Error:
+    """Error class.
+
+    It contains information about the different error status code
+    we can find through BOA's code. The information that it is in
+    this class are just numeric status error with a descriptive
+    name to know exactly the cause of the error.
+
+    When BOA finishes the execution, it displays the status code.
+    If the status code displayed matches with Meta.ok_code,
+    it means that everything went fine. Otherwise, check the
+    status code within this class.
+    """
     # General errors
     # ok_code = 0
     error_unknown = 1

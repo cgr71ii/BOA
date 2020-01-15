@@ -1,4 +1,10 @@
 
+"""Main Loop.
+
+This file contains the class MainLoop, which handles the
+loop which is executed to analyze the language file.
+"""
+
 # Own libs
 from constants import Meta
 from constants import Error
@@ -7,10 +13,34 @@ from own_exceptions import BOAModuleException
 from pycparser_ast_preorder_visitor import PreorderVisitor
 
 class MainLoop:
+    """MainLoop class.
+
+    This class handles the modules intances. Concretely, it
+    initializes the instances, iterates the processing
+    throught them, and save the report records.
+
+    The steps which are followed depends on the lifecycle being
+    used by a concrete module (e.g. *boam_function_match.
+    BOAModuleFunctionMatch*).
+    """
+
     def __init__(self, instances, ast):
+        """It invokes self.initialize(instances, ast).
+
+        Arguments:
+            instances: module instances which will be looped.
+            ast: processed AST.
+        """
         self.initialize(instances, ast)
 
     def initialize(self, instances, ast):
+        """It initializes all the variables which will be used by
+        the other methods.
+
+        Arguments:
+            instances: module instances that are going to be saved.
+            ast: processed AST that is going to be saved.
+        """
         self.instances = instances
         self.instances_names = []
         self.instances_warned = []
@@ -21,6 +51,22 @@ class MainLoop:
             self.instances_names.append(get_name_from_class_instance(instance))
 
     def handle_loop(self):
+        """This method is the one which should be invoked to
+        handle the loop.
+
+        It invokes the next phases:
+
+        1. Initialization.\n
+        2. Process.\n
+        3. Clean.\n
+        4. Save report records.\n
+        5. Finish.\n
+
+        The way the phases are invoked depends on the lifecycle.
+
+        Returns:
+            int: self.rtn_code
+        """
         # Initialize
         self.initialize_instances()
 
@@ -36,10 +82,27 @@ class MainLoop:
         return self.rtn_code
 
     def loop(self, methods_name, error_verbs, args, force_invocation):
-        if (type(methods_name) is not list or
-                type(error_verbs) is not list or
-                type(args) is not list or
-                type(force_invocation) is not list):
+        """Method which invokes other methods with its arguments.
+
+        This method it is for internal use and should not be
+        called outside this class. This method is used by other
+        methods wisely (e.g. initialize_instances). However, it
+        is possible to use it if you know the internals of the
+        class.
+
+        Arguments:
+            methods_name (list): methods (str) which are going to
+                be invoked for each *self.instances*.
+            error_verbs (list): verbs (str) to error displaying.
+            args (list): args to be given to methods to be invoked.
+            force_invocation (bool): force a method invokation
+                despite something failed in the past (if false, when
+                a failure happens, a method will not be invoked).
+        """
+        if (not isinstance(methods_name, list) or
+                not isinstance(error_verbs, list) or
+                not isinstance(args, list) or
+                not isinstance(force_invocation, list)):
             eprint(f"Error: arguments are not lists in main loop.")
             self.rtn_code = Error.error_loop_args_wrong_type
             return
@@ -95,11 +158,24 @@ class MainLoop:
                 index += 1
 
     def initialize_instances(self):
+        """It invokes self.initialize method.
+        """
         self.loop(['initialize'], ['initialize'], [None], [False])
 
     def process_and_clean_instances(self, node):
+        """It invokes self.process and self.clean methods.
+
+        Arguments:
+            node: AST token which will be given to process().
+        """
         self.loop(['process', 'clean'], ['process', 'clean'], [node, None], [False, False])
 
     def save_and_finish_instances(self, report):
+        """It invokes self.save and self.finish methods.
+
+        Arguments:
+            report: report instance which will be used to save
+                the threat records.
+        """
         # Force invocation to "finish" for resource releasing purposes
         self.loop(['save', 'finish'], ['save (report)', 'finish'], [report, None], [False, True])

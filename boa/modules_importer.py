@@ -1,19 +1,31 @@
 
+"""Module Imports.
+
+This file contains the ModulesImporter class.
+"""
+
 # Std libs
 import importlib.util
 import sys
 
 # Own libs
 from constants import Meta
-from util import eprint
-from util import get_current_path
-from util import file_exists
-from util import value_exists_in_array
+from util import eprint, get_current_path, file_exists, is_key_in_dict
 from own_exceptions import BOAModuleNotLoaded
 
 class ModulesImporter:
+    """ModulesImporter class.
+
+    This class has the goal of loading the modules which
+    are specified in the given rules.
+    """
 
     def __init__(self, modules):
+        """It initializes the class.
+
+        Arguments:
+            modules (list): modules (str) which should be loaded after.
+        """
         self.modules = []
         self.loaded = []
         self.nmodules = 0
@@ -25,6 +37,15 @@ class ModulesImporter:
             self.loaded.append(False)
 
     def load(self):
+        """It attempts to load all the modules which were specified.
+
+        This method iterates through self.modules to attempt to loading
+        the modules. First, it checks if the module is already loaded.
+        Then, it attempts to load the module and if it is not able to,
+        it skips the current module to next.
+
+        The modules must be in *Meta.modules_directory* directory.
+        """
         index = -1
 
         for module in self.modules:
@@ -65,6 +86,14 @@ class ModulesImporter:
                 continue
 
     def is_module_loaded(self, module_name):
+        """It checks if a concrete module is already loaded.
+
+        Arguments:
+            module_name (str): module to check if it is loaded.
+
+        Returns:
+            bool: module_name is loaded
+        """
         index = self.modules.index(module_name)
 
         # Check if the module is loaded
@@ -74,11 +103,27 @@ class ModulesImporter:
         return True
 
     def get_module(self, module_name):
+        """It returns a already loaded module.
+
+        Arguments:
+            module_name (str): module name which is attempted to return.
+
+        Raises:
+            BOAModuleNotLoaded: when it is attempted to get a module
+                which is not loaded.
+            Exception: when a module is detected as loaded but it is
+                not loaded in *sys.modules*. It should not happen.
+
+        Todo: change Exception raiseness with a custom exception.
+
+        Returns:
+            Module if loaded; *None* otherwise
+        """
         try:
             if self.is_module_loaded(module_name) is False:
                 raise BOAModuleNotLoaded()
             # It should not happen
-            if value_exists_in_array(sys.modules, module_name) is False:
+            if is_key_in_dict(sys.modules, module_name) is False:
                 raise Exception()
 
             return sys.modules[module_name]
@@ -92,6 +137,15 @@ class ModulesImporter:
         return None
 
     def get_instance(self, module_name, class_name):
+        """It returns an instance of the class of a module.
+
+        Arguments:
+            module_name (str): module name which should contains *class_name*.
+            class_name (str): class name which is attempted to return.
+
+        Returns:
+            Module instance if module is loaded; *None* otherwise
+        """
         module = self.get_module(module_name)
         instance = None
 
@@ -108,12 +162,32 @@ class ModulesImporter:
         return instance
 
     def get_nmodules(self):
+        """It returns the number of modules which were suplied to the class
+        to be loaded.
+
+        A different variable is being used instead of len() method because
+        the variable which contains the methods to be loaded mutates
+        through the execution of the class methods.
+
+        Returns:
+            int: initial modules to be loaded
+        """
         return self.nmodules
 
     def get_nloaded(self):
+        """It returns the number of loaded modules at the moment of the calling.
+
+        Returns:
+            int: loaded modules
+        """
         return self.nloaded
 
     def get_not_loaded_modules(self):
+        """It returns the modules which have not been loaded.
+
+        Returns:
+            list: not loaded modules
+        """
         index = 0
         not_loaded_modules = []
 

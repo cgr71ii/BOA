@@ -1,47 +1,90 @@
 
+"""Utilities.
+
+This file contains diverse functions which will
+may be used from all BOA's files.
+
+This file does not have a concrete goal.
+"""
+
 # Std libs
 from __future__ import print_function
 import sys
 import os
 
-'''
-Print to stderr
-'''
 def eprint(*args, **kwargs):
+    """It prints to the error output (i.e. stderr).
+
+    Arguments:
+        \*args (variadic list): list to be given to *print* function.
+        \*\*kwargs (variadic dict): dict to be given to *print* function.
+    """
     print(*args, file=sys.stderr, **kwargs)
 
-'''
-It returns the path where this current script is
-
-This script should be in the same path that BOA is,
-and using realpath method, symbolic links are followed
-if the os support them
-
-We can give other start point through path argument
-
-IMPORTANT: it does not finish with slash
-'''
 def get_current_path(path=__file__):
+    """It returns the path where this current script is.
+
+    This script should be in the same path that BOA is,
+    and using realpath method, symbolic links are followed
+    if the os support them.
+
+    Arguments:
+        path (str): start point; the default is the current script.
+
+    Returns:
+        str: real path (it does not finish with '/')
+    """
     real_path_to_script = os.path.realpath(path)
     real_path = os.path.split(real_path_to_script)[0]
 
     return real_path
 
 def file_exists(file):
+    """It checks if the given file exists.
+
+    Arguments:
+        file (str): absolute or relative path to file.
+
+    Returns:
+        bool: true if the file exists; false otherwise
+    """
     return os.path.isfile(file)
 
-def value_exists_in_array(array, value):
-    try:
-        array[value]
-
-        return True
-    except:
-        return False
-
 def get_name_from_class_instance(instance):
-    return f"{instance.__class__.__module__}.{instance.__class__.__name__}"
+    """It returns a concrete format for a class instance.
+
+    The format is (without quotes): "module_name.class_name".
+
+    Arguments:
+        instance: instance from where we will get the information.
+
+    returns:
+        str: name for the given instance with a concrete format.
+        *None* if something wrong happened.
+    """
+    try:
+        return f"{instance.__class__.__module__}.{instance.__class__.__name__}"
+    except Exception as e:
+        eprint(f"Warning: could not return the correct format (is it a class instance?): {e}.")
+
+    return None
 
 def is_key_in_dict(dictionary, key):
+    """It checks if a given dictionary contains
+    a concrete value. A try-except is used to perform
+    this checking (EAFP) instead of other methods to
+    avoid a false positive when a dict key is defined
+    with a value of *None*.
+
+    Arguments:
+        dictionary (dict): dictionary to check.
+        key (str): key which will be checked if it is
+            in the dictionary.
+
+    Returns:
+        bool: true if the dictionary contains the key;
+        false otherwise
+    """
     try:
         dictionary[key]
 
@@ -51,3 +94,49 @@ def is_key_in_dict(dictionary, key):
     except Exception as e:
         eprint(f"Error: not expected error while checking if key is in dict: {e}.")
         return False
+
+def do_nothing(*args):
+    """Just what the name suggests: it does nothing.
+
+    This function is useful when a callback is needed
+    and no callback is provided, so this function is
+    used as default behaviour.
+
+    Arguments:
+        \*args (variadict list): indefinite number of args to be provided.
+    """
+
+def get_index_if_match_element_in_tuples(tuples, value, key_position=0, check_all_elements=False):
+    """It returns the index when a concrete value is
+    found in a list of given tuples.
+
+    Arguments:
+        tuples (list of tuples): list of tuples. If a only
+            a tuple is given, it will be wrapped in a list.
+        value: value to be found in a tuple.
+        key_position (int): position in the tuples to look
+            for the value. The default value is 0.
+        check_all_elements (bool): ignore *key_position* and
+            look for the value in all positions of the tuples.
+            The default value is *False*.
+
+    Returns:
+        int: index of the **first** tuple which contains
+        the value; *None* if the value it is not found.
+    """
+    index = 0
+
+    if not isinstance(tuples, list):
+        tuples = [tuples]
+
+    for tupl in tuples:
+        if check_all_elements:
+            for element in tupl:
+                if element == value:
+                    return index
+        elif tupl[key_position] == value:
+            return index
+
+        index += 1
+
+    return None

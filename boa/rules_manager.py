@@ -1,4 +1,21 @@
 
+"""Rules Manager file.
+
+This file contains the necessary methods in the
+RulesManager class to load, check and process the
+rules file.
+
+The file rules should contain all the necessary
+information to execute a concrete analysis.
+However, multiple and independent analysis
+might be executed.
+
+Each rules file should contain a complete analysis
+technique defined. If multiple modules are being used,
+this should be to reach the goal of execute a complex
+but concrete analysis.
+"""
+
 # Std libs
 import os
 import copy
@@ -9,12 +26,21 @@ import xmltodict
 # Own libs
 from constants import Meta
 from constants import Error
-from util import eprint
-from util import is_key_in_dict
+from util import eprint, is_key_in_dict, get_index_if_match_element_in_tuples
 
 class RulesManager:
+    """RulesManager class.
+
+    This class defines the necessary methods to load,
+    check and process the rules from a file.
+    """
 
     def __init__(self, rules_file):
+        """It initializes the necessary variables.
+
+        Arguments:
+            rules_file (str): path to the rules file.
+        """
         self.rules_file_path = rules_file
         self.file = None
         self.xml = None
@@ -23,6 +49,11 @@ class RulesManager:
         self.args = None
 
     def open(self):
+        """It opens the rules file, checking if exists first.
+
+        Returns:
+            int: status code
+        """
         if not os.path.exists(self.rules_file_path):
             eprint(f"Error: file '{self.rules_file_path}' does not exist.")
             return Error.error_file_not_found
@@ -36,6 +67,11 @@ class RulesManager:
         return Meta.ok_code
 
     def read(self):
+        """It reads the rules file and saves the necessary information.
+
+        Returns:
+            int: status code
+        """
         try:
             self.xml = self.file.readlines()
             self.xml_str = ''
@@ -50,6 +86,11 @@ class RulesManager:
         return Meta.ok_code
 
     def close(self):
+        """It closes the rules file to release the resource.
+
+        Returns:
+            int: status code
+        """
         try:
             self.file.close()
         except Exception as e:
@@ -61,9 +102,39 @@ class RulesManager:
     # This method will be called by 'check_rules_arg' with the
     #   purpose of get recursively the args from the rules file
     def check_rules_arg_recursive(self, arg, element, father, arg_reference, args_reference, save_args, sort_args):
+        """This method is used by *check_rules_arg* method.
+
+        This method wraps the common behaviour for saving the arguments
+        references and makes the necessary recursive calls for each
+        element. Moreover, it checks that the arguments, depending on
+        the concrete element, contains the expected attributes (e.g.
+        a dictionary's element contains a name attribute).
+
+        For details, check *check_rules_arg* documentation.
+
+        Arguments:
+            arg: current arg which is being checked (processed recursively).
+            element (str): the concrete type of element which is being given.
+                It may be "dict", "list" or *None*. If *None*, it indicates
+                that the element is a "element".
+            father (str): arg's father.
+            arg_reference: the new reference which will be appended to
+                *args_reference*.
+            args_reference: if *save_args* is *True*, this is the concrete
+                arg reference which it changes while recursion is being
+                processed. It changes the reference from call to call to
+                save the concrete args here.
+            save_args (bool): it indicates if you want to save the args
+                while they are being checked.
+            sort_args (bool): it indicates if you want a partial sorting
+                when you mix different type of elements.
+
+        Returns:
+            bool: true if the arguments are valid; false otherwise
+        """
         # Make a list if it is not
         _element = arg[element]
-        if type(_element) is not list:
+        if not isinstance(_element, list):
             _element = [_element]
 
         for __element in _element:
@@ -73,6 +144,8 @@ class RulesManager:
 
             if arg_reference is not None:
                 _arg_reference = copy.deepcopy(arg_reference)
+            # When "arg_reference" is None it indicates that "element" should contain
+            #  the value "element"
             elif element == "element":
                 if not is_key_in_dict(__element, "@value"):
                     return False
@@ -83,6 +156,7 @@ class RulesManager:
                 return False
 
             if father == "dict":
+                # If the father is a "dict", it should contain a "name" attr
                 if not is_key_in_dict(__element, "@name"):
                     return False
 
@@ -100,31 +174,72 @@ class RulesManager:
 
         return True
 
-    def get_index_from_tuple_with_dict_flavour(self, tupl, value, key_position=0):
-        index = 0
-
-        if type(tupl) is not list:
-            tupl = [tupl]
-
-        for i in tupl:
-            if i[key_position] == value:
-                return index
-
-            index += 1
-
-        return None
-
     def check_rules_arg(self, arg, father, grandpa, save_args, args_reference, sort_args):
+        """It checks if the <args> elements are correct recursevely.
+
+        This method works recursively making the following calls:\n
+        * check_rules_arg -> check_rules_arg_recursive
+        * check_rules_arg_recursive -> check_rules_arg
+
+        What this method makes is checking if the <args> elements
+        which are inside are correct and, optionally, save them to
+        being used by the target module which is specified in the
+        rules file.
+
+        If the arguments want to be saved, the order may not be the
+        expected. If the <args> elements are mixed, the predefined
+        order will be:\n
+        1. Dictionaries\n
+        2. Lists\n
+        3. Elements\n
+        If you want to have the elements in the correct order
+        which you wrote, you can avoid mixing the elements
+        or use the *sort_args* argument to have a partial sorting
+        (this partial sorting makes worse the performance while
+        checking). We say "partial" because the result will be
+        that if you are mixing elements, all them will be grouped
+        and will appear in the order which the first type of
+        element appeared.
+
+        Arguments:
+            arg: current arg which is being checked (processed recursively).
+            father (str): arg's father.
+            grandpa (str): arg's grandpa; father's father.
+            save_args (bool): it indicates if you want to save the args
+                while they are being checked.
+            args_reference: if *save_args* is *True*, this is the concrete
+                arg reference which it changes while recursion is being
+                processed. It changes the reference from call to call to
+                save the concrete args here.
+            sort_args (bool): it indicates if you want a partial sorting
+                when you mix different type of elements.
+
+        Example:
+            <args>\n
+            \t<dict>\n
+            \t\t<list name="l1"></list>\n
+            \t\t<dict name="d"></dict>\n
+            \t\t<element name="e" value="v" />\n
+            \t\t<list name="l2"></list>\n
+            \t</dict>\n
+            </args>\n
+
+            Unsorted result: {"d": {}, "l1": [], "l2": [], "e": "v"}\n
+            Partial sorted result: {"l1": [], "l2": [], "d": {}, "e": "v"}
+
+        Returns:
+            bool: true if the arguments are valid; false otherwise
+        """
         _arg = arg
 
         if (father == "args" and save_args):
-            if (type(args_reference) is not dict or len(args_reference) != 0):
+            if (not isinstance(args_reference, dict) or len(args_reference) != 0):
                 eprint(f"Error: check_rules_arg have to get an empty 'dict' as first args reference.")
                 return False
 
         if _arg is None:
             return True
-        if type(_arg) is not list:
+        if not isinstance(_arg, list):
             _arg = [_arg]
 
         sort_args_calling_queue = {}
@@ -163,7 +278,7 @@ class RulesManager:
                 sort_args_index = None
 
                 if sort_args:
-                    sort_args_index = self.get_index_from_tuple_with_dict_flavour(sort_args_arg_list, "dict")
+                    sort_args_index = get_index_if_match_element_in_tuples(sort_args_arg_list, "dict")
 
                 if sort_args_index is not None:
                     # Sorting calls
@@ -223,7 +338,7 @@ class RulesManager:
                 sort_args_index = None
 
                 if sort_args:
-                    sort_args_index = self.get_index_from_tuple_with_dict_flavour(sort_args_arg_list, "list")
+                    sort_args_index = get_index_if_match_element_in_tuples(sort_args_arg_list, "list")
 
                 if sort_args_index is not None:
                     # Sorting calls
@@ -243,7 +358,7 @@ class RulesManager:
                 sort_args_index = None
 
                 if sort_args:
-                    sort_args_index = self.get_index_from_tuple_with_dict_flavour(sort_args_arg_list, "element")
+                    sort_args_index = get_index_if_match_element_in_tuples(sort_args_arg_list, "element")
 
                 if sort_args_index is not None:
                     # Sorting calls
@@ -299,6 +414,25 @@ class RulesManager:
         return True
 
     def check_rules(self, save_args):
+        """It checks if the rules file contains the mandatory
+        rules. The checking is performed by name and elements
+        quantity, so it has to match in both properties.
+
+        If *self.rules* is *None*, the checking fails.
+
+        Arguments:
+            save_args (bool): it indicates that the arguments
+                have to be saved while they are being checked.
+
+        Raises:
+            Exception: when the number of expected mandatory rules
+                does not match with the actual number of rules.
+        
+        Todo: change Exception raiseness with a custom exception.
+
+        Returns:
+            bool: true if the rules are valid; false otherwise
+        """
         if self.rules is None:
             return False
 
@@ -325,7 +459,7 @@ class RulesManager:
 
             methods = self.rules["boa_rules"]["parser"]["callback"]["method"]
 
-            if type(methods) is not list:
+            if not isinstance(methods, list):
                 methods = [methods]
 
             for method in methods:
@@ -342,7 +476,7 @@ class RulesManager:
 
             modules = self.rules["boa_rules"]["modules"]["module"]
 
-            if type(modules) is not list:
+            if not isinstance(modules, list):
                 modules = [modules]
 
             for module in modules:
@@ -366,7 +500,7 @@ class RulesManager:
                     if args_sorting_defined_test:
                         raise Exception("boa_rules.modules.module has not the expected #elements")
 
-                if type(args) is not list:
+                if not isinstance(args, list):
                     args = [args]
 
                 arg_reference = {}
@@ -395,6 +529,24 @@ class RulesManager:
         return True
 
     def get_rules(self, path=None, list_type=False):
+        """It returns the rules.
+
+        The rules can be obtained with a concrete *path*, which
+        means that you can obtain the rules you want directly,
+        without go through them. The path is a string which
+        will be splited with '.'.
+
+        Arguments:
+            path (str): the returned rules will be from a starting
+                point. If you to get all the modules rules, the path
+                has to have the value "boa_rules.modules.module".
+                The default value is *None*.
+            list_type (bool): the returned rules will be wrapped
+                in a list. The default value is *False*.
+
+        Returns:
+            dict: rules from the rules file
+        """
         if path is None:
             return self.rules
 
@@ -409,15 +561,27 @@ class RulesManager:
                 return self.rules
 
         if list_type:
-            if type(rules) is not list:
+            if not isinstance(rules, list):
                 rules = [rules]
 
         return rules
 
     def set_args(self, module, arg):
+        """It sets the arguments for a concrete module.
+        This method should only be used for internal management.
+
+        Arguments:
+            module (str): instance identification as string. The
+                expected format is (without quotes): "module_name
+                .class_name". Check *util.get_name_from_class_instance*.
+            arg (dict): the new args for the module.
+
+        Returns:
+            bool: true if the module's args could be set; false otherwise
+        """
         if self.args is None:
             self.args = {}
-        elif type(self.args) is not dict:
+        elif not isinstance(self.args, dict):
             eprint("Error: args type is not a dict.")
             return False
         elif is_key_in_dict(self.args, module):
@@ -433,11 +597,25 @@ class RulesManager:
             return False
 
     def get_args(self, module=None):
+        """It returns the args for a concrete module.
+
+        Arguments:
+            module (str): module from which args are going
+                to be returned. The expected format is
+                (without quotes): "module_name.class_name".
+                Check *util.get_name_from_class_instance*.
+                The default value is *None*.
+
+        Returns:
+            dict: module's args or all the module's args;
+            *None* if a module were specified and could
+            not find it
+        """
         if module is None:
             return self.args
 
         if (self.args is not None and
-                type(self.args) is dict and
+                isinstance(self.args, dict) and
                 is_key_in_dict(self.args, module)):
             return self.args[module]
 

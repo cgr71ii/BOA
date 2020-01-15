@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
-"""BOA main file
+"""BOA main file.
 
 This file handles the high level interaction with BOA.
 
-Main tasks:
-    It handles args\n
-    It handles parser modules\n
-    It handles code modules (BOA's goal)\n
-    It handles the general flow\n
+Main tasks:\n
+* It handles args.\n
+* It handles parser modules.\n
+* It handles code modules (BOA's goal).\n
+* It handles the general flow.\n
 """
 
 # Std libs
@@ -23,8 +23,7 @@ from own_exceptions import ParseError
 from constants import Meta
 from constants import Error
 from args_manager import ArgsManager
-from util import eprint
-from util import is_key_in_dict
+from util import eprint, is_key_in_dict, file_exists
 from modules_importer import ModulesImporter
 from main_loop import MainLoop
 from rules_manager import RulesManager
@@ -54,11 +53,14 @@ def manage_args():
 def parse_c_file():
     """It parses the code file which is passed through the args.
 
+    Raises:
+        FileNotFoundError: if a path which is provided in the
+            rules file does not exist or is not valid.
+
     Returns:
         list: list containing:
-
-            int: status code\n
-            AST (Abstract Syntax Tree)
+            * int: status code\n
+            * AST (Abstract Syntax Tree)
     """
 
     file_path = ArgsManager.args.file
@@ -68,7 +70,7 @@ def parse_c_file():
 
     # parse_file (__init__.py) returns an AST or ParseError if doesn't parse successfully
     try:
-        if not os.path.isfile(file_path):
+        if not file_exists(file_path):
             raise FileNotFoundError()
 
         if pycparser_fake_libc_include_ev is not None:
@@ -94,12 +96,18 @@ def parse_c_file():
 def load_modules(user_modules):
     """It handles the modules loading through ModulesImporter class.
 
+    Arguments:
+        user_modules (list): user modules (i.e. non-mandatory modules)
+            to be loaded.
+
     Returns:
         list: list contining:
-
-            int: status code\n
-            ModulesImporter: ModulesImporter instance
+            * int: status code\n
+            * ModulesImporter: ModulesImporter instance
     """
+
+    if not isinstance(user_modules, list):
+        user_modules = [user_modules]
 
     mandatory_modules = [Meta.abstract_module_name]
     modules = mandatory_modules + user_modules
@@ -135,16 +143,19 @@ def load_modules(user_modules):
     return [rtn_code, mod_loader]
 
 def load_instance(module_loader, module_name, class_name, module_args):
-    """It handles the instances loading throught a ModulesImporter instance
+    """It handles the instances loading throught a ModulesImporter instance.
+    It loads one instance from a class.
 
-    rtn_code (int): status code\n
-    instance: loaded instance
+    Arguments:
+        module_loader (ModulesImporter): instance which will load modules.
+        module_name (str): module name.
+        class_name (str): class name.
+        module_args: args to use to initialize the instance.
 
     Returns:
         list: list containing:
-
-            int: status code\n
-            loaded instance
+            * int: status code\n
+            * loaded instance
     """
 
     instance = module_loader.get_instance(module_name, class_name)
@@ -164,7 +175,17 @@ def load_instance(module_loader, module_name, class_name, module_args):
 
 def remove_not_loaded_modules(mod_loader, modules, classes, mods_args):
     """It handles the non-loaded modules errors (it is optional to continue if
-    some modules did not be loaded properly) through a ModulesImporter instance
+    some modules did not be loaded properly) through a ModulesImporter instance.
+
+    Arguments:
+        mod_loader (ModulesImporter): instance which will be used to get
+            the non-loaded modules.
+        modules (list): list which contains the module names that were
+            attempted to loading (its index is related with *classes*).
+        classes (list): list which contains the class names that were
+            attempted to loading (its index is related with *modules*).
+        mods_args (dict): dict which contains the arguments of all
+            the modules.
 
     Returns:
         int: status code
@@ -191,13 +212,12 @@ def remove_not_loaded_modules(mod_loader, modules, classes, mods_args):
 
 def manage_rules_file():
     """It handles the rules file (parsing, checking and processing)
-    through RulesManager class
+    through RulesManager class.
 
     Returns:
         list: list contining:
-
-            int: status code\n
-            RulesManager: RulesManager instance
+            * int: status code\n
+            * RulesManager: RulesManager instance
     """
 
     rules_manager = RulesManager(ArgsManager.args.rules_file)
@@ -226,7 +246,11 @@ def manage_rules_file():
     return [Meta.ok_code, rules_manager]
 
 def manage_main_loop(instances, ast):
-    """It handles the main loop through MainLoop class
+    """It handles the main loop through MainLoop class.
+
+    Arguments:
+        instances: module instances which will be looped.
+        ast: processed AST.
 
     Returns:
         int: status code
@@ -240,7 +264,7 @@ def manage_main_loop(instances, ast):
     return rtn_code
 
 def main():
-    """It handles the main BOA's flow at a high level
+    """It handles the main BOA's flow at a high level.
 
     Returns:
         int: status code
