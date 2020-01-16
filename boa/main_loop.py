@@ -6,8 +6,7 @@ loop which is executed to analyze the language file.
 """
 
 # Own libs
-from constants import Meta
-from constants import Error
+from constants import Meta, Error
 from util import eprint, get_name_from_class_instance
 from own_exceptions import BOAModuleException
 from pycparser_ast_preorder_visitor import PreorderVisitor

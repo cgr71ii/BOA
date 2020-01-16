@@ -5,9 +5,9 @@ This file handles the arguments which are given to BOA.
 
 Concretely, the ArgsManager class loads, parses and checks
 the arguments. The arguments are loaded from the Args
-class in the module "constants".
+class in the module *constants*.
 
-Check **constants.Args** for details.
+Check *constants.Args* for details.
 """
 
 # Std libs
@@ -33,7 +33,7 @@ class ArgsManager:
     def load_args(self):
         """It loads the arguments from *constants.Args* module.
 
-        From constants.Args it is possible to configure mandatory
+        From *constants.Args* it is possible to configure mandatory
         and optional arguments. It is possible to set the name
         and a description.
         """
@@ -60,7 +60,7 @@ class ArgsManager:
         """It checks if the arguments are the expected type.
 
         Concretely, in this method it is checked if the arguments are
-        an instance of argparse.Namespace.
+        an instance of *argparse.Namespace*.
 
         Returns:
             int: status code

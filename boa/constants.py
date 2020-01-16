@@ -7,6 +7,7 @@ It contains multiple classes:\n
 1. Meta class: it contains information about BOA.
 2. Args class: it contains the mandatory and optional BOA arguments.
 3. Error class: it contains status code with a descriptive name.
+4. Regex class: it contains regex strings.
 """
 
 class Meta:
@@ -86,3 +87,16 @@ class Error:
     error_loop_args_wrong_type = 50
     error_loop_args_neq_length = 51
     error_loop_module_exception = 52
+
+    # Report errors
+    error_report_args_not_optional = 60
+    error_report_args_not_expected_type = 61
+    error_report_who_regex_fail = 62
+
+class Regex:
+    """Regex class.
+
+    This class contains the regex which are used by
+    other BOA modules.
+    """
+    regex_report_module_class_name = "^[a-zA-Z0-9_]+[.][a-zA-Z0-9_]+$"

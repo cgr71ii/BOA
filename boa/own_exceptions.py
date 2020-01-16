@@ -25,7 +25,7 @@ class BOAModuleNotLoaded(Exception):
     """
 
 class BOAModuleException(Exception):
-    """BOAModuleException exception. It implements the Exception class.
+    """BOAModuleException exception.
 
     This exception has the goal of redefine the exception base
     message to give a more verbose message about the BOA
@@ -46,3 +46,10 @@ class BOAModuleException(Exception):
                 this value should be the variable "self" in a BOA module.
         """
         self.message = f"BOAM exception in {get_name_from_class_instance(class_instance)}: {message}"
+
+class BOAReportWhoNotFound(Exception):
+    """BOAReportWhoNotFound exception.
+
+    This exception should be raised when a threat record is
+    attempted to be displayed and the given module is not found.
+    """

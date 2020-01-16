@@ -10,6 +10,7 @@
    main_modules/modules_importer
    main_modules/own_exceptions
    main_modules/util
+   main_modules/report
 
 .. _main-modules:
 
@@ -21,6 +22,7 @@ Main Modules
 * :ref:`main-modules-rules-manager`
 * :ref:`main-modules-main-loop`
 * :ref:`main-modules-modules-importer`
+* :ref:`main-modules-report`
 * :ref:`main-modules-own-exceptions`
 * :ref:`main-modules-util`
 

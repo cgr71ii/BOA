@@ -24,8 +24,7 @@ import copy
 import xmltodict
 
 # Own libs
-from constants import Meta
-from constants import Error
+from constants import Meta, Error
 from util import eprint, is_key_in_dict, get_index_if_match_element_in_tuples
 
 class RulesManager:

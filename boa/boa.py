@@ -2,7 +2,7 @@
 
 """BOA main file.
 
-This file handles the high level interaction with BOA.
+This file handles the higher level interaction with BOA.
 
 Main tasks:\n
 * It handles args.\n
@@ -20,8 +20,7 @@ from pycparser import parse_file
 
 # Own libs
 from own_exceptions import ParseError
-from constants import Meta
-from constants import Error
+from constants import Meta, Error
 from args_manager import ArgsManager
 from util import eprint, is_key_in_dict, file_exists
 from modules_importer import ModulesImporter
