@@ -53,3 +53,12 @@ class BOAReportWhoNotFound(Exception):
     This exception should be raised when a threat record is
     attempted to be displayed and the given module is not found.
     """
+
+class BOAReportEnumTypeNotExpected(Exception):
+    """BOAReportEnumTypeNotExpected exception.
+
+    This exception should be raised when an instance of Report
+    is initialized with a non-expected enum type:\n
+        * Instance that not implementes *SeverityBase*.\n
+        * *SeverityBase*.
+    """

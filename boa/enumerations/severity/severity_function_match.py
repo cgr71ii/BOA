@@ -1,5 +1,7 @@
 
-"""
+"""Severity level for the BOAModuleFunctionMatch.
+
+This severity level defines 3 levels of severity.
 """
 
 # Own libs

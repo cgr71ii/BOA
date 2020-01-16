@@ -8,12 +8,13 @@ report after all the modeles has been executed.
 
 # Std libs
 import re
+from enum import Enum
 
 # Own libs
 from constants import Meta, Error, Regex
 from enumerations.severity.severity_base import SeverityBase
 from util import is_key_in_dict
-from own_exceptions import BOAReportWhoNotFound
+from own_exceptions import BOAReportWhoNotFound, BOAReportEnumTypeNotExpected
 
 class Report:
     """Report class.
@@ -22,7 +23,20 @@ class Report:
     fill and display the threats report after the analysis.
     """
 
-    def __init__(self):
+    def __init__(self, severity_enum):
+        """It initializes the class with the necessary variables.
+
+        Arguments:
+            severity_enum (type): enumeration which will be used
+                for the threats severity. It has to inherit from
+                SeverityBase but not be SeverityBase.
+
+        Raises:
+            BOAReportEnumTypeNotExpected: when *severity_enum* is
+                not a type of *SeverityBase* or is *SeverityBase*.
+            TypeError: when *severity_enum* is not a type or at
+                least not an expected instance.
+        """
         self.who = []
         self.description = []
         self.severity = []
@@ -30,8 +44,13 @@ class Report:
         self.rows = []
         self.cols = []
         self.summary = {}
+        self.severity_enum = severity_enum
 
-    def add(self, who, description, severity, advice=None, row=None, col=None):
+        if (not issubclass(severity_enum, SeverityBase) or
+                severity_enum is SeverityBase):
+            raise BOAReportEnumTypeNotExpected()
+
+    def add(self, who, description, severity, advice=None, row=None, col=None, sort_by_severity=True):
         """It adds a new record to the main report.
 
         Arguments:
@@ -40,6 +59,11 @@ class Report:
             description (str): description about the found threat.
             severity (SeverityBase): threat severity.
             advice (str): advice to solve the threat. It is optional.
+            row (int): threat row. It is optional.
+            col (int): threat col. It is optional.
+            sort_by_severity (bool): if *True*, the threats will be
+                added sorting by severity (higher values will be
+                added first). The default value is *True*.
 
         Returns:
             int: status code
@@ -52,7 +76,7 @@ class Report:
         # Type checking
         if (not isinstance(who, str) or
                 not isinstance(description, str) or
-                not isinstance(severity, SeverityBase) or
+                not isinstance(severity, self.severity_enum) or
                 (advice is not None and
                  not isinstance(advice, str)) or
                 (row is not None and
@@ -68,7 +92,7 @@ class Report:
 
         self.who.append(who)
         self.description.append(description)
-        self.severity.append(severity.name)
+        self.severity.append(severity)
         self.advice.append(advice)
         self.rows.append(row)
         self.cols.append(col)
@@ -77,13 +101,31 @@ class Report:
             # If it is the first threat found by the module, create a list to iterate after
             self.summary[who] = []
 
-        # Create a tuple with all the record information
-        self.summary[who].append((self.who[-1],
-                                  self.description[-1],
-                                  self.severity[-1],
-                                  self.advice[-1],
-                                  self.rows[-1],
-                                  self.cols[-1]))
+        added = False
+        threat_tuple = (self.who[-1],
+                        self.description[-1],
+                        self.severity[-1],
+                        self.advice[-1],
+                        self.rows[-1],
+                        self.cols[-1])
+
+        if sort_by_severity:
+            index = 0
+
+            # Iterate to find the first element whose severity is lesser than current
+            while index < len(self.summary[who]):
+                threat = self.summary[who][index]
+
+                if threat[2] < self.severity[-1]:
+                    self.summary[who].insert(index, threat_tuple)
+                    added = True
+                    break
+
+                index += 1
+
+        if (not sort_by_severity or not added):
+            # Append the tuple with all the threat information
+            self.summary[who].append(threat_tuple)
 
         return Meta.ok_code
 
@@ -104,9 +146,13 @@ class Report:
         1. str: module who raised the threat.\n
         2. str: threat description.\n
         3. SeverityBase: threat severity.\n
-        4. str (optional): advice for solving the threat.\n
-        5. int (optional): threat row.\n
-        6. int (optional): threat col.
+        4. str (optional): advice for solving the threat. If it
+           is not provided, the string "not specified" will be
+           displayed.\n
+        5. int (optional): threat row. If it is not provided,
+           the value -1 will be displayed.\n
+        6. int (optional): threat col. If it is not provided,
+           the value -1 will be displayed.
 
         Arguments:
             t (tuple): threat record.
@@ -151,7 +197,7 @@ class Report:
             advice = "not specified"
 
         print(f" + {who} ({row}, {col}): {desc}.")
-        print(f"   Severity: {severity}.")
+        print(f"   Severity: {self.severity_enum(severity).name}.")
         print(f"   Advice: {advice}.")
 
     def display(self, who):
@@ -174,19 +220,31 @@ class Report:
             print("")
 
         print(f"   Total threats: {len(self.summary[who])}")
-        print("")
 
-    def display_all(self):
+    def display_all(self, print_summary=True):
         """It displays all the threats from all the modules.
-        Moreover, it prints a summary at the end.
+        Moreover, it prints a summary at the end optionally.
+
+        Arguments:
+            print_summary (bool): if *True*, it prints a
+                summary with statistics about all the found
+                threats.
         """
         total_threats = 0
+        who = list(self.summary.keys())
+        index = 0
 
-        for who in list(self.summary.keys()):
-            self.display(who)
-            total_threats += len(self.summary[who])
+        while index < len(who):
+            self.display(who[index])
 
-        print("~~~~~~~~~~~")
-        print("~ Summary ~")
-        print("~~~~~~~~~~~")
-        print(f" - Total threats (all modules): {total_threats}")
+            if (print_summary or index + 1 != len(who)):
+                print("")
+
+            total_threats += len(self.summary[who[index]])
+            index += 1
+
+        if print_summary:
+            print("~~~~~~~~~~~")
+            print("~ Summary ~")
+            print("~~~~~~~~~~~")
+            print(f" - Total threats (all modules): {total_threats}")
