@@ -92,6 +92,7 @@ class Error:
     error_report_args_not_optional = 60
     error_report_args_not_expected_type = 61
     error_report_who_regex_fail = 62
+    error_report_append_failed = 63
 
 class Regex:
     """Regex class.

@@ -13,7 +13,7 @@ from enum import Enum
 # Own libs
 from constants import Meta, Error, Regex
 from enumerations.severity.severity_base import SeverityBase
-from util import is_key_in_dict
+from util import is_key_in_dict, eprint
 from own_exceptions import BOAReportWhoNotFound, BOAReportEnumTypeNotExpected
 
 class Report:
@@ -50,7 +50,7 @@ class Report:
                 severity_enum is SeverityBase):
             raise BOAReportEnumTypeNotExpected()
 
-    def add(self, who, description, severity, advice=None, row=None, col=None, sort_by_severity=True):
+    def add(self, who, description, severity, advice=None, row=None, col=None, sort_by_severity=True, severity_enum=None):
         """It adds a new record to the main report.
 
         Arguments:
@@ -64,6 +64,10 @@ class Report:
             sort_by_severity (bool): if *True*, the threats will be
                 added sorting by severity (higher values will be
                 added first). The default value is *True*.
+            severity_enum (type): enumeration which will be used
+                for the threats severity. This arg is intended to
+                be able to join different Report instances. Default
+                is *None* which means to use *self.severity_enum*.
 
         Returns:
             int: status code
@@ -73,10 +77,16 @@ class Report:
                 description is None or
                 severity is None):
             return Error.error_report_args_not_optional
+        # Severity enum checking
+        if severity_enum is None:
+            severity_enum = self.severity_enum
+        elif (not issubclass(severity_enum, SeverityBase) or
+              severity_enum is SeverityBase):
+            raise BOAReportEnumTypeNotExpected()
         # Type checking
         if (not isinstance(who, str) or
                 not isinstance(description, str) or
-                not isinstance(severity, self.severity_enum) or
+                not isinstance(severity, severity_enum) or
                 (advice is not None and
                  not isinstance(advice, str)) or
                 (row is not None and
@@ -107,7 +117,8 @@ class Report:
                         self.severity[-1],
                         self.advice[-1],
                         self.rows[-1],
-                        self.cols[-1])
+                        self.cols[-1],
+                        severity_enum)
 
         if sort_by_severity:
             index = 0
@@ -135,11 +146,11 @@ class Report:
         Returns:
             dict: summary of threat records. Its key format
             is (without quotes) "module_name.class_name" and
-            the value is a list of tuples.
+            the value is a list of tuples
         """
         return self.summary
 
-    def pretty_print_tuple(self, t, first_time=False, reported_by=False):
+    def pretty_print_tuple(self, t, first_time=False, reported_by=False, display=True):
         """It prints a pretty line about a found threat record.
 
         The expected format for the tuple is next:\n
@@ -153,6 +164,9 @@ class Report:
            the value -1 will be displayed.\n
         6. int (optional): threat col. If it is not provided,
            the value -1 will be displayed.
+        7. type: SeverityBase type which will be used to display
+            the severity. This value is intented to be able to
+            join different Report instances.
 
         Arguments:
             t (tuple): threat record.
@@ -164,6 +178,10 @@ class Report:
                 who raised the threat, this value must be *True*.
                 This arg should be used when you want to avoid
                 the arg *first_time*. The default value is *False*.
+            display (bool): if *True*, it displays the threat.
+
+        Returns:
+            str: text to be displayed
 
         Note:
             If you want to show orderly the threats, you should
@@ -177,15 +195,15 @@ class Report:
         desc = t[1]
         severity = t[2]
         advice = t[3]
+        severity_enum = t[6]
+        text = ""
 
         if first_time:
             first_time_row = f"~~~~{'~' * len(who)}~~~~"
 
-            print(first_time_row)
-            print(first_time_row)
-            print(f"~~~ {who} ~~~")
-            print(first_time_row)
-            print(first_time_row)
+            text += f"{first_time_row}\n{first_time_row}\n"
+            text += f"~~~ {who} ~~~\n"
+            text += f"{first_time_row}\n{first_time_row}\n"
 
         if not reported_by:
             who = "Threat"
@@ -196,32 +214,47 @@ class Report:
         if advice is None:
             advice = "not specified"
 
-        print(f" + {who} ({row}, {col}): {desc}.")
-        print(f"   Severity: {self.severity_enum(severity).name}.")
-        print(f"   Advice: {advice}.")
+        text += f" + {who} ({row}, {col}): {desc}.\n"
+        text += f"   Severity: {severity_enum(severity).name}.\n"
+        text += f"   Advice: {advice}.\n"
 
-    def display(self, who):
+        if display:
+            print(text)
+
+        return text
+
+    def display(self, who, display=True):
         """It displays all the threats from a concrete module.
 
         Arguments:
             who (str): the module which found the threat.
+            display (bool): if *True*, it displays the threat.
 
         Raises:
             BOAReportWhoNotFound: if the given module is not found.
+
+        Returns:
+            str: text to be displayed
         """
         if who not in self.who:
             raise BOAReportWhoNotFound()
 
         first_time = True
+        text = ""
 
         for threat in self.summary[who]:
-            self.pretty_print_tuple(threat, first_time)
+            text += self.pretty_print_tuple(threat, first_time, display=False)
             first_time = False
-            print("")
+            text += "\n"
 
-        print(f"   Total threats: {len(self.summary[who])}")
+        text += f"   Total threats: {len(self.summary[who])}\n"
 
-    def display_all(self, print_summary=True):
+        if display:
+            print(text)
+
+        return text
+
+    def display_all(self, print_summary=True, display=True):
         """It displays all the threats from all the modules.
         Moreover, it prints a summary at the end optionally.
 
@@ -229,22 +262,70 @@ class Report:
             print_summary (bool): if *True*, it prints a
                 summary with statistics about all the found
                 threats.
+            display (bool): if *True*, it displays the threat.
+
+        Returns:
+            str: text to be displayed
         """
         total_threats = 0
         who = list(self.summary.keys())
         index = 0
+        text = ""
 
         while index < len(who):
-            self.display(who[index])
+            text += self.display(who[index], False)
 
             if (print_summary or index + 1 != len(who)):
-                print("")
+                text += "\n"
 
             total_threats += len(self.summary[who[index]])
             index += 1
 
         if print_summary:
-            print("~~~~~~~~~~~")
-            print("~ Summary ~")
-            print("~~~~~~~~~~~")
-            print(f" - Total threats (all modules): {total_threats}")
+            text += "~~~~~~~~~~~\n"
+            text += "~ Summary ~\n"
+            text += "~~~~~~~~~~~\n"
+            text += f" - Total threats (all modules): {total_threats}"
+
+        if display:
+            print(text)
+
+        return text
+
+    def append(self, report_instance, sort_by_severity=True, stop_if_fails=False):
+        """It appends other threats report records to this.
+
+        The goal of this method is to be able to append multiple reports
+        which will be created for each module and end up with only a
+        report to show to the user.
+
+        Arguments:
+            report_instance (Report): the report to be appended to this.
+            sort_by_severity (bool): if *True*, the threats will be
+                added sorting by severity (higher values will be
+                added first). The default value is *True*.
+            stop_if_fails (bool):if *True* and any threat record cannot
+                be appended, the execution will stop. The default value
+                if *False*.
+
+        Returns:
+            int: status code
+        """
+        rtn_code = Meta.ok_code
+
+        if not isinstance(report_instance, Report):
+            raise TypeError()
+
+        for who_list in report_instance.summary.values():
+            for t in who_list:
+                tmp_rtn_code = self.add(t[0], t[1], t[2], t[3], t[4], t[5], sort_by_severity, t[6])
+
+                if tmp_rtn_code != Meta.ok_code:
+                    eprint(f"Error: could not append the element: {t}.")
+
+                    rtn_code = Error.error_report_append_failed
+
+                    if stop_if_fails:
+                        return rtn_code
+
+        return rtn_code
