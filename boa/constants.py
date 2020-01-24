@@ -8,6 +8,8 @@ It contains multiple classes:\n
 2. Args class: it contains the mandatory and optional BOA arguments.
 3. Error class: it contains status code with a descriptive name.
 4. Regex class: it contains regex strings.
+5. Other class: it contains all the constants whose goal does not
+   match with the other classes.
 """
 
 class Meta:
@@ -94,10 +96,24 @@ class Error:
     error_report_who_regex_fail = 62
     error_report_append_failed = 63
 
+
+
+    # Other errors
+    error_other_severity_enumeration_module_not_found = 1000
+
 class Regex:
     """Regex class.
 
     This class contains the regex which are used by
     other BOA modules.
     """
-    regex_report_module_class_name = "^[a-zA-Z0-9_]+[.][a-zA-Z0-9_]+$"
+    regex_general_module_class_name = "^[a-zA-Z0-9_]+[.][a-zA-Z0-9_]+$"
+
+class Other:
+    """Other class.
+
+    This class contains all the other information that
+    does not match with the goal of the other classes.
+    Or does not have a concrete goal.
+    """
+    other_report_default_severity_enum = "severity_base.SeverityBase"

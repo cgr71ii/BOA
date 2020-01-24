@@ -62,3 +62,10 @@ class BOAReportEnumTypeNotExpected(Exception):
         * Instance that not implementes *SeverityBase*.\n
         * *SeverityBase*.
     """
+
+class BOARulesUnexpectedFormat(Exception):
+    """BOARulesUnexpectedFormat exception.
+
+    This exception should be raised when the rules are being
+    checked and some concrete requirements are not asserted.
+    """

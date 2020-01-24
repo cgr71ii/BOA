@@ -198,3 +198,66 @@ class ModulesImporter:
             index += 1
 
         return not_loaded_modules
+
+    @classmethod
+    def load_and_get_instance(cls, module, absolute_file_path, class_name):
+        """Class method which attempts to load a module
+        and return an instance of it.
+
+        Arguments:
+            module (str): module name to be loaded.
+            absolute_file_path (str): full path to the file which contains
+                the module to be loaded.
+            class_name (str): class name inside the module which is going
+                to be instantiated.
+
+        Returns:
+            instance: an instance of "module.class" which has been specified
+        """
+        instance = None
+
+        try:
+            if module in sys.modules:
+                eprint(f"Warning: module '{module}' is already loaded.")
+                return instance
+
+            file_path = absolute_file_path # /path/to/the/file.ext
+            spec = importlib.util.spec_from_file_location(module, file_path)
+
+            # Check if we could get the module spec
+            if spec is None:
+                eprint(f"Warning: module '{module}' could not be loaded. Skipping current module.")
+                return instance
+
+            new_module = importlib.util.module_from_spec(spec)
+
+            # Check if the actual file path does exist
+            if file_exists(file_path) is False:
+                eprint(f"Warning: file '{file_path}' does not exist. Skipping current module.")
+                return instance
+
+            sys.modules[module] = new_module
+
+            spec.loader.exec_module(new_module)
+        except Exception as e:
+            eprint(f"Warning: {e}.")
+            return instance
+        except:
+            eprint(f"Warning: unknown error while loading module '{module}'.")
+            return instance
+
+        # Module has been loaded once reached this point
+
+        tmp_module = sys.modules[module]
+
+        if tmp_module is None:
+            return instance
+
+        try:
+            instance = getattr(sys.modules[module], class_name)
+        except AttributeError as e:
+            eprint(f"Error: {e}.")
+        except:
+            eprint(f"Error: unknown error while trying to get {module}.{class_name}.")
+
+        return instance

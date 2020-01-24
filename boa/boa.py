@@ -22,7 +22,7 @@ from pycparser import parse_file
 from own_exceptions import ParseError
 from constants import Meta, Error
 from args_manager import ArgsManager
-from util import eprint, is_key_in_dict, file_exists
+from util import eprint, is_key_in_dict, file_exists, get_current_path
 from modules_importer import ModulesImporter
 from main_loop import MainLoop
 from rules_manager import RulesManager
@@ -287,6 +287,8 @@ def main():
     modules = []
     classes = []
     mods_args = {}	# {"class": {"arg1": "value2", "arg2": ["value2", "value3"]}}
+    severity_enums = []
+    reports = []
 
     args = rules_manager.get_args()
     rmodules = rules_manager.get_rules("boa_rules.modules.module", True)
@@ -294,6 +296,7 @@ def main():
     for m in rmodules:
         module_name = m['module_name']
         class_name = m['class_name']
+        severity_enum = m['severity_enum']
 
         modules.append(module_name)
         classes.append(class_name)
@@ -301,6 +304,16 @@ def main():
         if not is_key_in_dict(args, f"{module_name}.{class_name}"):
             eprint(f"Error: args for module {module_name}.{class_name} not found.")
             return Error.error_rules_args_not_found
+
+        severity_enum_path = f"{get_current_path()}/enumerations/severity/{severity_enum.split('.')[0]}.py"
+
+        if not file_exists(severity_enum_path):
+            eprint(f"Error: could not found the severity enumeration module '{severity_enum.split('.')[0]}.py'.")
+            return Error.error_other_severity_enumeration_module_not_found
+
+        # TODO check if it works
+        severity_enum_instance = ModulesImporter.load_and_get_instance(module_name, severity_enum_path, class_name)
+        severity_enums.append(severity_enum_instance)
 
         mods_args[f"{module_name}.{class_name}"] = args[f"{module_name}.{class_name}"]
 

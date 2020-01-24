@@ -24,8 +24,9 @@ import copy
 import xmltodict
 
 # Own libs
-from constants import Meta, Error
+from constants import Meta, Error, Other
 from util import eprint, is_key_in_dict, get_index_if_match_element_in_tuples
+from own_exceptions import BOARulesUnexpectedFormat
 
 class RulesManager:
     """RulesManager class.
@@ -426,7 +427,9 @@ class RulesManager:
         Raises:
             Exception: when the number of expected mandatory rules
                 does not match with the actual number of rules.
-        
+            BOARulesUnexpectedFormat: when the format of a rule
+                is not the expected.
+
         Todo: change Exception raiseness with a custom exception.
 
         Returns:
@@ -480,11 +483,29 @@ class RulesManager:
 
             for module in modules:
                 args_sorting_defined_test = False
+                severity_enum = Other.other_report_default_severity_enum
 
-                if len(module) == 4:
+                if len(module) == 5:
                     args_sorting_defined_test = True
+                elif len(module) == 4:
+                    try:
+                        module["args_sorting"]
+                        args_sorting_defined_test = True
+                    except:
+                        try:
+                            module["severity_enum"]
+                            severity_enum = module["severity_enum"]
+
+                        except:
+                            raise Exception("boa_rules.modules.module has not the expected #elements")
                 elif len(module) != 3:
                     raise Exception("boa_rules.modules.module has not the expected #elements")
+
+                if len(severity_enum.split(".")) != 2:
+                    raise BOARulesUnexpectedFormat("boa_rules.modules.module.severity_enum has no the expected format: 'module.class_name'")
+
+                if not is_key_in_dict(module, "severity_enum"):
+                    module["severity_enum"] = severity_enum
 
                 module_name = module["module_name"]
                 class_name = module["class_name"]
@@ -495,6 +516,10 @@ class RulesManager:
                 try:
                     if module["args_sorting"].lower() == "true":
                         sort_args = True
+                    elif module["args_sorting"].lower() != "false":
+                        raise BOARulesUnexpectedFormat("boa_rules.modules.module.args_sorting has not the expected format: allowed values are 'true' and 'false'")
+                except BOARulesUnexpectedFormat as e:
+                    raise e
                 except:
                     if args_sorting_defined_test:
                         raise Exception("boa_rules.modules.module has not the expected #elements")
@@ -521,6 +546,9 @@ class RulesManager:
                     self.args = None
                     raise Exception("boa_rules.modules.module is not correct (f'{module's name}.{class's name}' already set?)")
 
+        except BOARulesUnexpectedFormat as e:
+            eprint(f"Warning: wrong format: {e}.")
+            return False
         except Exception as e:
             eprint(f"Warning: rules did not pass the checking: {e}.")
             return False

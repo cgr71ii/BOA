@@ -15,9 +15,19 @@
         <module>    <!-- Mandatory: at least 1 -->
             <module_name>module name in "modules" directory</module_name>   <!-- Mandatory -->
             <class_name>class name in the module</class_name>   <!-- Mandatory -->
+            <severity_enum></severity_enum> <!-- Optional
+                                                 Default value: severity_syslog.SeveritySyslog
+                                                 Allowed values: "module name from 
+                                                    /path/to/BOA/enumerations/severity"."class name"
+                                                 Other values: default value
+                                                 It allows the user to select a different way to
+                                                    show and sort the found threats through an
+                                                    enumeration defined by the own user. The enumeration
+                                                    has to inheritance from /path/to/BOA/enumerations
+                                                    /severity/severity_base.SeverityBase to work -->
             <args_sorting>true</args_sorting> <!--  Optional
                                                     Default value: false
-                                                    Allowed value: true
+                                                    Allowed values: true, false
                                                     Other values: default value
                                                     It makes a PARTIAL sorting: when combining elements, 
                                                         elements of the same type will be group depending 

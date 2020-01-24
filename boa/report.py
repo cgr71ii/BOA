@@ -95,7 +95,7 @@ class Report:
                  not isinstance(col, int))):
             return Error.error_report_args_not_expected_type
 
-        who_regex_result = re.match(Regex.regex_report_module_class_name, who)
+        who_regex_result = re.match(Regex.regex_general_module_class_name, who)
 
         if who_regex_result is None:
             return Error.error_report_who_regex_fail
