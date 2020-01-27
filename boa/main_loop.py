@@ -23,24 +23,28 @@ class MainLoop:
     BOAModuleFunctionMatch*).
     """
 
-    def __init__(self, instances, ast):
+    def __init__(self, instances, reports, ast):
         """It invokes self.initialize(instances, ast).
 
         Arguments:
             instances: module instances which will be looped.
+            reports: report instances to show the threat records.
             ast: processed AST.
         """
-        self.initialize(instances, ast)
+        self.initialize(instances, reports, ast)
 
-    def initialize(self, instances, ast):
+    def initialize(self, instances, reports, ast):
         """It initializes all the variables which will be used by
         the other methods.
 
         Arguments:
             instances: module instances that are going to be saved.
+            reports: report instances to show the threat records.
             ast: processed AST that is going to be saved.
         """
         self.instances = instances
+        self.reports = reports
+        self.final_report = self.make_final_report()
         self.instances_names = []
         self.instances_warned = []
         self.ast = ast
@@ -48,6 +52,40 @@ class MainLoop:
 
         for instance in self.instances:
             self.instances_names.append(get_name_from_class_instance(instance))
+
+    def get_final_report(self):
+        """It returns the final report.
+
+        Returns:
+            Report: the final report
+        """
+        return self.final_report
+
+    def make_final_report(self):
+        """It makes a report which contains all the threat records
+        contained in all the other reports.
+
+        Returns:
+            Report: the final report or *None*
+        """
+        if (not self.reports or
+                not isinstance(self.reports, list) or
+                len(self.reports) == 0):
+            return None
+
+        report = self.reports[0]
+        index = 1
+
+        while index < len(self.reports):
+            rtn_code = report.append(self.reports[index])
+
+            if rtn_code is not Meta.ok_code:
+                eprint("Error: could not append the threat reports.")
+                return None
+
+            index += 1
+
+        return report
 
     def handle_loop(self):
         """This method is the one which should be invoked to
@@ -75,8 +113,7 @@ class MainLoop:
         visitor.visit(self.ast)
 
         # Save (report) and finish
-        # TODO reports have been not implemented yet
-        self.save_and_finish_instances("Not a Report")
+        self.save_and_finish_instances(self.final_report)
 
         return self.rtn_code
 
@@ -145,7 +182,7 @@ class MainLoop:
                     eprint(f"Error: {e}.")
                     exception = True
                 except:
-                    eprint(f"Error: could not {error_verbs[index]} the instance {get_name_from_class_instance(instance)}.")
+                    eprint(f"Error: could not {error_verbs[index]} the instance '{get_name_from_class_instance(instance)}'.")
                     exception = True
 
                 # Something failed. Warn about this in the future

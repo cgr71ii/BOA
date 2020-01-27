@@ -245,7 +245,7 @@ def manage_rules_file():
 
     return [Meta.ok_code, rules_manager]
 
-def manage_main_loop(instances, ast):
+def manage_main_loop(instances, reports, ast):
     """It handles the main loop through MainLoop class.
 
     Arguments:
@@ -253,15 +253,17 @@ def manage_main_loop(instances, ast):
         ast: processed AST.
 
     Returns:
-        int: status code
+        list: list contining:
+            * int: status code\n
+            * MainLoop: MainLoop instance
     """
 
-    main_loop = MainLoop(instances, ast)
+    main_loop = MainLoop(instances, reports, ast)
 
     # It handles the loop work
     rtn_code = main_loop.handle_loop()
 
-    return rtn_code
+    return [rtn_code, main_loop]
 
 def main():
     """It handles the main BOA's flow at a high level.
@@ -384,10 +386,19 @@ def main():
         index += 1
 
     # It handles the loop work
-    rtn_code = manage_main_loop(instances, ast)
+    rtn = manage_main_loop(instances, reports, ast)
+    rtn_code = rtn[0]
+    main_loop = rtn[1]
 
     if rtn_code != Meta.ok_code:
         return rtn_code
+
+    # Display all the found threats
+    report = main_loop.get_final_report()
+
+    if report:
+        print()
+        report.display_all()
 
     return Meta.ok_code
 

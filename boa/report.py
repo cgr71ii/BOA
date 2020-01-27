@@ -329,3 +329,12 @@ class Report:
                         return rtn_code
 
         return rtn_code
+
+    def get_severity_enum_instance(self):
+        """It returns the severity enumeration instance which
+        is being used.
+
+        Returns:
+            SeverityBase: severity enumeration being used
+        """
+        return self.severity_enum

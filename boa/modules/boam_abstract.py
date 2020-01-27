@@ -18,6 +18,9 @@ Note:
 # Std libs
 from abc import abstractmethod
 
+# Own libs
+from util import get_name_from_class_instance
+
 # This  file name has to match with constants.Meta.abstract_module_name
 # This class name has to match with constants.Meta.abstract_module_class_name
 class BOAModuleAbstract:
@@ -47,6 +50,7 @@ class BOAModuleAbstract:
         """
 
         self.args = args
+        self.who_i_am = get_name_from_class_instance(self)
 
     # This method loads the args and initializes the module
     @abstractmethod

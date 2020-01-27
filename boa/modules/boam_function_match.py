@@ -8,6 +8,8 @@ be avoided or generally are misused.
 # Own libs
 from boam_abstract import BOAModuleAbstract
 from own_exceptions import BOAModuleException
+from constants import Meta
+from util import eprint
 
 class BOAModuleFunctionMatch(BOAModuleAbstract):
     """BOAModuleFunctionMatch class. It implements the class BOAModuleAbstract.
@@ -31,6 +33,7 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
         """
         self.all_methods_name = []
         self.all_methods_reference = []
+        self.threats = []
 
         for method in self.args["methods"]:
             method_name = method["method"]
@@ -68,22 +71,30 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
                 severity = self.all_methods_reference[index]["severity"]
                 description = self.all_methods_reference[index]["description"]
 
-                print(f"{self.__class__.__name__}: {function_name}:{row}:{col} -> {severity} -> {description}")
+                self.threats.append((self.who_i_am, description, severity, None, int(row), int(col)))
+
+                #print(f"{self.__class__.__name__}: {function_name}:{row}:{col} -> {severity} -> {description}")
 
     def clean(self):
         """It does nothing.
         """
 
     def save(self, report):
-        """It does nothing.
-
-        Todo:
-            When Reports are implemented, use this method to save the
-            found threats.
+        """It appends the found threats.
 
         Arguments:
             report: Report instante to save all the found threats.
         """
+        index = 0
+
+        for threat in self.threats:
+            severity = report.get_severity_enum_instance()[threat[2]]
+            rtn_code = report.add(threat[0], threat[1], severity, threat[3], threat[4], threat[5])
+
+            if rtn_code is not Meta.ok_code:
+                eprint(f"Error: could not append the threat record #{index} (status code: {rtn_code}) in '{self.who_i_am}'.")
+
+            index += 1
 
     def finish(self):
         """It does nothing.
