@@ -213,6 +213,7 @@ class ModulesImporter:
 
         Returns:
             instance: an instance of "module.class" which has been specified
+            or *None* if could not.
         """
         instance = None
 

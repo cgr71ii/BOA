@@ -494,15 +494,20 @@ class RulesManager:
                     except:
                         try:
                             module["severity_enum"]
-                            severity_enum = module["severity_enum"]
 
+                            if not module["severity_enum"]:
+                                raise BOARulesUnexpectedFormat("boa_rules.modules.module.severity_enum cannot be empty")
+
+                            severity_enum = module["severity_enum"]
+                        except BOARulesUnexpectedFormat as e:
+                            raise e
                         except:
                             raise Exception("boa_rules.modules.module has not the expected #elements")
                 elif len(module) != 3:
                     raise Exception("boa_rules.modules.module has not the expected #elements")
 
                 if len(severity_enum.split(".")) != 2:
-                    raise BOARulesUnexpectedFormat("boa_rules.modules.module.severity_enum has no the expected format: 'module.class_name'")
+                    raise BOARulesUnexpectedFormat("boa_rules.modules.module.severity_enum has not the expected format: 'module.class_name'")
 
                 if not is_key_in_dict(module, "severity_enum"):
                     module["severity_enum"] = severity_enum

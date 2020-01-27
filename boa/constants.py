@@ -100,6 +100,7 @@ class Error:
 
     # Other errors
     error_other_severity_enumeration_module_not_found = 1000
+    error_other_severity_enumeration_module_not_loaded = 1001
 
 class Regex:
     """Regex class.

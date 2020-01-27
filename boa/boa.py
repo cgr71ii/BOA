@@ -26,6 +26,7 @@ from util import eprint, is_key_in_dict, file_exists, get_current_path
 from modules_importer import ModulesImporter
 from main_loop import MainLoop
 from rules_manager import RulesManager
+from report import Report
 
 def manage_args():
     """It handles BOA's general args through ArgsManager class.
@@ -296,7 +297,9 @@ def main():
     for m in rmodules:
         module_name = m['module_name']
         class_name = m['class_name']
-        severity_enum = m['severity_enum']
+        severity_enum_formatted = m['severity_enum']
+        severity_enum_module_name = severity_enum_formatted.split('.')[0]
+        severity_enum_class_name = severity_enum_formatted.split('.')[1]
 
         modules.append(module_name)
         classes.append(class_name)
@@ -305,15 +308,23 @@ def main():
             eprint(f"Error: args for module {module_name}.{class_name} not found.")
             return Error.error_rules_args_not_found
 
-        severity_enum_path = f"{get_current_path()}/enumerations/severity/{severity_enum.split('.')[0]}.py"
+        severity_enum_path = f"{get_current_path()}/enumerations/severity/{severity_enum_module_name}.py"
 
         if not file_exists(severity_enum_path):
-            eprint(f"Error: could not found the severity enumeration module '{severity_enum.split('.')[0]}.py'.")
+            eprint(f"Error: could not found the severity enumeration module '{severity_enum_module_name}.py'.")
             return Error.error_other_severity_enumeration_module_not_found
 
-        # TODO check if it works
-        severity_enum_instance = ModulesImporter.load_and_get_instance(module_name, severity_enum_path, class_name)
+        severity_enum_instance = ModulesImporter.load_and_get_instance(
+            severity_enum_module_name,
+            severity_enum_path,
+            severity_enum_class_name)
+
+        if not severity_enum_instance:
+            eprint(f"Error: could not load the severity enumeration '{severity_enum_module_name}.{severity_enum_class_name}'.")
+            return Error.error_other_severity_enumeration_module_not_loaded
+
         severity_enums.append(severity_enum_instance)
+        reports.append(Report(severity_enum_instance))
 
         mods_args[f"{module_name}.{class_name}"] = args[f"{module_name}.{class_name}"]
 
