@@ -64,7 +64,7 @@ class BOAModuleTest(BOAModuleAbstract):
                 severity = severity[threat[2]]
                 rtn_code = report.add(threat[0], threat[1], severity, threat[3], threat[4], threat[5])
 
-                if rtn_code is not Meta.ok_code:
+                if rtn_code != Meta.ok_code:
                     eprint(f"Error: could not append the threat record #{index} (status code: {rtn_code}) in '{self.who_i_am}'.")
 
             index += 1

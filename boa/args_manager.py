@@ -65,7 +65,7 @@ class ArgsManager:
         Returns:
             int: status code
         """
-        if isinstance(ArgsManager.args, argparse.Namespace) is False:
+        if not isinstance(ArgsManager.args, argparse.Namespace):
             return Error.error_args_type
 
         return Meta.ok_code

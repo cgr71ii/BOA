@@ -192,7 +192,7 @@ class ModulesImporter:
         not_loaded_modules = []
 
         while index < len(self.modules):
-            if self.loaded[index] is False:
+            if not self.loaded[index]:
                 not_loaded_modules.append(self.modules[index])
 
             index += 1
