@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<boa_rules>
+    <parser>
+        <name>pycparser</name>
+        <lang_objective>C</lang_objective>
+        <module_name>boapm_pycparser</module_name>
+        <class_name>BOAParserModulePycparser</class_name>
+        <callback>
+            <method name="ast" callback="get_ast" />
+        </callback>
+    </parser>
+    <modules>
+        <module>
+            <module_name>boam_function_match</module_name>
+            <class_name>BOAModuleFunctionMatch</class_name>
+            <severity_enum>severity_function_match.SeverityFunctionMatch</severity_enum>
+            <args>
+                <dict>
+                    <list name="methods">
+                        <dict>
+                            <element name="method" value="put" />
+                            <element name="severity" value="CRITICAL" />
+                            <element name="description" value="The function 'put' can make crash your program when the input length is higher than the destination pointer" />
+                        </dict>
+                        <dict>
+                            <element name="method" value="printf" />
+                            <element name="severity" value="NORMAL" />
+                            <element name="description" value="First argument has to be constant and not an user controlled input to avoid buffer overflow and data leakage" />
+                        </dict>
+                        <dict>
+                            <element name="method" value="strcpy" />
+                            <element name="severity" value="HIGH" />
+                            <element name="description" value="Destination pointer length has to be greater than origin to avoid buffer overflow threats" />
+                        </dict>
+                    </list>
+                </dict>
+            </args>
+        </module>
+        <module>
+            <module_name>boam_test</module_name>
+            <class_name>BOAModuleTest</class_name>
+            <severity_enum>severity_syslog.SeveritySyslog</severity_enum>
+            <args>
+            </args>
+        </module>
+    </modules>
+</boa_rules>

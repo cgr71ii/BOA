@@ -95,7 +95,7 @@ class Error:
     error_report_args_not_expected_type = 61
     error_report_who_regex_fail = 62
     error_report_append_failed = 63
-
+    error_report_severity_enum_does_not_match = 64
 
 
     # Other errors

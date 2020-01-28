@@ -29,7 +29,7 @@ class Report:
         Arguments:
             severity_enum (type): enumeration which will be used
                 for the threats severity. It has to inherit from
-                SeverityBase but not be SeverityBase.
+                *SeverityBase* but not be *SeverityBase*.
 
         Raises:
             BOAReportEnumTypeNotExpected: when *severity_enum* is
@@ -45,10 +45,20 @@ class Report:
         self.cols = []
         self.summary = {}
         self.severity_enum = severity_enum
+        self.severity_enum_mapping = {}
 
         if (not issubclass(severity_enum, SeverityBase) or
                 severity_enum is SeverityBase):
             raise BOAReportEnumTypeNotExpected()
+
+    def get_who(self):
+        """It returns the modules which are in the current report.
+
+        Returns:
+            list (str): list containing the modules which are in the
+            current report
+        """
+        return self.who
 
     def add(self, who, description, severity, advice=None, row=None, col=None, sort_by_severity=True, severity_enum=None):
         """It adds a new record to the main report.
@@ -79,7 +89,10 @@ class Report:
             return Error.error_report_args_not_optional
         # Severity enum checking
         if severity_enum is None:
-            severity_enum = self.severity_enum
+            if is_key_in_dict(self.severity_enum_mapping, who):
+                severity_enum = self.severity_enum_mapping[who]
+            else:
+                severity_enum = self.severity_enum
         elif (not issubclass(severity_enum, SeverityBase) or
               severity_enum is SeverityBase):
             raise BOAReportEnumTypeNotExpected()
@@ -99,6 +112,11 @@ class Report:
 
         if who_regex_result is None:
             return Error.error_report_who_regex_fail
+
+        if not is_key_in_dict(self.severity_enum_mapping, who):
+            self.severity_enum_mapping[who] = severity_enum
+        elif self.severity_enum_mapping[who] != severity_enum:
+            return Error.error_report_severity_enum_does_not_match
 
         self.who.append(who)
         self.description.append(description)
@@ -292,7 +310,7 @@ class Report:
 
         return text
 
-    def append(self, report_instance, sort_by_severity=True, stop_if_fails=False):
+    def append(self, report_instance, sort_by_severity=True, stop_if_fails=False, who=None):
         """It appends other threats report records to this.
 
         The goal of this method is to be able to append multiple reports
@@ -304,14 +322,17 @@ class Report:
             sort_by_severity (bool): if *True*, the threats will be
                 added sorting by severity (higher values will be
                 added first). The default value is *True*.
-            stop_if_fails (bool):if *True* and any threat record cannot
+            stop_if_fails (bool): if *True* and any threat record cannot
                 be appended, the execution will stop. The default value
                 if *False*.
+            who (str): the module name which is going to be used to set
+                the relation between the module and the report instance.
 
         Returns:
             int: status code
         """
         rtn_code = Meta.ok_code
+        appended = False
 
         if not isinstance(report_instance, Report):
             raise TypeError()
@@ -328,7 +349,45 @@ class Report:
                     if stop_if_fails:
                         return rtn_code
 
+                appended = True
+
+        if (not appended and rtn_code == Meta.ok_code):
+            # Nothing was appended because the report instance is empty surely
+            if who is None:
+                rtn_code = Error.error_report_append_failed
+            else:
+                if not self.set_severity_enum_mapping(who, report_instance.get_severity_enum_instance()):
+                    rtn_code = Error.error_report_append_failed
+
         return rtn_code
+
+    def set_severity_enum_mapping(self, who, severity_enum_instance):
+        """It sets the relation between a module and a severity enum.
+
+        Arguments:
+            who (str): the module name in format "module_name.class_name".
+            severity_enum_instance (SeverityBase): severity enum instance.
+
+        Returns:
+            bool: it returns *True* if the relation was set. *False* otherwise
+        """
+        if is_key_in_dict(self.severity_enum_mapping, who):
+            eprint("Warning: the severity enumeration is already set in the relation.")
+            return False
+        if (not issubclass(severity_enum_instance, SeverityBase) or
+                severity_enum_instance is SeverityBase):
+            eprint("Warning: the severity enumeration instance does not contain a valid class.")
+            return False
+
+        who_regex_result = re.match(Regex.regex_general_module_class_name, who)
+
+        if who_regex_result is None:
+            print(f"Warning: '{who}' did not pass the regex expression '{Regex.regex_general_module_class_name}'.")
+            return False
+
+        self.severity_enum_mapping[who] = severity_enum_instance
+
+        return True
 
     def get_severity_enum_instance(self):
         """It returns the severity enumeration instance which
@@ -336,5 +395,26 @@ class Report:
 
         Returns:
             SeverityBase: severity enumeration being used
+
+        Note:
+            This is the **GENERAL** severity enum reference, which
+            may not be what you are looking for. If you want the
+            severity enum instance of a concrete module, use
+            *get_severity_enum_instance_by_who()* instead.
         """
         return self.severity_enum
+
+    def get_severity_enum_instance_by_who(self, who):
+        """It returns the severity enum instance of a concrete module.
+
+        Arguments:
+            who (str): module name in format "module_name.class_name".
+
+        Returns:
+            SeverityBase: the severity enum instance which is used for
+            the given module. *None* if *who* is not found
+        """
+        if is_key_in_dict(self.severity_enum_mapping, who):
+            return self.severity_enum_mapping[who]
+
+        return None

@@ -44,7 +44,6 @@ class MainLoop:
         """
         self.instances = instances
         self.reports = reports
-        self.final_report = self.make_final_report()
         self.instances_names = []
         self.instances_warned = []
         self.ast = ast
@@ -52,6 +51,9 @@ class MainLoop:
 
         for instance in self.instances:
             self.instances_names.append(get_name_from_class_instance(instance))
+
+        # It needs that self.instances_names is processed
+        self.final_report = self.make_final_report()
 
     def get_final_report(self):
         """It returns the final report.
@@ -76,10 +78,16 @@ class MainLoop:
         report = self.reports[0]
         index = 1
 
-        while index < len(self.reports):
-            rtn_code = report.append(self.reports[index])
+        severity_ok = report.set_severity_enum_mapping(self.instances_names[0], self.reports[0].get_severity_enum_instance())
 
-            if rtn_code is not Meta.ok_code:
+        if not severity_ok:
+            eprint("Error: could not append the threat reports.")
+            return None
+
+        while index < len(self.reports):
+            rtn_code = report.append(self.reports[index], who=self.instances_names[index])
+
+            if rtn_code != Meta.ok_code:
                 eprint("Error: could not append the threat reports.")
                 return None
 

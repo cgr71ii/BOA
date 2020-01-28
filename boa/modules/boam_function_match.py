@@ -51,13 +51,6 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
         it checks if it is one of the dangerous functions defined
         in the rules file.
 
-        Todo:
-            Right now there is a print message to warn about a match (remove it).
-            When Reports are implemented, use the report instance to save all the
-            matchs.
-            Use a data structure to save the found threats for later report it
-            with Reports in the save() method.
-
         Arguments:
             token: AST node.
         """
@@ -88,11 +81,16 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
         index = 0
 
         for threat in self.threats:
-            severity = report.get_severity_enum_instance()[threat[2]]
-            rtn_code = report.add(threat[0], threat[1], severity, threat[3], threat[4], threat[5])
+            severity = report.get_severity_enum_instance_by_who(self.who_i_am)
 
-            if rtn_code is not Meta.ok_code:
-                eprint(f"Error: could not append the threat record #{index} (status code: {rtn_code}) in '{self.who_i_am}'.")
+            if severity is None:
+                eprint(f"Error: could not append the threat record #{index} in '{self.who_i_am}'. Wrong severity enum instance.")
+            else:
+                severity = severity[threat[2]]
+                rtn_code = report.add(threat[0], threat[1], severity, threat[3], threat[4], threat[5])
+
+                if rtn_code is not Meta.ok_code:
+                    eprint(f"Error: could not append the threat record #{index} (status code: {rtn_code}) in '{self.who_i_am}'.")
 
             index += 1
 
