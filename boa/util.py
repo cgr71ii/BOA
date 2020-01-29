@@ -95,7 +95,7 @@ def is_key_in_dict(dictionary, key):
         eprint(f"Error: not expected error while checking if key is in dict: {e}.")
         return False
 
-def do_nothing(*args):
+def do_nothing(*args, rtn_sth=False, rtn_value=None):
     """Just what the name suggests: it does nothing.
 
     This function is useful when a callback is needed
@@ -104,7 +104,11 @@ def do_nothing(*args):
 
     Arguments:
         \*args (variadict list): indefinite number of args to be provided.
+        rtn_sth (bool): if want something to be returned, use *True*.
+        rtn_value: value to be returned.
     """
+    if rtn_sth:
+        return rtn_value
 
 def get_index_if_match_element_in_tuples(tuples, value, key_position=0, check_all_elements=False):
     """It returns the index when a concrete value is

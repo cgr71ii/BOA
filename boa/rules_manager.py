@@ -101,7 +101,8 @@ class RulesManager:
 
     # This method will be called by 'check_rules_arg' with the
     #   purpose of get recursively the args from the rules file
-    def check_rules_arg_recursive(self, arg, element, father, arg_reference, args_reference, save_args, sort_args):
+    def check_rules_arg_recursive(self, arg, element, father, arg_reference,
+                                  args_reference, save_args, sort_args):
         """This method is used by *check_rules_arg* method.
 
         This method wraps the common behaviour for saving the arguments
@@ -169,7 +170,8 @@ class RulesManager:
                 return False
 
             # Recursive checking
-            if not self.check_rules_arg(__element, element, father, save_args, _arg_reference, sort_args):
+            if not self.check_rules_arg(__element, element, father, save_args,
+                                        _arg_reference, sort_args):
                 return False
 
         return True
@@ -234,7 +236,8 @@ class RulesManager:
 
         if (father == "args" and save_args):
             if (not isinstance(args_reference, dict) or len(args_reference) != 0):
-                eprint(f"Error: check_rules_arg have to get an empty 'dict' as first args reference.")
+                eprint("Error: check_rules_arg have to get an empty 'dict' as first"
+                       " args reference.")
                 return False
 
         if _arg is None:
@@ -264,7 +267,8 @@ class RulesManager:
                 # Mandatory and unique element as first arg
                 if is_key_in_dict(__arg, "dict"):
                     # Recursive checking
-                    return self.check_rules_arg(__arg["dict"], "dict", father, save_args, args_reference, sort_args)
+                    return self.check_rules_arg(__arg["dict"], "dict", father,
+                                                save_args, args_reference, sort_args)
 
                 return False
 
@@ -278,7 +282,8 @@ class RulesManager:
                 sort_args_index = None
 
                 if sort_args:
-                    sort_args_index = get_index_if_match_element_in_tuples(sort_args_arg_list, "dict")
+                    sort_args_index = get_index_if_match_element_in_tuples(sort_args_arg_list,
+                                                                           "dict")
 
                 if sort_args_index is not None:
                     # Sorting calls
@@ -289,7 +294,8 @@ class RulesManager:
                         eprint(f"Warning: args sorting failed. The result might be disordered.")
 
                     # Recursive checking
-                    self.check_rules_arg_recursive(__arg, "dict", father, arg_reference, args_reference, save_args, sort_args)
+                    self.check_rules_arg_recursive(__arg, "dict", father, arg_reference,
+                                                   args_reference, save_args, sort_args)
 
             # List (optional)
             if is_key_in_dict(__arg, "list"):
@@ -338,7 +344,8 @@ class RulesManager:
                 sort_args_index = None
 
                 if sort_args:
-                    sort_args_index = get_index_if_match_element_in_tuples(sort_args_arg_list, "list")
+                    sort_args_index = get_index_if_match_element_in_tuples(sort_args_arg_list,
+                                                                           "list")
 
                 if sort_args_index is not None:
                     # Sorting calls
@@ -349,7 +356,8 @@ class RulesManager:
                         eprint(f"Warning: args sorting failed. The result might be disordered.")
 
                     # Recursive checking
-                    self.check_rules_arg_recursive(__arg, "list", father, arg_reference, args_reference, save_args, sort_args)
+                    self.check_rules_arg_recursive(__arg, "list", father, arg_reference,
+                                                   args_reference, save_args, sort_args)
 
             # Element (optional)
             if is_key_in_dict(__arg, "element"):
@@ -358,7 +366,8 @@ class RulesManager:
                 sort_args_index = None
 
                 if sort_args:
-                    sort_args_index = get_index_if_match_element_in_tuples(sort_args_arg_list, "element")
+                    sort_args_index = get_index_if_match_element_in_tuples(sort_args_arg_list,
+                                                                           "element")
 
                 if sort_args_index is not None:
                     # Sorting calls
@@ -369,7 +378,8 @@ class RulesManager:
                         eprint(f"Warning: args sorting failed. The result might be disordered.")
 
                     # Recursive checking
-                    self.check_rules_arg_recursive(__arg, "element", father, arg_reference, args_reference, save_args, sort_args)
+                    self.check_rules_arg_recursive(__arg, "element", father, arg_reference,
+                                                   args_reference, save_args, sort_args)
 
             # If sort_args, make the calls now orderly
             if (sort_args and sort_args_arg_list is not None):
@@ -378,7 +388,8 @@ class RulesManager:
                         element = sort_args_calling_queue[str(i)]
                         arg_reference = sort_args_calling_queue[f"{str(i)}.arg_reference"]
 
-                        self.check_rules_arg_recursive(__arg, element, father, arg_reference, args_reference, save_args, sort_args)
+                        self.check_rules_arg_recursive(__arg, element, father, arg_reference,
+                                                       args_reference, save_args, sort_args)
 
 
             # Attribute checking
@@ -430,8 +441,6 @@ class RulesManager:
             BOARulesUnexpectedFormat: when the format of a rule
                 is not the expected.
 
-        Todo: change Exception raiseness with a custom exception.
-
         Returns:
             bool: true if the rules are valid; false otherwise
         """
@@ -466,7 +475,8 @@ class RulesManager:
 
             for method in methods:
                 if len(method) != 2:
-                    raise Exception("boa_rules.parser.callback.method has not the expected #elements")
+                    raise Exception("boa_rules.parser.callback.method has not"
+                                    " the expected #elements")
 
                 method["@name"]
                 method["@callback"]
@@ -484,6 +494,8 @@ class RulesManager:
             for module in modules:
                 args_sorting_defined_test = False
                 severity_enum = Other.other_report_default_severity_enum
+                module_name = module["module_name"]
+                class_name = module["class_name"]
 
                 if len(module) == 5:
                     args_sorting_defined_test = True
@@ -496,24 +508,28 @@ class RulesManager:
                             module["severity_enum"]
 
                             if not module["severity_enum"]:
-                                raise BOARulesUnexpectedFormat("boa_rules.modules.module.severity_enum cannot be empty")
+                                raise BOARulesUnexpectedFormat("boa_rules.modules.module"
+                                                               ".severity_enum cannot be"
+                                                               f" empty ('{module_name}.{class_name}')")
 
                             severity_enum = module["severity_enum"]
                         except BOARulesUnexpectedFormat as e:
                             raise e
                         except:
-                            raise Exception("boa_rules.modules.module has not the expected #elements")
+                            raise Exception("boa_rules.modules.module has not the expected"
+                                            f" #elements in '{module_name}.{class_name}'")
                 elif len(module) != 3:
-                    raise Exception("boa_rules.modules.module has not the expected #elements")
+                    raise Exception("boa_rules.modules.module has not the expected"
+                                    f" #elements in '{module_name}.{class_name}'")
 
                 if len(severity_enum.split(".")) != 2:
-                    raise BOARulesUnexpectedFormat("boa_rules.modules.module.severity_enum has not the expected format: 'module.class_name'")
+                    raise BOARulesUnexpectedFormat("boa_rules.modules.module.severity_enum"
+                                                   " has not the expected format in"
+                                                   f" '{module_name}.{class_name}': "
+                                                   "'module_name.class_name'")
 
                 if not is_key_in_dict(module, "severity_enum"):
                     module["severity_enum"] = severity_enum
-
-                module_name = module["module_name"]
-                class_name = module["class_name"]
 
                 args = module["args"]
                 sort_args = False
@@ -522,12 +538,16 @@ class RulesManager:
                     if module["args_sorting"].lower() == "true":
                         sort_args = True
                     elif module["args_sorting"].lower() != "false":
-                        raise BOARulesUnexpectedFormat("boa_rules.modules.module.args_sorting has not the expected format: allowed values are 'true' and 'false'")
+                        raise BOARulesUnexpectedFormat("boa_rules.modules.module.args_sorting"
+                                                       " has not the expected format in "
+                                                       f"'{module_name}.{class_name}': allowed"
+                                                       " values are 'true' and 'false'")
                 except BOARulesUnexpectedFormat as e:
                     raise e
                 except:
                     if args_sorting_defined_test:
-                        raise Exception("boa_rules.modules.module has not the expected #elements")
+                        raise Exception("boa_rules.modules.module has not the expected"
+                                        f" #elements in '{module_name}.{class_name}'")
 
                 if not isinstance(args, list):
                     args = [args]
@@ -539,23 +559,26 @@ class RulesManager:
                     self.args = {}
 
                 for arg in args:
-                    if not self.check_rules_arg(arg, "args", "module", save_args, arg_reference, sort_args):
+                    if not self.check_rules_arg(arg, "args", "module", save_args,
+                                                arg_reference, sort_args):
                         if save_args:
                             # Reset the args because the args checking failed
                             self.args = None
 
-                        raise Exception("boa_rules.modules.module.args is not correct")
+                        raise Exception(f"boa_rules.modules.module.args is not correct"
+                                        f" in '{module_name}.{class_name}'")
 
                 if (save_args and not self.set_args(f"{module_name}.{class_name}", arg_reference)):
                     # Reset the args because we could not set the args
                     self.args = None
-                    raise Exception("boa_rules.modules.module is not correct (f'{module's name}.{class's name}' already set?)")
+                    raise Exception("boa_rules.modules.module is not correct "
+                                    f"('{module_name}.{class_name}' already set?)")
 
         except BOARulesUnexpectedFormat as e:
-            eprint(f"Warning: wrong format: {e}.")
+            eprint(f"Error: wrong format: {e}.")
             return False
         except Exception as e:
-            eprint(f"Warning: rules did not pass the checking: {e}.")
+            eprint(f"Error: rules did not pass the checking: {e}.")
             return False
 
         return True
@@ -588,7 +611,8 @@ class RulesManager:
             try:
                 rules = rules[p]
             except Exception as e:
-                eprint(f"Error: could not get the rules concrete rules: {e}. Returning all the rules.")
+                eprint(f"Error: could not get the rules concrete rules: {e}."
+                       " Returning all the rules.")
 
                 return self.rules
 
@@ -609,7 +633,7 @@ class RulesManager:
             arg (dict): the new args for the module.
 
         Returns:
-            bool: true if the module's args could be set; false otherwise
+            bool: *True* if the args could be set; *False* otherwise
         """
         if self.args is None:
             self.args = {}
