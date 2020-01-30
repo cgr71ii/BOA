@@ -26,7 +26,7 @@ import xmltodict
 # Own libs
 from constants import Meta, Error, Other
 from util import eprint, is_key_in_dict, get_index_if_match_element_in_tuples
-from own_exceptions import BOARulesUnexpectedFormat
+from own_exceptions import BOARulesUnexpectedFormat, BOARulesIncomplete, BOARulesError
 
 class RulesManager:
     """RulesManager class.
@@ -436,8 +436,10 @@ class RulesManager:
                 have to be saved while they are being checked.
 
         Raises:
-            Exception: when the number of expected mandatory rules
-                does not match with the actual number of rules.
+            BOARulesIncomplete: when the number of expected
+                mandatory rules does not match with the actual
+                number of rules or when a concrete rule is not
+                found.
             BOARulesUnexpectedFormat: when the format of a rule
                 is not the expected.
 
@@ -448,25 +450,46 @@ class RulesManager:
             return False
 
         try:
-            self.rules["boa_rules"]
+            is_key_in_dict(self.rules, "boa_rules", True,
+                           raise_exception=BOARulesIncomplete,
+                           exception_args="'boa_rules'")
 
             if len(self.rules["boa_rules"]) != 2:
-                raise Exception("boa_rules has not the expected #elements")
+                raise BOARulesIncomplete("'boa_rules' has not the expected #elements")
 
-            self.rules["boa_rules"]["parser"]
+            is_key_in_dict(self.rules, "boa_rules.parser", True,
+                           raise_exception=BOARulesIncomplete,
+                           exception_args="'boa_rules.parser'")
 
             if len(self.rules["boa_rules"]["parser"]) != 5:
-                raise Exception("boa_rules.parser has not the expected #elements")
+                raise BOARulesIncomplete("'boa_rules.parser' has not the expected #elements")
 
-            self.rules["boa_rules"]["parser"]["name"]
-            self.rules["boa_rules"]["parser"]["lang_objective"]
-            self.rules["boa_rules"]["parser"]["module_name"]
-            self.rules["boa_rules"]["parser"]["class_name"]
-            self.rules["boa_rules"]["parser"]["callback"]
-            self.rules["boa_rules"]["parser"]["callback"]["method"]
+            is_key_in_dict(self.rules, "boa_rules.parser.name", True,
+                           raise_exception=BOARulesIncomplete,
+                           exception_args="'boa_rules.parser.name'")
+            is_key_in_dict(self.rules, "boa_rules.parser.lang_objective", True,
+                           raise_exception=BOARulesIncomplete,
+                           exception_args="'boa_rules.parser.lang_objective'")
+            is_key_in_dict(self.rules, "boa_rules.parser.module_name", True,
+                           raise_exception=BOARulesIncomplete,
+                           exception_args="'boa_rules.parser.module_name'")
+            is_key_in_dict(self.rules, "boa_rules.parser.class_name", True,
+                           raise_exception=BOARulesIncomplete,
+                           exception_args="'boa_rules.parser.class_name'")
+            is_key_in_dict(self.rules, "boa_rules.parser.callback", True,
+                           raise_exception=BOARulesIncomplete,
+                           exception_args="'boa_rules.parser.callback'")
+            is_key_in_dict(self.rules, "boa_rules.parser.callback.method", True,
+                           raise_exception=BOARulesIncomplete,
+                           exception_args="'boa_rules.parser.callback.method'")
 
             if len(self.rules["boa_rules"]["parser"]["callback"]) != 1:
-                raise Exception("boa_rules.parser.callback has not the expected #elements")
+                raise BOARulesIncomplete("'boa_rules.parser.callback' has not"
+                                         " the expected #elements")
+
+            is_key_in_dict(self.rules, "boa_rules.parser.callback.method", True,
+                           raise_exception=BOARulesIncomplete,
+                           exception_args="'boa_rules.parser.callback.method'")
 
             methods = self.rules["boa_rules"]["parser"]["callback"]["method"]
 
@@ -475,16 +498,26 @@ class RulesManager:
 
             for method in methods:
                 if len(method) != 2:
-                    raise Exception("boa_rules.parser.callback.method has not"
-                                    " the expected #elements")
+                    raise BOARulesIncomplete("'boa_rules.parser.callback.method'"
+                                             " has not the expected #elements")
 
-                method["@name"]
-                method["@callback"]
+                is_key_in_dict(method, "@name", False,
+                               raise_exception=BOARulesIncomplete,
+                               exception_args="'boa_rules.parser.callback.method@name'")
+                is_key_in_dict(method, "@callback", False,
+                               raise_exception=BOARulesIncomplete,
+                               exception_args="'boa_rules.parser.callback.method@callback'")
 
-            self.rules["boa_rules"]["modules"]
+            is_key_in_dict(self.rules, "boa_rules.modules", True,
+                           raise_exception=BOARulesIncomplete,
+                           exception_args="'boa_rules.modules'")
 
             if len(self.rules["boa_rules"]["modules"]) != 1:
-                raise Exception("boa_rules.modules has not the expected #elements")
+                raise BOARulesIncomplete("'boa_rules.modules' has not the expected #elements")
+
+            is_key_in_dict(self.rules, "boa_rules.modules.module", True,
+                           raise_exception=BOARulesIncomplete,
+                           exception_args="'boa_rules.modules.module'")
 
             modules = self.rules["boa_rules"]["modules"]["module"]
 
@@ -500,30 +533,24 @@ class RulesManager:
                 if len(module) == 5:
                     args_sorting_defined_test = True
                 elif len(module) == 4:
-                    try:
-                        module["args_sorting"]
+                    if is_key_in_dict(module, "args_sorting"):
                         args_sorting_defined_test = True
-                    except:
-                        try:
-                            module["severity_enum"]
-
-                            if not module["severity_enum"]:
-                                raise BOARulesUnexpectedFormat("boa_rules.modules.module"
-                                                               ".severity_enum cannot be"
-                                                               f" empty ('{module_name}.{class_name}')")
-
-                            severity_enum = module["severity_enum"]
-                        except BOARulesUnexpectedFormat as e:
-                            raise e
-                        except:
-                            raise Exception("boa_rules.modules.module has not the expected"
-                                            f" #elements in '{module_name}.{class_name}'")
+                    elif not is_key_in_dict(module, "severity_enum"):
+                        raise BOARulesIncomplete("'boa_rules.modules.module'"
+                                                 " has not the expected #elements"
+                                                 f" in '{module_name}.{class_name}'")
+                    elif not module["severity_enum"]:
+                        raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
+                                                       ".severity_enum' cannot be"
+                                                       f" empty ('{module_name}.{class_name}')")
+                    else:
+                        severity_enum = module["severity_enum"]
                 elif len(module) != 3:
-                    raise Exception("boa_rules.modules.module has not the expected"
-                                    f" #elements in '{module_name}.{class_name}'")
+                    raise BOARulesIncomplete("'boa_rules.modules.module' has not the expected"
+                                             f" #elements in '{module_name}.{class_name}'")
 
                 if len(severity_enum.split(".")) != 2:
-                    raise BOARulesUnexpectedFormat("boa_rules.modules.module.severity_enum"
+                    raise BOARulesUnexpectedFormat("'boa_rules.modules.module.severity_enum'"
                                                    " has not the expected format in"
                                                    f" '{module_name}.{class_name}': "
                                                    "'module_name.class_name'")
@@ -531,23 +558,25 @@ class RulesManager:
                 if not is_key_in_dict(module, "severity_enum"):
                     module["severity_enum"] = severity_enum
 
+                is_key_in_dict(module, "args", False,
+                               raise_exception=BOARulesIncomplete,
+                               exception_args="'boa_rules.modules.module.args'")
+
                 args = module["args"]
                 sort_args = False
 
-                try:
+                if (not is_key_in_dict(module, "args_sorting") and args_sorting_defined_test):
+                    raise BOARulesIncomplete("'boa_rules.modules.module' has not the"
+                                             " expected #elements in"
+                                             f"'{module_name}.{class_name}'")
+                if args_sorting_defined_test:
                     if module["args_sorting"].lower() == "true":
                         sort_args = True
                     elif module["args_sorting"].lower() != "false":
-                        raise BOARulesUnexpectedFormat("boa_rules.modules.module.args_sorting"
+                        raise BOARulesUnexpectedFormat("'boa_rules.modules.module.args_sorting'"
                                                        " has not the expected format in "
                                                        f"'{module_name}.{class_name}': allowed"
                                                        " values are 'true' and 'false'")
-                except BOARulesUnexpectedFormat as e:
-                    raise e
-                except:
-                    if args_sorting_defined_test:
-                        raise Exception("boa_rules.modules.module has not the expected"
-                                        f" #elements in '{module_name}.{class_name}'")
 
                 if not isinstance(args, list):
                     args = [args]
@@ -565,17 +594,22 @@ class RulesManager:
                             # Reset the args because the args checking failed
                             self.args = None
 
-                        raise Exception(f"boa_rules.modules.module.args is not correct"
-                                        f" in '{module_name}.{class_name}'")
+                        raise BOARulesError(f"'boa_rules.modules.module.args' is not"
+                                            f" correct in '{module_name}.{class_name}'")
 
                 if (save_args and not self.set_args(f"{module_name}.{class_name}", arg_reference)):
                     # Reset the args because we could not set the args
                     self.args = None
-                    raise Exception("boa_rules.modules.module is not correct "
-                                    f"('{module_name}.{class_name}' already set?)")
-
+                    raise BOARulesError("'boa_rules.modules.module' is not correct "
+                                        f"('{module_name}.{class_name}' already set?)")
         except BOARulesUnexpectedFormat as e:
             eprint(f"Error: wrong format: {e}.")
+            return False
+        except BOARulesIncomplete as e:
+            eprint(f"Error: rules are incomplete: {e}.")
+            return False
+        except BOARulesError as e:
+            eprint(f"Error: something is wrong (format and completeness seems ok): {e}.")
             return False
         except Exception as e:
             eprint(f"Error: rules did not pass the checking: {e}.")
@@ -600,7 +634,8 @@ class RulesManager:
                 in a list. The default value is *False*.
 
         Returns:
-            dict: rules from the rules file
+            dict: rules from the rules file. If *list_type* is *True*,
+            the returning type will not be *dict* but *list*.
         """
         if path is None:
             return self.rules
@@ -610,10 +645,13 @@ class RulesManager:
         for p in path.split("."):
             try:
                 rules = rules[p]
-            except Exception as e:
-                eprint(f"Error: could not get the rules concrete rules: {e}."
+            except KeyError as e:
+                eprint(f"Error: could not get the rules: {e}."
                        " Returning all the rules.")
-
+                return self.rules
+            except Exception as e:
+                eprint(f"Error: unexpected error while getting rules: {e}."
+                       " Returning all the rules.")
                 return self.rules
 
         if list_type:

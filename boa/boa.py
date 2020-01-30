@@ -169,9 +169,11 @@ def load_instance(module_loader, module_name, class_name, module_args):
         return [Error.error_module_cannot_load_instance, None]
     if abstract_instance is None:
         return [Error.error_module_cannot_load_instance, None]
-    if (not issubclass(instance, abstract_instance) or instance is abstract_instance):
-        eprint("Error: instance has not the expected type (does it inherit from "
-               f"'{Meta.abstract_module_name}.{Meta.abstract_module_class_name}?').")
+    if (not issubclass(instance, abstract_instance) or
+            instance is abstract_instance):
+        eprint(f"Error: instance '{module_name}.{class_name}'"
+               " has not the expected type (does it inherit from "
+               f"'{Meta.abstract_module_name}.{Meta.abstract_module_class_name}'?).")
         return [Error.error_module_not_expected_type, None]
 
     try:
@@ -185,7 +187,6 @@ def load_instance(module_loader, module_name, class_name, module_args):
 
     return [Meta.ok_code, instance]
 
-# TODO check if it works
 def get_boapm_instance(module_name, class_name):
     """It attempts to load a BOAPM module and get an
     instance of it.
@@ -201,7 +202,7 @@ def get_boapm_instance(module_name, class_name):
     """
     file_path = f'{get_current_path(__file__)}/{Meta.parser_modules_directory}'
     abstract_instance = ModulesImporter.load_and_get_instance(Meta.abstract_parser_module_name,
-                                                              f'{file_path}/{Meta.parser_modules_directory}.py',
+                                                              f'{file_path}/{Meta.abstract_parser_module_name}.py',
                                                               Meta.abstract_parser_module_class_name)
     file_path = f'{file_path}/{module_name}.py'
 
@@ -221,6 +222,13 @@ def get_boapm_instance(module_name, class_name):
     if not instance:
         eprint(f"Error: could not load the parser module '{module_name}.{class_name}'.")
         return [Error.error_other_parser_module_not_loaded, instance]
+
+    if (not issubclass(instance, abstract_instance) or
+            instance is abstract_instance):
+        eprint(f"Error: instance '{module_name}.{class_name}' has not the expected"
+               f" type (does it inherit from '{Meta.abstract_parser_module_name}."
+               f"{Meta.abstract_parser_module_class_name}'?).")
+        return [Error.error_other_abstract_parser_module_not_expected_type, instance]
 
     return [Meta.ok_code, instance]
 
@@ -386,7 +394,19 @@ def main():
                f" and arguments length ({len(mods_args)}) are not equal.")
         return Error.error_rules_modules_classes_args_neq_length
 
-    # Parse C file
+    # Parse lang. file
+
+    parser_rules = rules_manager.get_rules("boa_rules.parser")
+
+    rtn = get_boapm_instance(parser_rules['module_name'], parser_rules['class_name'])
+    rtn_code = rtn[0]
+    boapm_instance = rtn[1]
+
+    if rtn_code != Meta.ok_code:
+        return rtn_code
+
+    # TODO use boapm_instance
+
     rtn = parse_c_file()
     rtn_code = rtn[0]
     ast = rtn[1]

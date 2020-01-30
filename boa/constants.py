@@ -111,6 +111,7 @@ class Error:
     error_other_parser_module_not_found = 1002
     error_other_parser_module_not_loaded = 1003
     error_other_abstract_parser_module_not_loaded = 1004
+    error_other_abstract_parser_module_not_expected_type = 1005
 
 class Regex:
     """Regex class.

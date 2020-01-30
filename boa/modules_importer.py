@@ -200,7 +200,7 @@ class ModulesImporter:
         return not_loaded_modules
 
     @classmethod
-    def load_and_get_instance(cls, module, absolute_file_path, class_name):
+    def load_and_get_instance(cls, module, absolute_file_path, class_name, verbose=True):
         """Class method which attempts to load a module
         and return an instance of it.
 
@@ -210,6 +210,8 @@ class ModulesImporter:
                 the module to be loaded.
             class_name (str): class name inside the module which is going
                 to be instantiated.
+            verbose (bool): if *True*, a message will be displayed if the
+                loading success.
 
         Returns:
             instance: an instance of "module.class" which has been specified
@@ -240,6 +242,9 @@ class ModulesImporter:
             sys.modules[module] = new_module
 
             spec.loader.exec_module(new_module)
+
+            if verbose:
+                print(f"Info: Module '{module}' successfully loaded.")
         except Exception as e:
             eprint(f"Warning: {e}.")
             return instance

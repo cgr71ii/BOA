@@ -69,3 +69,19 @@ class BOARulesUnexpectedFormat(Exception):
     This exception should be raised when the rules are being
     checked and some concrete requirements are not asserted.
     """
+
+class BOARulesIncomplete(Exception):
+    """BOARulesIncomplete exception.
+
+    This exception should be raised when the rules are incomplete
+    because it lacks some rule/s.
+    """
+
+class BOARulesError(Exception):
+    """BOARulesError exception.
+
+    This exception should be raised when a non-especific error
+    happens when parsing rules. An example of when to be raised
+    could be that if we set a rule and other rule should be set
+    because of that and the second is not set, it should be raised.
+    """

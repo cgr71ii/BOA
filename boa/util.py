@@ -69,7 +69,8 @@ def get_name_from_class_instance(instance):
 
     return None
 
-def is_key_in_dict(dictionary, key):
+def is_key_in_dict(dictionary, key, split_by_point=False,
+                   message=None, raise_exception=None, exception_args=None):
     """It checks if a given dictionary contains
     a concrete value. A try-except is used to perform
     this checking (EAFP) instead of other methods to
@@ -80,20 +81,52 @@ def is_key_in_dict(dictionary, key):
         dictionary (dict): dictionary to check.
         key (str): key which will be checked if it is
             in the dictionary.
+        split_by_point (bool): it will split *key* by '.'
+            if *True* and it will check for all the keys.
+            The default value is *False*.
+        message (str): message to be displayed if the key
+            is not contained. The default value is *False*.
+        raise_exception (Exception): exception to be raised.
+            The default value is *None*, which it means raise
+            nothing.
+        exception_args: args to be given to the exception
+            which is going to be raised if *raise_exception*
+            is not *None*. The default value is *None*.
+
+    Raises:
+        Exception: if *key* is not in the *dictionary* and
+            *raise_exception* is not None, *raise_exception* will
+            be raised with *exception_args* as args.
 
     Returns:
         bool: true if the dictionary contains the key;
         false otherwise
     """
     try:
-        dictionary[key]
+        if split_by_point:
+            keys = key.split(".")
+
+            if len(keys) > 0:
+                value = dictionary
+
+                for k in keys:
+                    value = value[k]
+            else:
+                raise KeyError()
+        else:
+            dictionary[key]
 
         return True
     except KeyError:
-        return False
+        if message is not None:
+            eprint(message)
     except Exception as e:
         eprint(f"Error: not expected error while checking if key is in dict: {e}.")
-        return False
+
+    if raise_exception is not None:
+        raise raise_exception(exception_args)
+
+    return False
 
 def do_nothing(*args, rtn_sth=False, rtn_value=None):
     """Just what the name suggests: it does nothing.

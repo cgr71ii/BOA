@@ -5,7 +5,7 @@
         <name>pycparser</name>
         <lang_objective>C</lang_objective>
         <module_name>boapm_pycparser</module_name>
-        <class_name>BOAParserModulePycparser</class_name>
+        <class_name>BOAPMPycparser</class_name>
         <callback>
             <method name="ast" callback="get_ast" />
         </callback>
