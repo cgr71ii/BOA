@@ -17,13 +17,18 @@ class Meta:
 
     It contains information about BOA like the version, the description, ...
     """
-    version = 0.1
+    version = 0.2
     name = "BOA"
     description = "It attempts to detect buffer overflow threats in C language files."
     ok_code = 0
+    # Modules
     modules_directory = "modules"
     abstract_module_name = "boam_abstract"
-    abstract_module_class_name = "BOAM_abstract"
+    abstract_module_class_name = "BOAModuleAbstract"
+    # Parser modules
+    parser_modules_directory = "parser_modules"
+    abstract_parser_module_name = "boapm_abstract"
+    abstract_parser_module_class_name = "BOAParserModuleAbstract"
 
 class Args:
     """Args class.
@@ -75,6 +80,8 @@ class Error:
     error_module_cannot_load_instance = 33
     error_module_some_instance_loading_failed = 34
     error_module_cannot_remove_not_loaded_module = 35
+    error_module_cannot_load_abstract_instance = 36
+    error_module_not_expected_type = 37
 
     # Rules errors
     error_rules_modules_classes_args_neq_length = 40
@@ -101,6 +108,9 @@ class Error:
     # Other errors
     error_other_severity_enumeration_module_not_found = 1000
     error_other_severity_enumeration_module_not_loaded = 1001
+    error_other_parser_module_not_found = 1002
+    error_other_parser_module_not_loaded = 1003
+    error_other_abstract_parser_module_not_loaded = 1004
 
 class Regex:
     """Regex class.

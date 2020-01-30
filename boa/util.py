@@ -144,3 +144,27 @@ def get_index_if_match_element_in_tuples(tuples, value, key_position=0, check_al
         index += 1
 
     return None
+
+def get_environment_varibles(env_var_list):
+    """It returns the values of the given environment variable names.
+
+    Arguments:
+        env_var_list (list): list with all the environment variables.
+            If a single string is given, it is inserted into a list.
+
+    Returns:
+        dict: it contains the environment variables which exist with
+        the name as key
+    """
+    env_var_dict = {}
+
+    if (env_var_list and isinstance(env_var_list, str)):
+        env_var_list = [env_var_list]
+    if (not env_var_list or not isinstance(env_var_list, list)):
+        return env_var_dict
+
+    for env_var in env_var_list:
+        if (isinstance(env_var, str) and env_var in os.environ):
+            env_var_dict[env_var] = os.environ[env_var]
+
+    return env_var_dict

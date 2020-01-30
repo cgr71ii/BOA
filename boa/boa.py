@@ -156,20 +156,71 @@ def load_instance(module_loader, module_name, class_name, module_args):
         list: list containing:
             * int: status code\n
             * loaded instance
-    """
 
+    Note:
+        All the modules has to inherit from *constants.Meta.
+        abstract_parser_module_class_name*.
+    """
     instance = module_loader.get_instance(module_name, class_name)
+    abstract_instance = module_loader.get_instance(Meta.abstract_module_name,
+                                                   Meta.abstract_module_class_name)
 
     if instance is None:
-        return [Error.error_module_cannot_load_instance, instance]
+        return [Error.error_module_cannot_load_instance, None]
+    if abstract_instance is None:
+        return [Error.error_module_cannot_load_instance, None]
+    if (not issubclass(instance, abstract_instance) or instance is abstract_instance):
+        eprint("Error: instance has not the expected type (does it inherit from "
+               f"'{Meta.abstract_module_name}.{Meta.abstract_module_class_name}?').")
+        return [Error.error_module_not_expected_type, None]
 
     try:
         instance = instance(module_args)
-        print(f"Info: {module_name}.{class_name} initialized.")
+
+        print(f"Info: '{module_name}.{class_name}' initialized.")
     except Exception as e:
-        eprint(f"Error: could not load an instance of {module_name}.{class_name} "
-               f"(bad implementation of {Meta.abstract_module_name}."
-               f"{Meta.abstract_module_class_name} in {module_name}.{class_name}?). {e}.")
+        eprint(f"Error: could not load an instance of '{module_name}.{class_name}' "
+               f"(bad implementation of '{Meta.abstract_module_name}."
+               f"{Meta.abstract_module_class_name}' in '{module_name}.{class_name}'?). {e}.")
+
+    return [Meta.ok_code, instance]
+
+# TODO check if it works
+def get_boapm_instance(module_name, class_name):
+    """It attempts to load a BOAPM module and get an
+    instance of it.
+
+    Arguments:
+        module_name (str): BOAPM module name.
+        class_name (str): BOAPM class name.
+
+    Returns:
+        list: list containing:
+            * int: status code\n
+            * loaded instance
+    """
+    file_path = f'{get_current_path(__file__)}/{Meta.parser_modules_directory}'
+    abstract_instance = ModulesImporter.load_and_get_instance(Meta.abstract_parser_module_name,
+                                                              f'{file_path}/{Meta.parser_modules_directory}.py',
+                                                              Meta.abstract_parser_module_class_name)
+    file_path = f'{file_path}/{module_name}.py'
+
+    if not abstract_instance:
+        eprint("Error: could not load and get an instance of "
+               f"'{Meta.abstract_parser_module_name}.{Meta.abstract_parser_module_class_name}'.")
+        return [Error.error_other_abstract_parser_module_not_loaded, None]
+    if not file_exists(file_path):
+        eprint(f"Error: file '{file_path}' not found.")
+        return [Error.error_other_parser_module_not_found, None]
+
+    instance = ModulesImporter.load_and_get_instance(
+        module_name,
+        file_path,
+        class_name)
+
+    if not instance:
+        eprint(f"Error: could not load the parser module '{module_name}.{class_name}'.")
+        return [Error.error_other_parser_module_not_loaded, instance]
 
     return [Meta.ok_code, instance]
 
