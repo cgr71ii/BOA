@@ -104,14 +104,17 @@ class Error:
     error_report_append_failed = 63
     error_report_severity_enum_does_not_match = 64
 
+    # Parser module errors
+    error_parser_module_not_found = 70
+    error_parser_module_not_loaded = 71
+    error_parser_module_abstract_not_loaded = 72
+    error_parser_module_abstract_not_expected_type = 73
+    error_parser_module_some_callback_not_executed = 74
+    error_parser_module_no_callback_executed = 74
 
     # Other errors
     error_other_severity_enumeration_module_not_found = 1000
     error_other_severity_enumeration_module_not_loaded = 1001
-    error_other_parser_module_not_found = 1002
-    error_other_parser_module_not_loaded = 1003
-    error_other_abstract_parser_module_not_loaded = 1004
-    error_other_abstract_parser_module_not_expected_type = 1005
 
 class Regex:
     """Regex class.
@@ -129,3 +132,4 @@ class Other:
     Or does not have a concrete goal.
     """
     other_report_default_severity_enum = "severity_base.SeverityBase"
+    util_invoke_by_name_error_return = "check_with_id_or_is"

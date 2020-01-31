@@ -20,9 +20,10 @@ from pycparser import parse_file
 
 # Own libs
 from own_exceptions import ParseError
-from constants import Meta, Error
+from constants import Meta, Error, Other
 from args_manager import ArgsManager
 from util import eprint, is_key_in_dict, file_exists, get_current_path
+from util import invoke_by_name
 from modules_importer import ModulesImporter
 from main_loop import MainLoop
 from rules_manager import RulesManager
@@ -209,10 +210,10 @@ def get_boapm_instance(module_name, class_name):
     if not abstract_instance:
         eprint("Error: could not load and get an instance of "
                f"'{Meta.abstract_parser_module_name}.{Meta.abstract_parser_module_class_name}'.")
-        return [Error.error_other_abstract_parser_module_not_loaded, None]
+        return [Error.error_parser_module_abstract_not_loaded, None]
     if not file_exists(file_path):
         eprint(f"Error: file '{file_path}' not found.")
-        return [Error.error_other_parser_module_not_found, None]
+        return [Error.error_parser_module_not_found, None]
 
     instance = ModulesImporter.load_and_get_instance(
         module_name,
@@ -221,14 +222,14 @@ def get_boapm_instance(module_name, class_name):
 
     if not instance:
         eprint(f"Error: could not load the parser module '{module_name}.{class_name}'.")
-        return [Error.error_other_parser_module_not_loaded, instance]
+        return [Error.error_parser_module_not_loaded, instance]
 
     if (not issubclass(instance, abstract_instance) or
             instance is abstract_instance):
         eprint(f"Error: instance '{module_name}.{class_name}' has not the expected"
                f" type (does it inherit from '{Meta.abstract_parser_module_name}."
                f"{Meta.abstract_parser_module_class_name}'?).")
-        return [Error.error_other_abstract_parser_module_not_expected_type, instance]
+        return [Error.error_parser_module_abstract_not_expected_type, instance]
 
     return [Meta.ok_code, instance]
 
@@ -324,6 +325,75 @@ def manage_main_loop(instances, reports, ast):
 
     return [rtn_code, main_loop]
 
+def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
+    """It handles the BOAParserModule instance.
+
+    It will call the base methods and the callbacks defined in the rules file.
+
+    Arguments:
+        boapm_instance (BOAParserModuleAbstract): instance that inherits from
+            BOAParserModuleAbstract.
+        parser_rules (OrderedDict): rules which contains the necessary information
+            for the parser module in order to be initialized.
+        environment_variable_names (list): environment variables which will be
+            loaded and used in the parser modules. It is the only way to give
+            information from outside to the parser module. The default value
+            is *None*, which means nothing of information to be given.
+
+    Returns:
+        list: list contining:
+            * int: status code\n
+            * dict: callback results (boa_rules.parser.callback.method) of *boapm_instance*.
+    """
+    rtn_code = Meta.ok_code
+    # Initialize the instance
+    boapm_instance = boapm_instance(ArgsManager.args.file, environment_variable_names)
+
+    # Call initialization methods defined in
+    boapm_instance.initialize()
+    boapm_instance.parse()
+
+    callbacks = parser_rules["callback"]["method"]
+    names = []
+    methods = []
+    boapm_results = {}
+
+    if not isinstance(callbacks, list):
+        callbacks = [callbacks]
+
+    for callback in callbacks:
+        callback_dict = dict(callback.items())
+        name = callback_dict["@name"]
+        method = callback_dict["@callback"]
+
+        if (not name or not method):
+            eprint(f"Warning: attributes 'name' ('{name}') and 'callback' ('{method}')"
+                   " in 'boa_rules.parser.callback.method' cannot be empty. Skipping.")
+        elif name in names:
+            eprint(f"Warning: attribute 'name' ('{name}') cannot be duplicated in"
+                   " 'boa_rules.parser.callback.method'. Skipping.")
+        else:
+            names.append(callback_dict["@name"])
+            methods.append(callback_dict["@callback"])
+
+    error = False
+
+    for name, method in zip(names, methods):
+        result = invoke_by_name(boapm_instance, method)
+
+        if result is not Other.util_invoke_by_name_error_return:
+            boapm_results[name] = result
+        else:
+            error = True
+
+    if error:
+        if len(boapm_results) == 0:
+            rtn_code = Error.error_parser_module_no_callback_executed
+        else:
+            rtn_code = Error.error_parser_module_some_callback_not_executed
+
+    return [rtn_code, boapm_results]
+
 def main():
     """It handles the main BOA's flow at a high level.
 
@@ -405,7 +475,16 @@ def main():
     if rtn_code != Meta.ok_code:
         return rtn_code
 
-    # TODO use boapm_instance
+    rtn = handle_boapm(boapm_instance, parser_rules)
+    rtn_code = rtn[0]
+    # TODO use lifecycle_args in MainLoop
+    # TODO use MainLoop as base for lifecycles
+    lifecycle_args = rtn[1]
+
+    # TODO use an argument to know if execution should be stopped
+    #  when some parser module didn't succeed with a callback.
+    if rtn_code != Meta.ok_code:
+        return rtn_code
 
     rtn = parse_c_file()
     rtn_code = rtn[0]

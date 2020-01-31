@@ -12,6 +12,9 @@ from __future__ import print_function
 import sys
 import os
 
+# Own libs
+from constants import Other
+
 def eprint(*args, **kwargs):
     """It prints to the error output (i.e. stderr).
 
@@ -178,12 +181,20 @@ def get_index_if_match_element_in_tuples(tuples, value, key_position=0, check_al
 
     return None
 
-def get_environment_varibles(env_var_list):
+def get_environment_varibles(env_var_list, verbose_on_failure=False, failure_message=None):
     """It returns the values of the given environment variable names.
 
     Arguments:
         env_var_list (list): list with all the environment variables.
             If a single string is given, it is inserted into a list.
+        verbose_on_failure (bool): if cannot load an environment
+            variable and *True*, an error message will be displayed.
+            The default value is *False*, which means no display any
+            message on failure.
+        failure_message (str): message to be displayed when cannot
+            load an environment variable. If is not *None*, which
+            is the default value, the format will be:
+            f"{failure_message}: '{environment_variable}'.".
 
     Returns:
         dict: it contains the environment variables which exist with
@@ -194,10 +205,43 @@ def get_environment_varibles(env_var_list):
     if (env_var_list and isinstance(env_var_list, str)):
         env_var_list = [env_var_list]
     if (not env_var_list or not isinstance(env_var_list, list)):
+        eprint(f"Error: unexpected type while trying to load environment variables.")
         return env_var_dict
 
     for env_var in env_var_list:
         if (isinstance(env_var, str) and env_var in os.environ):
             env_var_dict[env_var] = os.environ[env_var]
+        elif verbose_on_failure:
+            if failure_message is not None:
+                eprint(f"{failure_message}: '{env_var}'.")
+            else:
+                eprint(f"Warning: could not load the environment variable '{env_var}'.")
 
     return env_var_dict
+
+def invoke_by_name(instance, method):
+    """It invokes a method of an instance.
+
+    Arguments:
+        instance: instance to be used to invoke the *method*.
+        method (str): method to be invoked in the *instance*.
+
+    Returns:
+        Method invocation result. *Other.util_invoke_by_name_error_return*
+        if something did not succeed. The returned value should be compared
+        with id() or *is*/*is not* in order to know if something wrong happened.
+    """
+    if (not instance or not isinstance(method, str)):
+        eprint(f"Error: invoke by name: 'instance' ('{instance}') has to have"
+               f" a value and 'method' ('{method}') has to be a string.")
+        return Other.util_invoke_by_name_error_return
+
+    try:
+        method = getattr(instance, method)
+        result = method()
+
+        return result
+    except Exception as e:
+        eprint(f"Error: invoke by name: {e}.")
+
+    return Other.util_invoke_by_name_error_return

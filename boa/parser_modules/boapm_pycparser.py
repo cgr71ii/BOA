@@ -19,7 +19,7 @@ class BOAPMPycparser(BOAParserModuleAbstract):
         """
         """
 
-    def getAST(self):
+    def get_ast(self):
         if self.ast is None:
             eprint("Warning: returning ast=None.")
 

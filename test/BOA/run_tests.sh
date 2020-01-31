@@ -1,6 +1,10 @@
 #!/bin/bash
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+OLDPYTHONPATH=$PYTHONPATH
+export PYTHONPATH="$DIR/../../boa"
+
+echo "PYTHONPATH set to: $PYTHONPATH"
 
 for test_file in $DIR/*.py; do
     test_name=$(basename $test_file)
@@ -13,3 +17,6 @@ for test_file in $DIR/*.py; do
     
     python $test_file
 done
+
+export PYTHONPATH="$OLDPYTHONPATH"
+echo -e "\nPYTHONPATH restored."
