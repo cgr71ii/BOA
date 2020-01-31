@@ -111,6 +111,9 @@ class Error:
     error_parser_module_abstract_not_expected_type = 73
     error_parser_module_some_callback_not_executed = 74
     error_parser_module_no_callback_executed = 74
+    error_parser_module_failed_in_initialization = 75
+    error_parser_module_failed_in_parsing = 76
+    error_parser_module_failed_in_execution = 77
 
     # Other errors
     error_other_severity_enumeration_module_not_found = 1000

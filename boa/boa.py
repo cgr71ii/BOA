@@ -19,11 +19,11 @@ import os
 from pycparser import parse_file
 
 # Own libs
-from own_exceptions import ParseError
+from own_exceptions import ParseError, BOAPMInitializationError, BOAPMParseError
 from constants import Meta, Error, Other
 from args_manager import ArgsManager
 from util import eprint, is_key_in_dict, file_exists, get_current_path
-from util import invoke_by_name
+from util import invoke_by_name, get_name_from_class_instance
 from modules_importer import ModulesImporter
 from main_loop import MainLoop
 from rules_manager import RulesManager
@@ -345,18 +345,28 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
             * int: status code\n
             * dict: callback results (boa_rules.parser.callback.method) of *boapm_instance*.
     """
-    rtn_code = Meta.ok_code
-    # Initialize the instance
+    # Initialize the instance and other necessary information
     boapm_instance = boapm_instance(ArgsManager.args.file, environment_variable_names)
-
-    # Call initialization methods defined in
-    boapm_instance.initialize()
-    boapm_instance.parse()
-
+    boapm_instance_name = get_name_from_class_instance(boapm_instance)
     callbacks = parser_rules["callback"]["method"]
     names = []
     methods = []
     boapm_results = {}
+    rtn_code = Meta.ok_code
+
+    # Call initialization methods defined in
+    try:
+        boapm_instance.initialize()
+        boapm_instance.parse()
+    except BOAPMInitializationError as e:
+        eprint(f"Error: '{boapm_instance_name}.initialize()': {e}.")
+        return [Error.error_parser_module_failed_in_initialization, boapm_results]
+    except BOAPMParseError as e:
+        eprint(f"Error: '{boapm_instance_name}.parse()': {e}.")
+        return [Error.error_parser_module_failed_in_parsing, boapm_results]
+    except Exception as e:
+        eprint(f"Error: '{boapm_instance_name}': {e}.")
+        return [Error.error_parser_module_failed_in_execution, boapm_results]
 
     if not isinstance(callbacks, list):
         callbacks = [callbacks]
@@ -409,6 +419,13 @@ def main():
     if rtn_code != Meta.ok_code:
         return rtn_code
 
+    # Check if lang. file exists
+    if not file_exists(ArgsManager.args.file):
+        eprint(f"Error: file '{ArgsManager.args.file}' not found.")
+
+        return Error.error_file_not_found
+
+    # Manage rules file
     rtn = manage_rules_file()
     rtn_code = rtn[0]
     rules_manager = rtn[1]

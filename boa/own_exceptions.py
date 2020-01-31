@@ -85,3 +85,21 @@ class BOARulesError(Exception):
     could be that if we set a rule and other rule should be set
     because of that and the second is not set, it should be raised.
     """
+
+class BOAPMInitializationError(Exception):
+    """BOAPMInitializationError exception.
+
+    This exception should be raised when initialization is executed
+    and any error happens. It is a general exception and only this
+    exception should be raised in the *initialize* method in a
+    BOA parser module.
+    """
+
+class BOAPMParseError(Exception):
+    """BOAPMParseError exception.
+
+    This exception should be raised when the parse method is executed
+    and any error happens. It is a general exception and only this
+    exception should be raised in the *parse* method in a BOA parser
+    module.
+    """
