@@ -19,7 +19,7 @@ Note:
 from abc import abstractmethod
 
 # Own libs
-from util import get_name_from_class_instance
+from util import get_name_from_class_instance, eprint
 
 # This  file name has to match with constants.Meta.abstract_module_name
 # This class name has to match with constants.Meta.abstract_module_class_name
@@ -49,8 +49,9 @@ class BOAModuleAbstract:
                 implements this class.
         """
 
-        self.args = args
-        self.who_i_am = get_name_from_class_instance(self)
+        self._args = args
+        self._who_i_am = get_name_from_class_instance(self)
+        self._stop = False
 
     # This method loads the args and initializes the module
     @abstractmethod
@@ -89,3 +90,45 @@ class BOAModuleAbstract:
     def finish(self):
         """This method will be invoked when all the tokens have been processed.
         """
+
+    @property
+    def args(self):
+        """Args property. Read only.
+
+        It contains the given args to the concrete instance.
+        """
+        return self._args
+
+    @property
+    def who_i_am(self):
+        """Who I am property. Read only.
+
+        It contains information about the module and the class
+        of the instance.
+        """
+        return self._who_i_am
+
+    @property
+    def stop(self):
+        """Stop property. Read and write.
+
+        When this property is set to *True*, the main loop will stop
+        the execution of the instance and will not even show the found
+        threats in the report. The default value is *False*.
+        """
+        return self._stop
+
+    @stop.setter
+    def stop(self, value):
+        """Stop property: setter.
+
+        Arguments:
+            value (bool): value to set if the execution has to be stopped.
+        """
+        if value is None:
+            eprint("Error: not expected value in 'stop' property.")
+        elif not isinstance(value, bool):
+            eprint("Error: expected type in 'stop' property is 'bool'"
+                   f" and the actual type is '{type(value)}'.")
+        else:
+            self._stop = value

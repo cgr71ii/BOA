@@ -147,7 +147,7 @@ class MainLoop:
                 not isinstance(error_verbs, list) or
                 not isinstance(args, list) or
                 not isinstance(force_invocation, list)):
-            eprint(f"Error: arguments are not lists in main loop.")
+            eprint(f"Error: arguments are not 'list' in main loop.")
             self.rtn_code = Error.error_loop_args_wrong_type
             return
 
@@ -161,6 +161,10 @@ class MainLoop:
         for instance in self.instances:
             index = 0
             name = get_name_from_class_instance(instance)
+
+            if instance.stop:
+                # An instance can take the decision of stopping its own execution
+                continue
 
             while index < len(methods_name):
                 # Warn about skipping action if any failure happended in the past
