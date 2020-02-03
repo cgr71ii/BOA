@@ -10,6 +10,10 @@
             <method name="ast" callback="get_ast" />    <!-- Mandatory: at least 1; Mandatory 'name' and 'callback' attributes -->
             <method name="cfg" callback="get_cfg" />
         </callback>
+        <env_vars>  <!-- Mandatory -->
+            <env_var>ENV_VAR_1</env_var> <!-- Optional -->
+            <env_var>ENV_VAR_N</env_var>
+        </env_vars>
     </parser>
     <modules>   <!-- Mandatory -->
         <module>    <!-- Mandatory: at least 1 -->

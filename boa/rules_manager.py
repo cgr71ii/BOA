@@ -461,7 +461,7 @@ class RulesManager:
                            raise_exception=BOARulesIncomplete,
                            exception_args="'boa_rules.parser'")
 
-            if len(self.rules["boa_rules"]["parser"]) != 5:
+            if len(self.rules["boa_rules"]["parser"]) != 6:
                 raise BOARulesIncomplete("'boa_rules.parser' has not the expected #elements")
 
             is_key_in_dict(self.rules, "boa_rules.parser.name", True,
@@ -482,9 +482,16 @@ class RulesManager:
             is_key_in_dict(self.rules, "boa_rules.parser.callback.method", True,
                            raise_exception=BOARulesIncomplete,
                            exception_args="'boa_rules.parser.callback.method'")
+            is_key_in_dict(self.rules, "boa_rules.parser.env_vars", True,
+                           raise_exception=BOARulesIncomplete,
+                           exception_args="'boa_rules.parser.env_vars'")
 
             if len(self.rules["boa_rules"]["parser"]["callback"]) != 1:
                 raise BOARulesIncomplete("'boa_rules.parser.callback' has not"
+                                         " the expected #elements")
+            if (self.rules["boa_rules"]["parser"]["env_vars"] and
+                    len(self.rules["boa_rules"]["parser"]["env_vars"]) != 1):
+                raise BOARulesIncomplete("'boa_rules.parser.env_vars' has not"
                                          " the expected #elements")
 
             is_key_in_dict(self.rules, "boa_rules.parser.callback.method", True,

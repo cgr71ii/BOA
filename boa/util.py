@@ -109,10 +109,12 @@ def is_key_in_dict(dictionary, key, split_by_point=False,
         if split_by_point:
             keys = key.split(".")
 
-            if len(keys) > 0:
+            if (keys and len(keys) > 0):
                 value = dictionary
 
                 for k in keys:
+                    if value is None:
+                        raise KeyError()
                     value = value[k]
             else:
                 raise KeyError()
@@ -204,7 +206,9 @@ def get_environment_varibles(env_var_list, verbose_on_failure=False, failure_mes
 
     if (env_var_list and isinstance(env_var_list, str)):
         env_var_list = [env_var_list]
-    if (not env_var_list or not isinstance(env_var_list, list)):
+    if (isinstance(env_var_list, list) and len(env_var_list) == 0):
+        pass
+    elif (not env_var_list or not isinstance(env_var_list, list)):
         eprint(f"Error: unexpected type while trying to load environment variables.")
         return env_var_dict
 

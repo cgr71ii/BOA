@@ -9,6 +9,9 @@
         <callback>
             <method name="ast" callback="get_ast" />
         </callback>
+        <env_vars>
+            <env_var>PYCPARSER_FAKE_LIBC_INCLUDE_PATH</env_var>
+        </env_vars>
     </parser>
     <modules>
         <module>

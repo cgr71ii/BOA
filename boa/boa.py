@@ -404,6 +404,28 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
 
     return [rtn_code, boapm_results]
 
+def get_parser_env_vars(parser_rules):
+    """It gets the environment variables from the rules file.
+
+    Arguments:
+        parser_rules (OrderedDict): rules which contains the necessary information
+            for the parser module in order to be initialized.
+
+    Returns:
+        list: environment variable names
+    """
+    env_vars = parser_rules["env_vars"]["env_var"]
+
+    if not env_vars:
+        return []
+    elif isinstance(env_vars, str):
+        return [env_vars]
+    elif not isinstance(env_vars, list):
+        eprint("Error: expected type in environment variables is 'list',"
+               f" but actually is '{type(env_vars)}'.")
+
+    return env_vars
+
 def main():
     """It handles the main BOA's flow at a high level.
 
@@ -492,7 +514,9 @@ def main():
     if rtn_code != Meta.ok_code:
         return rtn_code
 
-    rtn = handle_boapm(boapm_instance, parser_rules)
+    parser_env_vars = get_parser_env_vars(parser_rules)
+
+    rtn = handle_boapm(boapm_instance, parser_rules, parser_env_vars)
     rtn_code = rtn[0]
     # TODO use lifecycle_args in MainLoop
     # TODO use MainLoop as base for lifecycles
