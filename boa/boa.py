@@ -20,12 +20,13 @@ from pycparser import parse_file
 
 # Own libs
 from own_exceptions import ParseError, BOAPMInitializationError, BOAPMParseError
+from own_exceptions import BOALCException, BOAReportEnumTypeNotExpected
 from constants import Meta, Error, Other
 from args_manager import ArgsManager
 from util import eprint, is_key_in_dict, file_exists, get_current_path
 from util import invoke_by_name, get_name_from_class_instance
 from modules_importer import ModulesImporter
-from main_loop import MainLoop
+from lifecycles.boalc_manager import BOALifeCycleManager
 from rules_manager import RulesManager
 from report import Report
 
@@ -180,7 +181,7 @@ def load_instance(module_loader, module_name, class_name, module_args):
     try:
         instance = instance(module_args)
 
-        print(f"Info: '{module_name}.{class_name}' initialized.")
+        print(f"Info: Instance '{module_name}.{class_name}' initialized.")
     except Exception as e:
         eprint(f"Error: could not load an instance of '{module_name}.{class_name}' "
                f"(bad implementation of '{Meta.abstract_module_name}."
@@ -262,7 +263,7 @@ def remove_not_loaded_modules(mod_loader, modules, classes, mods_args):
             removed_class = classes.pop(index)
             removed_mod_args = mods_args.pop(removed_class)
 
-            print(f"Info: {removed_module}.{removed_class}({removed_mod_args}) was removed.")
+            print(f"Info: Instance '{removed_module}.{removed_class}' with args '{removed_mod_args}' was removed.")
         except Exception as e:
             eprint(f"Error: could not remove a module/class/arg while trying"
                    f" to remove module {not_loaded_module}. {e}.")
@@ -305,25 +306,42 @@ def manage_rules_file():
 
     return [Meta.ok_code, rules_manager]
 
-def manage_main_loop(instances, reports, ast):
-    """It handles the main loop through MainLoop class.
+def manage_lifecycles(instances, reports, lifecycle_args):
+    """It handles the lifecycles of the instances.
 
     Arguments:
-        instances: module instances which will be looped.
-        ast: processed AST.
+        instances (list): module instances to be executed.
+        reports (list): reports to be used by the *instances*.
+        lifecycle_args (dict): args to be used by the lifecycle.
 
     Returns:
         list: list contining:
             * int: status code\n
-            * MainLoop: MainLoop instance
+            * BOALifeCycleManager: BOALifeCycleManager instance
     """
+    lifecycle = None
 
-    main_loop = MainLoop(instances, reports, ast)
+    try:
+        lifecycle = BOALifeCycleManager(instances, reports, lifecycle_args)
 
-    # It handles the loop work
-    rtn_code = main_loop.handle_loop()
+        # It handles the loop work
+        rtn_code = lifecycle.handle_lifecycle()
+    except BOALCException as e:
+        eprint(f"Error: lifecycle exception: {e}.")
 
-    return [rtn_code, main_loop]
+        if lifecycle:
+            return [Error.error_lifecycle_exception, lifecycle]
+
+        return [Error.error_lifecycle_exception, None]
+    except Exception as e:
+        eprint(f"Error: {e}.")
+
+        if lifecycle:
+            return [Error.error_lifecycle_exception, lifecycle]
+
+        return [Error.error_lifecycle_exception, None]
+
+    return [rtn_code, lifecycle]
 
 def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
     """It handles the BOAParserModule instance.
@@ -391,7 +409,7 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
     for name, method in zip(names, methods):
         result = invoke_by_name(boapm_instance, method)
 
-        if result is not Other.util_invoke_by_name_error_return:
+        if result is not Other.other_util_invoke_by_name_error_return:
             boapm_results[name] = result
         else:
             error = True
@@ -470,19 +488,20 @@ def main():
         severity_enum_formatted = m['severity_enum']
         severity_enum_module_name = severity_enum_formatted.split('.')[0]
         severity_enum_class_name = severity_enum_formatted.split('.')[1]
+        severity_enum_name = f"{severity_enum_module_name}.{severity_enum_class_name}"
 
         modules.append(module_name)
         classes.append(class_name)
 
         if not is_key_in_dict(args, f"{module_name}.{class_name}"):
-            eprint(f"Error: args for module {module_name}.{class_name} not found.")
+            eprint(f"Error: args for module '{module_name}.{class_name}' not found.")
             return Error.error_rules_args_not_found
 
         severity_enum_path = f"{get_current_path()}/enumerations/severity/{severity_enum_module_name}.py"
 
         if not file_exists(severity_enum_path):
-            eprint(f"Error: could not found the severity enumeration module '{severity_enum_module_name}.py'.")
-            return Error.error_other_severity_enumeration_module_not_found
+            eprint(f"Error: could not found the severity enumeration module '{severity_enum_module_name}'.")
+            return Error.error_report_severity_enum_module_not_found
 
         severity_enum_instance = ModulesImporter.load_and_get_instance(
             severity_enum_module_name,
@@ -490,11 +509,22 @@ def main():
             severity_enum_class_name)
 
         if not severity_enum_instance:
-            eprint(f"Error: could not load the severity enumeration '{severity_enum_module_name}.{severity_enum_class_name}'.")
-            return Error.error_other_severity_enumeration_module_not_loaded
+            eprint(f"Error: could not load the severity enumeration '{severity_enum_name}'.")
+            return Error.error_report_severity_enum_module_not_loaded
+
+        report = None
+
+        try:
+            report = Report(severity_enum_instance)
+        except BOAReportEnumTypeNotExpected:
+            eprint(f"Error: severiry enum type not expected: '{severity_enum_name}'.")
+            return Error.error_report_severity_enum_not_expected
+        except Exception as e:
+            eprint(f"Error: {e}.")
+            return Error.error_report_unknown
 
         severity_enums.append(severity_enum_instance)
-        reports.append(Report(severity_enum_instance))
+        reports.append(report)
 
         mods_args[f"{module_name}.{class_name}"] = args[f"{module_name}.{class_name}"]
 
@@ -576,8 +606,8 @@ def main():
 
         index += 1
 
-    # It handles the loop work
-    rtn = manage_main_loop(instances, reports, ast)
+    # It handles the lifecycles
+    rtn = manage_lifecycles(instances, reports, lifecycle_args)
     rtn_code = rtn[0]
     main_loop = rtn[1]
 

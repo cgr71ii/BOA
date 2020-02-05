@@ -1,52 +1,52 @@
 
-"""Main Loop.
+"""Lifecycle manager.
 
-This file contains the class MainLoop, which handles the
-loop which is executed to analyze the language file.
+This file contains the class BOALifeCycleManager, which
+handles the loop which is executed to analyze the language
+file.
 """
 
 # Own libs
 from constants import Meta, Error
-from util import eprint, get_name_from_class_instance
-from own_exceptions import BOAModuleException
+from util import eprint, get_name_from_class_instance, is_key_in_dict
+from own_exceptions import BOAModuleException, BOALCException
 from pycparser_ast_preorder_visitor import PreorderVisitor
 
-class MainLoop:
-    """MainLoop class.
+class BOALifeCycleManager:
+    """BOALifeCycleManager class.
 
     This class handles the modules intances. Concretely, it
     initializes the instances, iterates the processing
     throught them, and save the report records.
 
     The steps which are followed depends on the lifecycle being
-    used by a concrete module (e.g. *boam_function_match.
-    BOAModuleFunctionMatch*).
+    used by a concrete module.
     """
 
-    def __init__(self, instances, reports, ast):
+    def __init__(self, instances, reports, lifecycle_args):
         """It invokes self.initialize(instances, ast).
 
         Arguments:
             instances: module instances which will be looped.
-            reports: report instances to show the threat records.
-            ast: processed AST.
+            reports (list): list of Report instances.
+            lifecycle_args (dict): arguments to be used by modules.
         """
-        self.initialize(instances, reports, ast)
+        self.initialize(instances, reports, lifecycle_args)
 
-    def initialize(self, instances, reports, ast):
+    def initialize(self, instances, reports, lifecycle_args):
         """It initializes all the variables which will be used by
         the other methods.
 
         Arguments:
             instances: module instances that are going to be saved.
-            reports: report instances to show the threat records.
-            ast: processed AST that is going to be saved.
+            reports (list): list of Report instances.
+            lifecycle_args (dict): processed AST that is going to be saved.
         """
         self.instances = instances
         self.reports = reports
         self.instances_names = []
         self.instances_warned = []
-        self.ast = ast
+        self.lifecycle_args = lifecycle_args
         self.rtn_code = Meta.ok_code
 
         for instance in self.instances:
@@ -95,9 +95,9 @@ class MainLoop:
 
         return report
 
-    def handle_loop(self):
+    def handle_lifecycle(self):
         """This method is the one which should be invoked to
-        handle the loop.
+        handle the lifecycle.
 
         It invokes the next phases:
 
@@ -116,9 +116,12 @@ class MainLoop:
         self.initialize_instances()
 
         # Process and clean
-        visitor = PreorderVisitor(self.process_and_clean_instances)
+        if is_key_in_dict(self.lifecycle_args, "ast"):
+            visitor = PreorderVisitor(self.process_and_clean_instances)
 
-        visitor.visit(self.ast)
+            visitor.visit(self.lifecycle_args["ast"])
+        else:
+            raise BOALCException("AST was expected")
 
         # Save (report) and finish
         self.save_and_finish_instances(self.final_report)
@@ -136,11 +139,11 @@ class MainLoop:
 
         Arguments:
             methods_name (list): methods (str) which are going to
-                be invoked for each *self.instances*.
+                be invoked for each instance in *self.instances*.
             error_verbs (list): verbs (str) to error displaying.
             args (list): args to be given to methods to be invoked.
             force_invocation (bool): force a method invokation
-                despite something failed in the past (if false, when
+                despite something failed in the past (if *False*, when
                 a failure happens, a method will not be invoked).
         """
         if (not isinstance(methods_name, list) or
@@ -148,14 +151,14 @@ class MainLoop:
                 not isinstance(args, list) or
                 not isinstance(force_invocation, list)):
             eprint(f"Error: arguments are not 'list' in main loop.")
-            self.rtn_code = Error.error_loop_args_wrong_type
+            self.rtn_code = Error.error_lifecycle_args_wrong_type
             return
 
         if (len(methods_name) != len(error_verbs) or
                 len(methods_name) != len(args) or
                 len(methods_name) != len(force_invocation)):
             eprint(f"Error: length in arguments are not equal in main loop.")
-            self.rtn_code = Error.error_loop_args_neq_length
+            self.rtn_code = Error.error_lifecycle_args_neq_length
             return
 
         for instance in self.instances:
@@ -173,7 +176,8 @@ class MainLoop:
 
                     # Warn only once
                     if instance_method_name not in self.instances_warned:
-                        eprint(f"Warning: skipping invocation to {instance_method_name} due to previous errors.")
+                        eprint(f"Warning: skipping invocation to '{instance_method_name}'"
+                               " due to previous errors.")
                         self.instances_warned.append(instance_method_name)
 
                     index += 1
@@ -194,24 +198,101 @@ class MainLoop:
                     eprint(f"Error: {e}.")
                     exception = True
                 except:
-                    eprint(f"Error: could not {error_verbs[index]} the instance '{get_name_from_class_instance(instance)}'.")
+                    eprint(f"Error: could not {error_verbs[index]} the instance '{name}'.")
                     exception = True
 
                 # Something failed. Warn about this in the future
                 if exception:
                     if name in self.instances_names:
                         self.instances_names.remove(name)
-                        self.rtn_code = Error.error_loop_module_exception
+                        self.rtn_code = Error.error_lifecycle_module_exception
 
                 index += 1
 
+    # TODO check if it works
+    def execute_instance_method(self, instance, method_name, error_verb, args, force_invocation):
+        """It attempts to execute a method of a concrete instance.
+
+        Arguments:
+            instance: initialized instance which a method is going
+                to be invoked if possible.
+            method_name (str): method which is going to be invoked.
+            error_verb (str): verb to error displaying.
+            args: args to be given to the invoked method.
+            force_invocation (bool): force a method invokation
+                despite something failed in the past (if *False*, when
+                a failure happens, a method will not be invoked).
+
+        Returns:
+            bool: it will return *True* if success. *False* otherwise.
+
+        Note:
+            If the given *instance* is not in *self.instances*, the
+            invocation will not succeed.
+        """
+        if not instance:
+            return False
+
+        instance_name = get_name_from_class_instance(instance)
+        instance_method_name = f"{instance_name}.{method_name}"
+        concrete_instance = None
+
+        try:
+            concrete_instance = self.instances.index(instance)
+        except ValueError:
+            eprint(f"Warning: instance ''{instance_name} not found.")
+            return False
+
+        if concrete_instance.stop:
+            # An instance can take the decision of stopping its own execution
+            # TODO should it return true because it is normal behaviour?
+            return False
+
+        # Warn about skipping action if any failure happended in the past
+        if (instance_name not in self.instances_names and not force_invocation):
+            # Warn only once
+            if instance_method_name not in self.instances_warned:
+                eprint(f"Warning: skipping invocation to '{instance_method_name}'"
+                       " due to previous errors.")
+                self.instances_warned.append(instance_method_name)
+
+            # TODO should it return true because it is normal behaviour?
+            return False
+
+        exception = False
+
+        # Invoke method and handle exceptions
+        try:
+            if args is None:
+                getattr(instance, method_name)()
+            else:
+                getattr(instance, method_name)(args)
+        except BOAModuleException as e:
+            eprint(f"Error: {e.message}.")
+            exception = True
+        except Exception as e:
+            eprint(f"Error: {e}.")
+            exception = True
+        except:
+            eprint(f"Error: could not {error_verb} the instance '{instance_name}'.")
+            exception = True
+
+        # Something failed. Warn about this in the future
+        if (exception and instance_name in self.instances_names):
+                self.instances_names.remove(instance_name)
+                # TODO modify self.rtn_code?
+                self.rtn_code = Error.error_lifecycle_module_exception
+                return False
+
+        return True
+
     def initialize_instances(self):
-        """It invokes self.initialize method.
+        """It invokes *self.initialize* method.
         """
         self.loop(['initialize'], ['initialize'], [None], [False])
 
     def process_and_clean_instances(self, node):
-        """It invokes self.process and self.clean methods.
+        """It invokes *self.process* and *self.clean* methods.
 
         Arguments:
             node: AST token which will be given to process().
@@ -219,7 +300,7 @@ class MainLoop:
         self.loop(['process', 'clean'], ['process', 'clean'], [node, None], [False, False])
 
     def save_and_finish_instances(self, report):
-        """It invokes self.save and self.finish methods.
+        """It invokes *self.save* and *self.finish* methods.
 
         Arguments:
             report: report instance which will be used to save

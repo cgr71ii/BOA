@@ -103,7 +103,7 @@ class ModulesImporter:
         return True
 
     def get_module(self, module_name):
-        """It returns a already loaded module.
+        """It returns an already loaded module.
 
         Arguments:
             module_name (str): module name which is attempted to return.
@@ -219,32 +219,30 @@ class ModulesImporter:
         """
         instance = None
 
+        # Check if the actual file path does exist
+        if not file_exists(absolute_file_path):
+            eprint(f"Warning: file '{absolute_file_path}' does not exist. "
+                   "Skipping current module.")
+            return instance
+
         try:
-            if module in sys.modules:
-                eprint(f"Warning: module '{module}' is already loaded.")
-                return instance
+            if not module in sys.modules:
+                spec = importlib.util.spec_from_file_location(module, absolute_file_path)
 
-            file_path = absolute_file_path # /path/to/the/file.ext
-            spec = importlib.util.spec_from_file_location(module, file_path)
+                # Check if we could get the module spec
+                if spec is None:
+                    eprint(f"Warning: module '{module}' could not be loaded."
+                           " Skipping current module.")
+                    return instance
 
-            # Check if we could get the module spec
-            if spec is None:
-                eprint(f"Warning: module '{module}' could not be loaded. Skipping current module.")
-                return instance
+                new_module = importlib.util.module_from_spec(spec)
 
-            new_module = importlib.util.module_from_spec(spec)
+                sys.modules[module] = new_module
 
-            # Check if the actual file path does exist
-            if file_exists(file_path) is False:
-                eprint(f"Warning: file '{file_path}' does not exist. Skipping current module.")
-                return instance
+                spec.loader.exec_module(new_module)
 
-            sys.modules[module] = new_module
-
-            spec.loader.exec_module(new_module)
-
-            if verbose:
-                print(f"Info: Module '{module}' successfully loaded.")
+                if verbose:
+                    print(f"Info: Module '{module}' successfully loaded.")
         except Exception as e:
             eprint(f"Warning: {e}.")
             return instance
@@ -252,7 +250,7 @@ class ModulesImporter:
             eprint(f"Warning: unknown error while loading module '{module}'.")
             return instance
 
-        # Module has been loaded once reached this point
+        # Module has been loaded once reached this point (or it was already loaded)
 
         tmp_module = sys.modules[module]
 

@@ -18,13 +18,14 @@ but concrete analysis.
 
 # Std libs
 import os
+import re
 import copy
 
 # 3rd libs
 import xmltodict
 
 # Own libs
-from constants import Meta, Error, Other
+from constants import Meta, Error, Other, Regex
 from util import eprint, is_key_in_dict, get_index_if_match_element_in_tuples
 from own_exceptions import BOARulesUnexpectedFormat, BOARulesIncomplete, BOARulesError
 
@@ -534,41 +535,71 @@ class RulesManager:
             for module in modules:
                 args_sorting_defined_test = False
                 severity_enum = Other.other_report_default_severity_enum
+                lifecycle_handler = Other.other_lifecycle_default_handler
                 module_name = module["module_name"]
                 class_name = module["class_name"]
+                total_modules_found = 0
+                total_mandatory_modules = 3
 
-                if len(module) == 5:
+                if is_key_in_dict(module, "args_sorting"):
                     args_sorting_defined_test = True
-                elif len(module) == 4:
-                    if is_key_in_dict(module, "args_sorting"):
-                        args_sorting_defined_test = True
-                    elif not is_key_in_dict(module, "severity_enum"):
-                        raise BOARulesIncomplete("'boa_rules.modules.module'"
-                                                 " has not the expected #elements"
-                                                 f" in '{module_name}.{class_name}'")
-                    elif not module["severity_enum"]:
+                    total_modules_found += 1
+                if is_key_in_dict(module, "severity_enum"):
+                    if not module["severity_enum"]:
                         raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
                                                        ".severity_enum' cannot be"
                                                        f" empty ('{module_name}.{class_name}')")
-                    else:
-                        severity_enum = module["severity_enum"]
-                elif len(module) != 3:
+
+                    regex_result = re.match(Regex.regex_general_module_class_name,
+                                            module["severity_enum"])
+
+                    if regex_result is None:
+                        raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
+                                                       ".severity_enum' does not match with"
+                                                       f" the expected regex "
+                                                       f"('{module_name}.{class_name}')")
+
+                    severity_enum = module["severity_enum"]
+                    total_modules_found += 1
+                if is_key_in_dict(module, "lifecycle_handler"):
+                    if not module["lifecycle_handler"]:
+                        raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
+                                                       ".lifecycle_handler' cannot be"
+                                                       f" empty ('{module_name}.{class_name}')")
+
+                    regex_result = re.match(Regex.regex_general_module_class_name,
+                                            module["lifecycle_handler"])
+
+                    if regex_result is None:
+                        raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
+                                                       ".lifecycle_handler' does not match with"
+                                                       f" the expected regex "
+                                                       f"('{module_name}.{class_name}')")
+
+                    lifecycle_handler = module["lifecycle_handler"]
+                    total_modules_found += 1
+
+                if len(module) != (total_mandatory_modules + total_modules_found):
                     raise BOARulesIncomplete("'boa_rules.modules.module' has not the expected"
                                              f" #elements in '{module_name}.{class_name}'")
 
-                if len(severity_enum.split(".")) != 2:
-                    raise BOARulesUnexpectedFormat("'boa_rules.modules.module.severity_enum'"
-                                                   " has not the expected format in"
-                                                   f" '{module_name}.{class_name}': "
-                                                   "'module_name.class_name'")
+                #if len(severity_enum.split(".")) != 2:
+                #    raise BOARulesUnexpectedFormat("'boa_rules.modules.module.severity_enum'"
+                #                                   " has not the expected format in"
+                #                                   f" '{module_name}.{class_name}': "
+                #                                   "'module_name.class_name'")
 
+                # Default values are not set
                 if not is_key_in_dict(module, "severity_enum"):
                     module["severity_enum"] = severity_enum
+                if not is_key_in_dict(module, "lifecycle_handler"):
+                    module["lifecycle_handler"] = lifecycle_handler
 
                 is_key_in_dict(module, "args", False,
                                raise_exception=BOARulesIncomplete,
                                exception_args="'boa_rules.modules.module.args'")
 
+                # Args checking
                 args = module["args"]
                 sort_args = False
 
@@ -594,6 +625,7 @@ class RulesManager:
                     # Initialize args to dict to work with the reference
                     self.args = {}
 
+                # Args processing
                 for arg in args:
                     if not self.check_rules_arg(arg, "args", "module", save_args,
                                                 arg_reference, sort_args):

@@ -18,6 +18,7 @@
             <module_name>boam_function_match</module_name>
             <class_name>BOAModuleFunctionMatch</class_name>
             <severity_enum>severity_function_match.SeverityFunctionMatch</severity_enum>
+            <lifecycle_handler>boalc_pycparser_ast.BOALCPycparserAST</lifecycle_handler>
             <args>
                 <dict>
                     <!-- Old -->

@@ -21,13 +21,12 @@
             <class_name>class name in the module</class_name>   <!-- Mandatory -->
             <severity_enum></severity_enum> <!-- Optional
                                                  Default value: severity_syslog.SeveritySyslog
-                                                 Allowed values: "module name from 
+                                                 Allowed values: module name from 
                                                     /path/to/BOA/enumerations/severity"."class name"
-                                                 Other values: default value
                                                  It allows the user to select a different way to
                                                     show and sort the found threats through an
                                                     enumeration defined by the own user. The enumeration
-                                                    has to inheritance from /path/to/BOA/enumerations
+                                                    has to inherit from /path/to/BOA/enumerations
                                                     /severity/severity_base.SeverityBase to work -->
             <args_sorting>true</args_sorting> <!--  Optional
                                                     Default value: false
@@ -37,15 +36,24 @@
                                                         elements of the same type will be group depending 
                                                         on the element that first was parsed.
                                                         Example:
-                                                        element1 | list1 | element2 | dict1 | list2
-                                                        Without partial sorting:
-                                                        dict1 | list1 | list2 | element1 element2
-                                                        With partial sorting:
-                                                        element1 | element2 | list1 | list2 | dict1
+                                                            element1 | list1 | element2 | dict1 | list2
+
+                                                            Without partial sorting:
+                                                                dict1 | list1 | list2 | element1 | element2
+                                                            With partial sorting:
+                                                                element1 | element2 | list1 | list2 | dict1
                                                     If you want the elements totally sorted combining them:
                                                         combine elements, enable this option and write the
                                                         elements without jumps (first all the "dict", "list"
                                                         or "element" elements, ...) -->
+            <lifecycle_handler></lifecycle_handler> <!-- Optional
+                                                         Default value: boalc_basic.BOALCBasic
+                                                         Allowed values: module name from 
+                                                            /path/to/BOA/lifecycles/boalc_module"."class_name"
+                                                         It allows the user to select a different lifecycle
+                                                            to execute a concrete module. The lifecycle
+                                                            has to inherit from /path/to/BOA/lifecycles
+                                                            /boalc_abstracto.BOALifeCycleAbstract to work -->
             <args>  <!--    Mandatory
                             If you use 'list', 'dict' and 'element' in combination at the same deepness, the result will not be sorted in the same way you wrote the rules
                             If you no use these elements in combination, the result will be sorted

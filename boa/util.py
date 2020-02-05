@@ -238,7 +238,7 @@ def invoke_by_name(instance, method):
     if (not instance or not isinstance(method, str)):
         eprint(f"Error: invoke by name: 'instance' ('{instance}') has to have"
                f" a value and 'method' ('{method}') has to be a string.")
-        return Other.util_invoke_by_name_error_return
+        return Other.other_util_invoke_by_name_error_return
 
     try:
         method = getattr(instance, method)
@@ -248,4 +248,4 @@ def invoke_by_name(instance, method):
     except Exception as e:
         eprint(f"Error: invoke by name: {e}.")
 
-    return Other.util_invoke_by_name_error_return
+    return Other.other_util_invoke_by_name_error_return

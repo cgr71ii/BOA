@@ -1,7 +1,7 @@
 Modules
 =======
 * :ref:`main-modules`
-* :ref:`lifecycle-modules`
+* :ref:`lifecycles`
 * :ref:`parser-modules`
 * :ref:`sec-modules`
 

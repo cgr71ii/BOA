@@ -103,3 +103,12 @@ class BOAPMParseError(Exception):
     exception should be raised in the *parse* method in a BOA parser
     module.
     """
+
+class BOALCException(Exception):
+    """BOALCException exception.
+
+    This exception should be raised when you want to stop the execution
+    of a BOA lifecycle. Other exceptions might be raised, but this one
+    will give specific information about the error to know that the
+    exception has been raised because a BOA lifecycle.
+    """

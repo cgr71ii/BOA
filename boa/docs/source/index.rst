@@ -18,7 +18,7 @@ parser which the user wants and use it to focus their own security needs.
 
    modules/main_modules
    modules/sec_modules
-   modules/lifecycle_modules
+   modules/lifecycles
    modules/parser_modules
 
 .. include:: footer.rst

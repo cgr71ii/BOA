@@ -2,6 +2,7 @@
 .. toctree::
    :hidden:
 
+   sec_modules/boam_abstract
    sec_modules/boam_function_match
    sec_modules/boam_test
 
@@ -9,6 +10,7 @@
 
 Security Modules
 ================
+* :ref:`sec-modules-boam-abstract`
 * :ref:`sec-modules-boam-function-match`
 * :ref:`sec-modules-boam-test`
 

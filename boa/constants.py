@@ -92,17 +92,22 @@ class Error:
     error_rules_bad_checking = 45
     error_rules_args_not_found = 46
 
-    # Main loop errors
-    error_loop_args_wrong_type = 50
-    error_loop_args_neq_length = 51
-    error_loop_module_exception = 52
+    # Lifecycle errors
+    error_lifecycle_args_wrong_type = 50
+    error_lifecycle_args_neq_length = 51
+    error_lifecycle_module_exception = 52
 
     # Report errors
     error_report_args_not_optional = 60
     error_report_args_not_expected_type = 61
     error_report_who_regex_fail = 62
     error_report_append_failed = 63
-    error_report_severity_enum_does_not_match = 64
+    error_report_unknown = 64
+    # Report -> severity enum errors
+    error_report_severity_enum_does_not_match = 65
+    error_report_severity_enum_not_expected = 66
+    error_report_severity_enum_module_not_found = 67
+    error_report_severity_enum_module_not_loaded = 68
 
     # Parser module errors
     error_parser_module_not_found = 70
@@ -115,9 +120,12 @@ class Error:
     error_parser_module_failed_in_parsing = 76
     error_parser_module_failed_in_execution = 77
 
+    # Lifecycle errors
+    error_lifecycle_exception = 80
+
+
     # Other errors
-    error_other_severity_enumeration_module_not_found = 1000
-    error_other_severity_enumeration_module_not_loaded = 1001
+
 
 class Regex:
     """Regex class.
@@ -134,5 +142,6 @@ class Other:
     does not match with the goal of the other classes.
     Or does not have a concrete goal.
     """
-    other_report_default_severity_enum = "severity_base.SeverityBase"
-    util_invoke_by_name_error_return = "check_with_id_or_is"
+    other_report_default_severity_enum = "severity_syslog.SeveritySyslog"
+    other_util_invoke_by_name_error_return = "check_with_id_or_is"
+    other_lifecycle_default_handler = "boalc_basic.BOALCBasic"
