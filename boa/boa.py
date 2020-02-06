@@ -306,42 +306,86 @@ def manage_rules_file():
 
     return [Meta.ok_code, rules_manager]
 
-def manage_lifecycles(instances, reports, lifecycle_args):
+def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
     """It handles the lifecycles of the instances.
 
     Arguments:
         instances (list): module instances to be executed.
         reports (list): reports to be used by the *instances*.
         lifecycle_args (dict): args to be used by the lifecycle.
+        lifecycles (list): list of names in format "module_name
+            .class_name" to be used.
 
     Returns:
         list: list contining:
             * int: status code\n
             * BOALifeCycleManager: BOALifeCycleManager instance
     """
-    lifecycle = None
+    lifecycle_manager = None
+    lifecycle_instances = []
+    lifecycle_path = f"{get_current_path()}/"\
+                     f"{Meta.lifecycle_modules_directory}/"\
+                     f"{Meta.lifecycle_abstract_module_name}.py"
+    lifecycle_abstract_instance = ModulesImporter.load_and_get_instance(
+        Meta.lifecycle_abstract_module_name,
+        lifecycle_path,
+        Meta.lifecycle_abstract_module_class_name)
 
+    if not lifecycle_abstract_instance:
+        return [Error.error_lifecycle_could_not_load_abstract_instance, None]
+
+    # Get lifecycle instances
+    for lifecycle in lifecycles:
+        lifecycle_splitted = lifecycle.split('.')
+        lifecycle_module_name = lifecycle_splitted[0]
+        lifecycle_class_name = lifecycle_splitted[1]
+        lifecycle_path = f"{get_current_path()}/"\
+                         f"{Meta.lifecycle_modules_directory}/"\
+                         f"{lifecycle_module_name}.py"
+
+        # Check if the lifecycle file exists
+        if not file_exists(lifecycle_path):
+            eprint(f"Error: could not found the lifecycle module '{lifecycle_module_name}'.")
+            return [Error.error_lifecycle_module_not_found, None]
+
+        lifecycle_instance = ModulesImporter.load_and_get_instance(lifecycle_module_name,
+                                                                   lifecycle_path,
+                                                                   lifecycle_class_name)
+
+        # Check if the lifecycle instance could be imported and if it is of the expected type
+        if not lifecycle_instance:
+            return [Error.error_lifecycle_could_not_load_instance, None]
+        if (not issubclass(lifecycle_instance, lifecycle_abstract_instance) or
+                lifecycle_instance is lifecycle_abstract_instance):
+            eprint(f"Error: instance '{lifecycle_module_name}.{lifecycle_class_name}'"
+                   " has not the expected type (does it inherit from "
+                   f"'{Meta.lifecycle_abstract_module_name}"
+                   f".{Meta.lifecycle_abstract_module_class_name}'?).")
+            return [Error.error_lifecycle_not_expected_type, None]
+
+        lifecycle_instances.append(lifecycle_instance)
+
+    # Manage the lifecycles
     try:
-        lifecycle = BOALifeCycleManager(instances, reports, lifecycle_args)
+        lifecycle_manager = BOALifeCycleManager(instances, reports, lifecycle_args, lifecycle_instances)
 
-        # It handles the loop work
-        rtn_code = lifecycle.handle_lifecycle()
+        rtn_code = lifecycle_manager.handle_lifecycle()
     except BOALCException as e:
         eprint(f"Error: lifecycle exception: {e}.")
 
-        if lifecycle:
-            return [Error.error_lifecycle_exception, lifecycle]
+        if lifecycle_manager:
+            return [Error.error_lifecycle_exception, lifecycle_manager]
 
         return [Error.error_lifecycle_exception, None]
     except Exception as e:
         eprint(f"Error: {e}.")
 
-        if lifecycle:
-            return [Error.error_lifecycle_exception, lifecycle]
+        if lifecycle_manager:
+            return [Error.error_lifecycle_exception, lifecycle_manager]
 
         return [Error.error_lifecycle_exception, None]
 
-    return [rtn_code, lifecycle]
+    return [rtn_code, lifecycle_manager]
 
 def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
     """It handles the BOAParserModule instance.
@@ -478,6 +522,7 @@ def main():
     mods_args = {}	# {"class": {"arg1": "value2", "arg2": ["value2", "value3"]}}
     severity_enums = []
     reports = []
+    lifecycles = []
 
     args = rules_manager.get_args()
     rmodules = rules_manager.get_rules("boa_rules.modules.module", True)
@@ -486,12 +531,15 @@ def main():
         module_name = m['module_name']
         class_name = m['class_name']
         severity_enum_formatted = m['severity_enum']
-        severity_enum_module_name = severity_enum_formatted.split('.')[0]
-        severity_enum_class_name = severity_enum_formatted.split('.')[1]
+        severity_enum_splitted = severity_enum_formatted.split('.')
+        severity_enum_module_name = severity_enum_splitted[0]
+        severity_enum_class_name = severity_enum_splitted[1]
         severity_enum_name = f"{severity_enum_module_name}.{severity_enum_class_name}"
+        lifecycle = m['lifecycle_handler']
 
         modules.append(module_name)
         classes.append(class_name)
+        lifecycles.append(lifecycle)
 
         if not is_key_in_dict(args, f"{module_name}.{class_name}"):
             eprint(f"Error: args for module '{module_name}.{class_name}' not found.")
@@ -548,19 +596,10 @@ def main():
 
     rtn = handle_boapm(boapm_instance, parser_rules, parser_env_vars)
     rtn_code = rtn[0]
-    # TODO use lifecycle_args in MainLoop
-    # TODO use MainLoop as base for lifecycles
     lifecycle_args = rtn[1]
 
     # TODO use an argument to know if execution should be stopped
     #  when some parser module didn't succeed with a callback.
-    if rtn_code != Meta.ok_code:
-        return rtn_code
-
-    rtn = parse_c_file()
-    rtn_code = rtn[0]
-    ast = rtn[1]
-
     if rtn_code != Meta.ok_code:
         return rtn_code
 
@@ -588,6 +627,7 @@ def main():
     if rtn_code != Meta.ok_code:
         return rtn_code
 
+    # Load instances
     while index < len(modules):
         try:
             mod_args = mods_args[f"{modules[index]}.{classes[index]}"]
@@ -607,15 +647,15 @@ def main():
         index += 1
 
     # It handles the lifecycles
-    rtn = manage_lifecycles(instances, reports, lifecycle_args)
+    rtn = manage_lifecycles(instances, reports, lifecycle_args, lifecycles)
     rtn_code = rtn[0]
-    main_loop = rtn[1]
+    lifecycle_handler = rtn[1]
 
     if rtn_code != Meta.ok_code:
         return rtn_code
 
     # Display all the found threats
-    report = main_loop.get_final_report()
+    report = lifecycle_handler.get_final_report()
 
     if report:
         print()

@@ -29,6 +29,10 @@ class Meta:
     parser_modules_directory = "parser_modules"
     abstract_parser_module_name = "boapm_abstract"
     abstract_parser_module_class_name = "BOAParserModuleAbstract"
+    # Lifecycle modules
+    lifecycle_modules_directory = "lifecycles"
+    lifecycle_abstract_module_name = "boalc_abstract"
+    lifecycle_abstract_module_class_name = "BOALifeCycleAbstract"
 
 class Args:
     """Args class.
@@ -96,6 +100,11 @@ class Error:
     error_lifecycle_args_wrong_type = 50
     error_lifecycle_args_neq_length = 51
     error_lifecycle_module_exception = 52
+    error_lifecycle_exception = 53
+    error_lifecycle_module_not_found = 54
+    error_lifecycle_could_not_load_abstract_instance = 55
+    error_lifecycle_could_not_load_instance = 56
+    error_lifecycle_not_expected_type = 57
 
     # Report errors
     error_report_args_not_optional = 60
@@ -119,9 +128,6 @@ class Error:
     error_parser_module_failed_in_initialization = 75
     error_parser_module_failed_in_parsing = 76
     error_parser_module_failed_in_execution = 77
-
-    # Lifecycle errors
-    error_lifecycle_exception = 80
 
 
     # Other errors

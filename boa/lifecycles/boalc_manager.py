@@ -10,7 +10,7 @@ file.
 from constants import Meta, Error
 from util import eprint, get_name_from_class_instance, is_key_in_dict
 from own_exceptions import BOAModuleException, BOALCException
-from pycparser_ast_preorder_visitor import PreorderVisitor
+#from pycparser_ast_preorder_visitor import PreorderVisitor
 
 class BOALifeCycleManager:
     """BOALifeCycleManager class.
@@ -23,17 +23,19 @@ class BOALifeCycleManager:
     used by a concrete module.
     """
 
-    def __init__(self, instances, reports, lifecycle_args):
+    def __init__(self, instances, reports, lifecycle_args, lifecycle_instances):
         """It invokes self.initialize(instances, ast).
 
         Arguments:
             instances: module instances which will be looped.
             reports (list): list of Report instances.
             lifecycle_args (dict): arguments to be used by modules.
+            lifecycle_instances (list): instances of lifecycles to
+                be used by the *instances*.
         """
-        self.initialize(instances, reports, lifecycle_args)
+        self.initialize(instances, reports, lifecycle_args, lifecycle_instances)
 
-    def initialize(self, instances, reports, lifecycle_args):
+    def initialize(self, instances, reports, lifecycle_args, lifecycle_instances):
         """It initializes all the variables which will be used by
         the other methods.
 
@@ -41,6 +43,8 @@ class BOALifeCycleManager:
             instances: module instances that are going to be saved.
             reports (list): list of Report instances.
             lifecycle_args (dict): processed AST that is going to be saved.
+            lifecycle_instances (list): instances of lifecycles to
+                be used by the *instances*.
         """
         self.instances = instances
         self.reports = reports
@@ -48,12 +52,31 @@ class BOALifeCycleManager:
         self.instances_warned = []
         self.lifecycle_args = lifecycle_args
         self.rtn_code = Meta.ok_code
+        self.lifecycle_instances = lifecycle_instances
+
+        if len(self.instances) != len(self.reports):
+            raise BOALCException("len(instances) is not equal to len(reports)")
+        if len(self.instances) != len(self.lifecycle_instances):
+            raise BOALCException("len(instances) is not equal to len(lifecycle_instances)")
 
         for instance in self.instances:
             self.instances_names.append(get_name_from_class_instance(instance))
 
         # It needs that self.instances_names is processed
         self.final_report = self.make_final_report()
+
+        # Initialize the lifecycle instances
+        index = 0
+
+        while index < len(self.lifecycle_instances):
+            self.lifecycle_instances[index] = self.lifecycle_instances[index](
+                self.instances[index],
+                self.final_report,
+                self.lifecycle_args,
+                self.execute_instance_method
+            )
+
+            index += 1
 
     def get_final_report(self):
         """It returns the final report.
@@ -78,7 +101,9 @@ class BOALifeCycleManager:
         report = self.reports[0]
         index = 1
 
-        severity_ok = report.set_severity_enum_mapping(self.instances_names[0], self.reports[0].get_severity_enum_instance())
+        severity_ok = report.set_severity_enum_mapping(
+            self.instances_names[0],
+            self.reports[0].get_severity_enum_instance())
 
         if not severity_ok:
             eprint("Error: could not append the threat reports.")
@@ -113,18 +138,26 @@ class BOALifeCycleManager:
             int: self.rtn_code
         """
         # Initialize
-        self.initialize_instances()
+        #self.initialize_instances()
 
         # Process and clean
-        if is_key_in_dict(self.lifecycle_args, "ast"):
-            visitor = PreorderVisitor(self.process_and_clean_instances)
+        #if is_key_in_dict(self.lifecycle_args, "ast"):
+        #    visitor = PreorderVisitor(self.process_and_clean_instances)
 
-            visitor.visit(self.lifecycle_args["ast"])
-        else:
-            raise BOALCException("AST was expected")
+        #    visitor.visit(self.lifecycle_args["ast"])
+        #else:
+        #    raise BOALCException("AST was expected")
 
         # Save (report) and finish
-        self.save_and_finish_instances(self.final_report)
+        #self.save_and_finish_instances(self.final_report)
+
+        for lifecycle in self.lifecycle_instances:
+            try:
+                lifecycle.execute_lifecycle()
+            except BOALCException as e:
+                eprint(f"Error: {lifecycle.get_name()}: {e}.")
+            except Exception as e:
+                eprint(f"Error: {lifecycle.get_name()}: {e}.")
 
         return self.rtn_code
 
@@ -224,11 +257,10 @@ class BOALifeCycleManager:
                 a failure happens, a method will not be invoked).
 
         Returns:
-            bool: it will return *True* if success. *False* otherwise.
-
-        Note:
-            If the given *instance* is not in *self.instances*, the
-            invocation will not succeed.
+            bool: it will return *False* if: the instance is not in
+            *self.instances*, the property *stop* is *True*, ...
+            It will return *True* only if the execution of the given
+            method could be executed without any exception.
         """
         if not instance:
             return False
@@ -240,12 +272,13 @@ class BOALifeCycleManager:
         try:
             concrete_instance = self.instances.index(instance)
         except ValueError:
-            eprint(f"Warning: instance ''{instance_name} not found.")
+            eprint(f"Warning: instance '{instance_name}' not found.")
             return False
+
+        concrete_instance = instance
 
         if concrete_instance.stop:
             # An instance can take the decision of stopping its own execution
-            # TODO should it return true because it is normal behaviour?
             return False
 
         # Warn about skipping action if any failure happended in the past
@@ -256,7 +289,6 @@ class BOALifeCycleManager:
                        " due to previous errors.")
                 self.instances_warned.append(instance_method_name)
 
-            # TODO should it return true because it is normal behaviour?
             return False
 
         exception = False
@@ -280,7 +312,6 @@ class BOALifeCycleManager:
         # Something failed. Warn about this in the future
         if (exception and instance_name in self.instances_names):
                 self.instances_names.remove(instance_name)
-                # TODO modify self.rtn_code?
                 self.rtn_code = Error.error_lifecycle_module_exception
                 return False
 

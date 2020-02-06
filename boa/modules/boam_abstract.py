@@ -91,6 +91,17 @@ class BOAModuleAbstract:
         """This method will be invoked when all the tokens have been processed.
         """
 
+    def set_stop_execution(self, value):
+        """It allows the user to call this method to change the value of *stop*.
+        This method is implemented because in *lifecycle* modules a method
+        callback is given to execute methods, and no direct access is given,
+        so this method can be invoked.
+
+        Arguments:
+            value (bool): value to set to the *stop* property.
+        """
+        self.stop = value
+
     @property
     def args(self):
         """Args property. Read only.
