@@ -1,18 +1,14 @@
-"""BOA module abstraction (interface).
+"""BOA module abstraction.
 
 This module is an abstraction to use by other modules they
 want to be used by BOA as a security module. It defines
 a class with its methods to be overriden by those modules
 which will be executed after, using these methods.
 
-Advice:
-    Use exception with descriptive messages if you want
-    to know descriptive information about your errors.
-    You can use `own_exceptions.BOAModuleException` for that purpose.
-
-Note:
-    This "interface" can be seen as a ``lifecycle``, and surely
-    other lifecycles will be implemented.
+In order to raise exceptions, you may use
+*own_exceptions.BOAModuleException* if you want to know
+descriptive information about your errors and know from
+where it comes the error.
 """
 
 # Std libs
@@ -26,17 +22,12 @@ from util import get_name_from_class_instance, eprint
 class BOAModuleAbstract:
     """BOAModuleAbstract class.
 
-    This class is an abstraction to be implemented by those
-    modules which use an AST (Abstract Syntax Tree) and want
-    to get token after token.
+    This class is the one which modules whose want to
+    implement a security module has to inherit from in
+    order to be a security module.
 
-    Main flow:\n
-    * initialize()\n
-    *  process(ast_token) \*\n
-    *  clean() \*\n
-    * save(report_obj)\n
-    * finish()\n
-    * \*: for each AST token
+    If you do not set a custom lifecycle, *boalc_basic.BOALCBasic*
+    will be used as lifecycle for the module.
     """
 
     # This method sets the args and should not be overriden
@@ -44,28 +35,35 @@ class BOAModuleAbstract:
     def __init__(self, args):
         """It sets the args.
 
+        It should not be overriden, and if overrided, the defined variables
+        are:
+
+        * self._args (dict)
+
+        * self._who_i_am (str): expected format is '"module_name"."class_name"'.
+
+        * self._stop (bool)
+
         Arguments:
             args (list): arguments which will be used by those modules which
                 implements this class.
         """
-
         self._args = args
         self._who_i_am = get_name_from_class_instance(self)
         self._stop = False
 
-    # This method loads the args and initializes the module
     @abstractmethod
     def initialize(self):
         """It loads the args an initializes the module.
         """
 
-    # This method process each token
     @abstractmethod
-    def process(self, token):
-        """It process each AST token.
+    def process(self, arg):
+        """It process the given information from the rules
+        file and attempts to look for security threats.
 
         Arguments:
-            token: AST token.
+            arg: given information.
         """
 
     # This method will be invoked before the next token is processed
@@ -123,7 +121,7 @@ class BOAModuleAbstract:
     def stop(self):
         """Stop property. Read and write.
 
-        When this property is set to *True*, the main loop will stop
+        When this property is set to *True*, the set lifecycle will stop
         the execution of the instance and will not even show the found
         threats in the report. The default value is *False*.
         """

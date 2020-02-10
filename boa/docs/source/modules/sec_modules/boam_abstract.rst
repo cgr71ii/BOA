@@ -1,8 +1,8 @@
 
 .. _sec-modules-boam-abstract:
 
-BOAModule AST interface
-=======================
+BOAModule Abstract
+==================
 .. automodule:: modules.boam_abstract
    :members:
    :special-members:

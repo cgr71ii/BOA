@@ -1,4 +1,3 @@
-
 """Module Imports.
 
 This file contains the ModulesImporter class.
@@ -9,7 +8,7 @@ import importlib.util
 import sys
 
 # Own libs
-from constants import Meta
+from constants import Other
 from util import eprint, get_current_path, file_exists, is_key_in_dict
 from own_exceptions import BOAModuleNotLoaded
 
@@ -44,7 +43,7 @@ class ModulesImporter:
         Then, it attempts to load the module and if it is not able to,
         it skips the current module to next.
 
-        The modules must be in *Meta.modules_directory* directory.
+        The modules must be in *Other.modules_directory* directory.
         """
         index = -1
 
@@ -56,7 +55,7 @@ class ModulesImporter:
                     eprint(f"Warning: module '{module}' cannot have that name because it collides with a sys module or has been already loaded. Skipping current module.")
                     continue
 
-                file_path = f'{get_current_path(__file__)}/{Meta.modules_directory}/{module}.py'
+                file_path = f'{get_current_path(__file__)}/{Other.modules_directory}/{module}.py'
                 spec = importlib.util.spec_from_file_location(module, file_path)
 
                 # Check if we could get the module spec

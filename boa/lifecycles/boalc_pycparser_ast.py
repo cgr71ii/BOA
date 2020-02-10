@@ -25,7 +25,7 @@ class BOALCPycparserAST(BOALifeCycleAbstract):
             4. *save(self.report)*
             5. *finish()*
 
-        If the key "ast" is not found in the given args, the
+        If the key "ast" is not found in *self.args*, the
         execution will be stopped.
         """
         # Initialize

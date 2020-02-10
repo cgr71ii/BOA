@@ -21,18 +21,6 @@ class Meta:
     name = "BOA"
     description = "It attempts to detect buffer overflow threats in C language files."
     ok_code = 0
-    # Modules
-    modules_directory = "modules"
-    abstract_module_name = "boam_abstract"
-    abstract_module_class_name = "BOAModuleAbstract"
-    # Parser modules
-    parser_modules_directory = "parser_modules"
-    abstract_parser_module_name = "boapm_abstract"
-    abstract_parser_module_class_name = "BOAParserModuleAbstract"
-    # Lifecycle modules
-    lifecycle_modules_directory = "lifecycles"
-    lifecycle_abstract_module_name = "boalc_abstract"
-    lifecycle_abstract_module_class_name = "BOALifeCycleAbstract"
 
 class Args:
     """Args class.
@@ -151,3 +139,20 @@ class Other:
     other_report_default_severity_enum = "severity_syslog.SeveritySyslog"
     other_util_invoke_by_name_error_return = "check_with_id_or_is"
     other_lifecycle_default_handler = "boalc_basic.BOALCBasic"
+
+    # Modules
+    modules_directory = "modules"
+    abstract_module_name = "boam_abstract"
+    abstract_module_class_name = "BOAModuleAbstract"
+
+    # Parser modules
+    parser_modules_directory = "parser_modules"
+    abstract_parser_module_filename = "boapm_abstract.py"
+    abstract_parser_module_name = "boapm_abstract"
+    abstract_parser_module_class_name = "BOAParserModuleAbstract"
+
+    # Lifecycle modules
+    lifecycle_modules_directory = "lifecycles"
+    lifecycle_abstract_module_filename = "boalc_abstract.py"
+    lifecycle_abstract_module_name = "lifecycles.boalc_abstract"
+    lifecycle_abstract_module_class_name = "BOALifeCycleAbstract"

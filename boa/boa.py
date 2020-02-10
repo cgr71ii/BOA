@@ -15,9 +15,6 @@ Main tasks:\n
 import sys
 import os
 
-# Pycparser libs
-from pycparser import parse_file
-
 # Own libs
 from own_exceptions import ParseError, BOAPMInitializationError, BOAPMParseError
 from own_exceptions import BOALCException, BOAReportEnumTypeNotExpected
@@ -52,49 +49,6 @@ def manage_args():
 
     return Meta.ok_code
 
-def parse_c_file():
-    """It parses the code file which is passed through the args.
-
-    Raises:
-        FileNotFoundError: if a path which is provided in the
-            rules file does not exist or is not valid.
-
-    Returns:
-        list: list containing:
-            * int: status code\n
-            * AST (Abstract Syntax Tree)
-    """
-
-    file_path = ArgsManager.args.file
-    ast = None
-    rtn_code = Meta.ok_code
-    pycparser_fake_libc_include_ev = os.environ.get("PYCPARSER_FAKE_LIBC_INCLUDE_PATH")
-
-    # parse_file (__init__.py) returns an AST or ParseError if doesn't parse successfully
-    try:
-        if not file_exists(file_path):
-            raise FileNotFoundError()
-
-        if pycparser_fake_libc_include_ev is not None:
-            # use_cpp = Use CPreProcessor
-            ast = parse_file(file_path, use_cpp=True, cpp_path="gcc",
-                             cpp_args=["-E", f"-I{pycparser_fake_libc_include_ev}"])
-        else:
-            ast = parse_file(file_path, use_cpp=False)
-    except ParseError:
-        eprint(f"Error: could not parse file '{file_path}'.")
-        rtn_code = Error.error_parse_parse
-    except FileNotFoundError:
-        eprint(f"Error: file '{file_path}' not found.")
-        rtn_code = Error.error_file_not_found
-    except Exception as e:
-        eprint(f"Error: {e} (if using pycparser for a C file and using preprocess directives,"
-               " try defining PYCPARSER_FAKE_LIBC_INCLUDE_PATH environmental variable"
-               " to solve the problem).")
-        rtn_code = Error.error_unknown
-
-    return [rtn_code, ast]
-
 def load_modules(user_modules):
     """It handles the modules loading through ModulesImporter class.
 
@@ -111,7 +65,7 @@ def load_modules(user_modules):
     if not isinstance(user_modules, list):
         user_modules = [user_modules]
 
-    mandatory_modules = [Meta.abstract_module_name]
+    mandatory_modules = [Other.abstract_module_name]
     modules = mandatory_modules + user_modules
 
     # Through mod_loader we can get modules, but it is not necessary (sys.modules)
@@ -164,8 +118,8 @@ def load_instance(module_loader, module_name, class_name, module_args):
         abstract_parser_module_class_name*.
     """
     instance = module_loader.get_instance(module_name, class_name)
-    abstract_instance = module_loader.get_instance(Meta.abstract_module_name,
-                                                   Meta.abstract_module_class_name)
+    abstract_instance = module_loader.get_instance(Other.abstract_module_name,
+                                                   Other.abstract_module_class_name)
 
     if instance is None:
         return [Error.error_module_cannot_load_instance, None]
@@ -175,7 +129,7 @@ def load_instance(module_loader, module_name, class_name, module_args):
             instance is abstract_instance):
         eprint(f"Error: instance '{module_name}.{class_name}'"
                " has not the expected type (does it inherit from "
-               f"'{Meta.abstract_module_name}.{Meta.abstract_module_class_name}'?).")
+               f"'{Other.abstract_module_name}.{Other.abstract_module_class_name}'?).")
         return [Error.error_module_not_expected_type, None]
 
     try:
@@ -184,8 +138,8 @@ def load_instance(module_loader, module_name, class_name, module_args):
         print(f"Info: Instance '{module_name}.{class_name}' initialized.")
     except Exception as e:
         eprint(f"Error: could not load an instance of '{module_name}.{class_name}' "
-               f"(bad implementation of '{Meta.abstract_module_name}."
-               f"{Meta.abstract_module_class_name}' in '{module_name}.{class_name}'?). {e}.")
+               f"(bad implementation of '{Other.abstract_module_name}."
+               f"{Other.abstract_module_class_name}' in '{module_name}.{class_name}'?). {e}.")
 
     return [Meta.ok_code, instance]
 
@@ -202,15 +156,15 @@ def get_boapm_instance(module_name, class_name):
             * int: status code\n
             * loaded instance
     """
-    file_path = f'{get_current_path(__file__)}/{Meta.parser_modules_directory}'
-    abstract_instance = ModulesImporter.load_and_get_instance(Meta.abstract_parser_module_name,
-                                                              f'{file_path}/{Meta.abstract_parser_module_name}.py',
-                                                              Meta.abstract_parser_module_class_name)
+    file_path = f'{get_current_path(__file__)}/{Other.parser_modules_directory}'
+    abstract_instance = ModulesImporter.load_and_get_instance(Other.abstract_parser_module_name,
+                                                              f'{file_path}/{Other.abstract_parser_module_filename}',
+                                                              Other.abstract_parser_module_class_name)
     file_path = f'{file_path}/{module_name}.py'
 
     if not abstract_instance:
         eprint("Error: could not load and get an instance of "
-               f"'{Meta.abstract_parser_module_name}.{Meta.abstract_parser_module_class_name}'.")
+               f"'{Other.abstract_parser_module_name}.{Other.abstract_parser_module_class_name}'.")
         return [Error.error_parser_module_abstract_not_loaded, None]
     if not file_exists(file_path):
         eprint(f"Error: file '{file_path}' not found.")
@@ -228,8 +182,8 @@ def get_boapm_instance(module_name, class_name):
     if (not issubclass(instance, abstract_instance) or
             instance is abstract_instance):
         eprint(f"Error: instance '{module_name}.{class_name}' has not the expected"
-               f" type (does it inherit from '{Meta.abstract_parser_module_name}."
-               f"{Meta.abstract_parser_module_class_name}'?).")
+               f" type (does it inherit from '{Other.abstract_parser_module_name}."
+               f"{Other.abstract_parser_module_class_name}'?).")
         return [Error.error_parser_module_abstract_not_expected_type, instance]
 
     return [Meta.ok_code, instance]
@@ -324,12 +278,12 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
     lifecycle_manager = None
     lifecycle_instances = []
     lifecycle_path = f"{get_current_path()}/"\
-                     f"{Meta.lifecycle_modules_directory}/"\
-                     f"{Meta.lifecycle_abstract_module_name}.py"
+                     f"{Other.lifecycle_modules_directory}/"\
+                     f"{Other.lifecycle_abstract_module_filename}"
     lifecycle_abstract_instance = ModulesImporter.load_and_get_instance(
-        Meta.lifecycle_abstract_module_name,
+        Other.lifecycle_abstract_module_name,
         lifecycle_path,
-        Meta.lifecycle_abstract_module_class_name)
+        Other.lifecycle_abstract_module_class_name)
 
     if not lifecycle_abstract_instance:
         return [Error.error_lifecycle_could_not_load_abstract_instance, None]
@@ -340,7 +294,7 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
         lifecycle_module_name = lifecycle_splitted[0]
         lifecycle_class_name = lifecycle_splitted[1]
         lifecycle_path = f"{get_current_path()}/"\
-                         f"{Meta.lifecycle_modules_directory}/"\
+                         f"{Other.lifecycle_modules_directory}/"\
                          f"{lifecycle_module_name}.py"
 
         # Check if the lifecycle file exists
@@ -359,8 +313,8 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
                 lifecycle_instance is lifecycle_abstract_instance):
             eprint(f"Error: instance '{lifecycle_module_name}.{lifecycle_class_name}'"
                    " has not the expected type (does it inherit from "
-                   f"'{Meta.lifecycle_abstract_module_name}"
-                   f".{Meta.lifecycle_abstract_module_class_name}'?).")
+                   f"'{Other.lifecycle_abstract_module_name}"
+                   f".{Other.lifecycle_abstract_module_class_name}'?).")
             return [Error.error_lifecycle_not_expected_type, None]
 
         lifecycle_instances.append(lifecycle_instance)
@@ -598,8 +552,6 @@ def main():
     rtn_code = rtn[0]
     lifecycle_args = rtn[1]
 
-    # TODO use an argument to know if execution should be stopped
-    #  when some parser module didn't succeed with a callback.
     if rtn_code != Meta.ok_code:
         return rtn_code
 

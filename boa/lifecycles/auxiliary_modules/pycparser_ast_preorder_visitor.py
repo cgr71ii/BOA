@@ -1,4 +1,3 @@
-
 """File which implements the class NodeVisitor from Pycparser.
 
 We implement the class NodeVisitor with the goal of be able to
