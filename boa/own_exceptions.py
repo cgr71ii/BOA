@@ -112,3 +112,28 @@ class BOALCException(Exception):
     will give specific information about the error to know that the
     exception has been raised because a BOA lifecycle.
     """
+
+class BOAModulesImporterException(Exception):
+    """BOAModulesImporterException exception.
+
+    This exception should be raised when something unexpected happens in
+    *ModulesImporter* class.
+    """
+
+class BOAFlowException(Exception):
+    """BOAFlowException exception.
+
+    This exception should be raised when unexpected behaviour happens
+    in the main flow of BOA.
+    """
+
+    def __init__(self, message, error_code):
+        """It uses variables to make easier the error handling.
+
+        Arguments:
+            message (str): message to be displayed.
+            error_code (int): error code which is going to be returned
+                as status.
+        """
+        self.message = message
+        self.error_code = error_code

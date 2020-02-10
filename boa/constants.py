@@ -74,6 +74,7 @@ class Error:
     error_module_cannot_remove_not_loaded_module = 35
     error_module_cannot_load_abstract_instance = 36
     error_module_not_expected_type = 37
+    error_module_importer_could_not_be_instantiated = 38
 
     # Rules errors
     error_rules_modules_classes_args_neq_length = 40

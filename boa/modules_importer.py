@@ -10,7 +10,7 @@ import sys
 # Own libs
 from constants import Other
 from util import eprint, get_current_path, file_exists, is_key_in_dict
-from own_exceptions import BOAModuleNotLoaded
+from own_exceptions import BOAModuleNotLoaded, BOAModulesImporterException
 
 class ModulesImporter:
     """ModulesImporter class.
@@ -19,13 +19,17 @@ class ModulesImporter:
     are specified in the given rules.
     """
 
-    def __init__(self, modules):
+    def __init__(self, modules, filenames=None):
         """It initializes the class.
 
         Arguments:
             modules (list): modules (str) which should be loaded after.
+            filenames (list): modules filenames (str). The default
+                value is *None*, and if this value remains, *modules*
+                will be used as filename.
         """
         self.modules = []
+        self.filenames = []
         self.loaded = []
         self.nmodules = 0
         self.nloaded = 0
@@ -34,6 +38,17 @@ class ModulesImporter:
             self.modules.append(module)
             self.nmodules += 1
             self.loaded.append(False)
+
+            if filenames is None:
+                self.filenames.append(f"{module}.py")
+
+        if filenames is not None:
+            for filename in filenames:
+                self.filenames.append(filename)
+
+        if len(self.modules) != len(self.filenames):
+            raise BOAModulesImporterException("len(modules) has to be equal to "
+                                              "len(filenames) and is not")
 
     def load(self):
         """It attempts to load all the modules which were specified.
@@ -112,8 +127,6 @@ class ModulesImporter:
                 which is not loaded.
             Exception: when a module is detected as loaded but it is
                 not loaded in *sys.modules*. It should not happen.
-
-        Todo: change Exception raiseness with a custom exception.
 
         Returns:
             Module if loaded; *None* otherwise
