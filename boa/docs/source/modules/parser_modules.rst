@@ -6,6 +6,11 @@
 
 Parser Modules
 ==============
-Parser Modules
+
+BOA's internals
+---------------
+
+Modules
+-------
 
 .. include:: ../footer.rst
