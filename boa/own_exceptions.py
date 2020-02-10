@@ -131,7 +131,8 @@ class BOAFlowException(Exception):
         """It uses variables to make easier the error handling.
 
         Arguments:
-            message (str): message to be displayed.
+            message (str): message to be displayed. *None* is a possible
+                value.
             error_code (int): error code which is going to be returned
                 as status.
         """

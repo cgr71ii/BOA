@@ -3,6 +3,7 @@
    :hidden:
 
    main_modules/boa
+   main_modules/boa_internals
    main_modules/args_manager
    main_modules/constants
    main_modules/rules_manager
@@ -17,6 +18,7 @@
 Main Modules
 ============
 * :ref:`main-modules-boa`
+* :ref:`main-modules-boa-internals`
 * :ref:`main-modules-args-manager`
 * :ref:`main-modules-constants`
 * :ref:`main-modules-rules-manager`

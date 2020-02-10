@@ -18,7 +18,7 @@ import sys
 from constants import Meta, Error
 from args_manager import ArgsManager
 from util import file_exists, eprint
-
+from own_exceptions import BOAFlowException
 import boa_internals
 
 def manage_args():
@@ -52,101 +52,84 @@ def main():
 
     print(f"Welcome to {Meta.name} - Version {Meta.version}\n")
 
-    # Parse and check args
-    rtn_code = manage_args()
+    try:
+        # Parse and check args
+        rtn_code = manage_args()
 
-    if rtn_code != Meta.ok_code:
-        return rtn_code
+        if rtn_code != Meta.ok_code:
+            return rtn_code
 
-    # Check if lang. file exists
-    if not file_exists(ArgsManager.args.file):
-        eprint(f"Error: file '{ArgsManager.args.file}' not found.")
+        # Check if lang. file exists
+        if not file_exists(ArgsManager.args.file):
+            eprint(f"Error: file '{ArgsManager.args.file}' not found.")
 
-        return Error.error_file_not_found
+            return Error.error_file_not_found
 
-    # Manage rules file
-    rtn = boa_internals.manage_rules_file()
-    rtn_code = rtn[0]
-    rules_manager = rtn[1]
+        # Manage rules file
+        rules_manager = boa_internals.manage_rules_file()
 
-    if rtn_code != Meta.ok_code:
-        return rtn_code
+        # Process all security modules and get the necessary information
+        processed_info_sec_mods = boa_internals.process_security_modules(rules_manager)
+        modules = processed_info_sec_mods[0]
+        classes = processed_info_sec_mods[1]
+        mods_args = processed_info_sec_mods[2]
+        reports = processed_info_sec_mods[3]
+        lifecycles = processed_info_sec_mods[4]
 
-    rtn = boa_internals.process_security_modules(rules_manager)
-    rtn_code = rtn[0]
-    processed_info_sec_mods = rtn[1]
+        # Parse lang. file
 
-    if rtn_code != Meta.ok_code:
-        return rtn_code
+        parser_rules = rules_manager.get_rules("boa_rules.parser")
 
-    modules = processed_info_sec_mods[0]
-    classes = processed_info_sec_mods[1]
-    mods_args = processed_info_sec_mods[2]
-    reports = processed_info_sec_mods[3]
-    lifecycles = processed_info_sec_mods[4]
+        boapm_instance = boa_internals.get_boapm_instance(parser_rules['module_name'], parser_rules['class_name'])
 
-    # Parse lang. file
+        parser_env_vars = boa_internals.get_parser_env_vars(parser_rules)
 
-    parser_rules = rules_manager.get_rules("boa_rules.parser")
+        lifecycle_args = boa_internals.handle_boapm(boapm_instance, parser_rules, parser_env_vars)
 
-    rtn = boa_internals.get_boapm_instance(parser_rules['module_name'], parser_rules['class_name'])
-    rtn_code = rtn[0]
-    boapm_instance = rtn[1]
+        # Load modules
+        rtn = boa_internals.load_modules(modules)
+        rtn_code = rtn[0]
+        mod_loader = rtn[1]
+        fail_if_some_user_module_failed = False
 
-    if rtn_code != Meta.ok_code:
-        return rtn_code
+        if ArgsManager.args.no_fail is not None:
+            fail_if_some_user_module_failed = True
 
-    parser_env_vars = boa_internals.get_parser_env_vars(parser_rules)
+        if (rtn_code == Error.error_module_some_user_failed and fail_if_some_user_module_failed):
+            return rtn_code
+        if rtn_code not in (Meta.ok_code, Error.error_module_some_user_failed):
+            return rtn_code
 
-    rtn = boa_internals.handle_boapm(boapm_instance, parser_rules, parser_env_vars)
-    rtn_code = rtn[0]
-    lifecycle_args = rtn[1]
+        # Remove not loaded modules
+        boa_internals.remove_not_loaded_modules(mod_loader, modules, classes, mods_args)
 
-    if rtn_code != Meta.ok_code:
-        return rtn_code
+        # Load rules and instances with that rules as args
+        instances = boa_internals.load_instances(modules, classes, mods_args, mod_loader)
 
-    # Load modules
-    rtn = boa_internals.load_modules(modules)
-    rtn_code = rtn[0]
-    mod_loader = rtn[1]
-    fail_if_some_user_module_failed = False
+        # It handles the lifecycles
+        lifecycle_handler = boa_internals.manage_lifecycles(instances, reports, lifecycle_args, lifecycles)
 
-    if ArgsManager.args.no_fail is not None:
-        fail_if_some_user_module_failed = True
+        # Display all the found threats
+        report = lifecycle_handler.get_final_report()
 
-    if (rtn_code == Error.error_module_some_user_failed and fail_if_some_user_module_failed):
-        return rtn_code
-    if rtn_code not in (Meta.ok_code, Error.error_module_some_user_failed):
-        return rtn_code
+        if report:
+            print()
+            report.display_all()
+    except BOAFlowException as e:
+        # Error in some internal function.
 
-    # Remove not loaded modules
-    rtn_code = boa_internals.remove_not_loaded_modules(mod_loader, modules, classes, mods_args)
+        if e.message:
+            eprint(f"Error: main flow: {e.message}.")
+        if e.error_code:
+            return e.error_code
 
-    if rtn_code != Meta.ok_code:
-        return rtn_code
+        eprint(f"Error: 'BOAFlowException' does not have 'error_code' as expected.")
+        return Error.error_unknown
+    except Exception as e:
+        # Unexpected and unknown error.
 
-    # Load rules and instances with that rules as args
-    rtn = boa_internals.load_instances(modules, classes, mods_args, mod_loader)
-    rtn_code = rtn[0]
-    instances = rtn[1]
-
-    if rtn_code != Meta.ok_code:
-        return rtn_code
-
-    # It handles the lifecycles
-    rtn = boa_internals.manage_lifecycles(instances, reports, lifecycle_args, lifecycles)
-    rtn_code = rtn[0]
-    lifecycle_handler = rtn[1]
-
-    if rtn_code != Meta.ok_code:
-        return rtn_code
-
-    # Display all the found threats
-    report = lifecycle_handler.get_final_report()
-
-    if report:
-        print()
-        report.display_all()
+        eprint(f"Error: {e}.")
+        return Error.error_unknown
 
     return Meta.ok_code
 

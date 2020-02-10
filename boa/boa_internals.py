@@ -7,7 +7,7 @@ and more readable.
 from args_manager import ArgsManager
 from own_exceptions import BOAPMInitializationError, BOAPMParseError
 from own_exceptions import BOALCException, BOAReportEnumTypeNotExpected
-from own_exceptions import BOAModulesImporterException
+from own_exceptions import BOAModulesImporterException, BOAFlowException
 from constants import Meta, Error, Other
 from util import eprint, is_key_in_dict, file_exists, get_current_path
 from util import invoke_by_name, get_name_from_class_instance
@@ -22,6 +22,10 @@ def load_modules(user_modules):
     Arguments:
         user_modules (list): user modules (i.e. non-mandatory modules)
             to be loaded.
+
+    Raises:
+        BOAFlowException: could not finish the expected behaviour of
+            the function.
 
     Returns:
         list: list containing:
@@ -41,8 +45,8 @@ def load_modules(user_modules):
     try:
         mod_loader = ModulesImporter(modules)
     except BOAModulesImporterException as e:
-        eprint(f"Error: could not instantiate ModulesImporter: {e}.")
-        return [Error.error_module_importer_could_not_be_instantiated, None]
+        raise BOAFlowException(f"could not instantiate ModulesImporter: {e}",
+                               Error.error_module_importer_could_not_be_instantiated)
 
     mod_loader.load()
 
@@ -126,9 +130,7 @@ def get_boapm_instance(module_name, class_name):
         class_name (str): BOAPM class name.
 
     Returns:
-        list: list containing:
-            * int: status code\n
-            * loaded instance
+        loaded instance
     """
     file_path = f'{get_current_path(__file__)}/{Other.parser_modules_directory}'
     abstract_instance = ModulesImporter.load_and_get_instance(Other.abstract_parser_module_name,
@@ -137,12 +139,12 @@ def get_boapm_instance(module_name, class_name):
     file_path = f'{file_path}/{module_name}.py'
 
     if not abstract_instance:
-        eprint("Error: could not load and get an instance of "
-               f"'{Other.abstract_parser_module_name}.{Other.abstract_parser_module_class_name}'.")
-        return [Error.error_parser_module_abstract_not_loaded, None]
+        raise BOAFlowException("could not load and get an instance of "
+                               f"'{Other.abstract_parser_module_name}.{Other.abstract_parser_module_class_name}'",
+                               Error.error_parser_module_abstract_not_loaded)
     if not file_exists(file_path):
-        eprint(f"Error: file '{file_path}' not found.")
-        return [Error.error_parser_module_not_found, None]
+        raise BOAFlowException(f"file '{file_path}' not found",
+                               Error.error_parser_module_not_found)
 
     instance = ModulesImporter.load_and_get_instance(
         module_name,
@@ -150,17 +152,17 @@ def get_boapm_instance(module_name, class_name):
         class_name)
 
     if not instance:
-        eprint(f"Error: could not load the parser module '{module_name}.{class_name}'.")
-        return [Error.error_parser_module_not_loaded, instance]
+        raise BOAFlowException(f"could not load the parser module '{module_name}.{class_name}'",
+                               Error.error_parser_module_not_loaded)
 
     if (not issubclass(instance, abstract_instance) or
             instance is abstract_instance):
-        eprint(f"Error: instance '{module_name}.{class_name}' has not the expected"
-               f" type (does it inherit from '{Other.abstract_parser_module_name}."
-               f"{Other.abstract_parser_module_class_name}'?).")
-        return [Error.error_parser_module_abstract_not_expected_type, instance]
+        raise BOAFlowException(f"instance '{module_name}.{class_name}' has not the expected"
+                               f" type (does it inherit from '{Other.abstract_parser_module_name}."
+                               f"{Other.abstract_parser_module_class_name}'?)",
+                               Error.error_parser_module_abstract_not_expected_type)
 
-    return [Meta.ok_code, instance]
+    return instance
 
 def remove_not_loaded_modules(mod_loader, modules, classes, mods_args):
     """It handles the non-loaded modules errors (it is optional to continue if
@@ -176,12 +178,11 @@ def remove_not_loaded_modules(mod_loader, modules, classes, mods_args):
         mods_args (dict): dict which contains the arguments of all
             the modules.
 
-    Returns:
-        int: status code
+    Raises:
+        BOAFlowException: could not finish the expected behaviour of
+            the function.
     """
-
     not_loaded_modules = mod_loader.get_not_loaded_modules()
-    rtn_code = Meta.ok_code
 
     for not_loaded_module in not_loaded_modules:
         try:
@@ -193,20 +194,20 @@ def remove_not_loaded_modules(mod_loader, modules, classes, mods_args):
 
             print(f"Info: Instance '{removed_module}.{removed_class}' with args '{removed_mod_args}' was removed.")
         except Exception as e:
-            eprint(f"Error: could not remove a module/class/arg while trying"
-                   f" to remove module {not_loaded_module}. {e}.")
-            rtn_code = Error.error_module_cannot_remove_not_loaded_module
-
-    return rtn_code
+            raise BOAFlowException(f"could not remove a module/class/arg while trying"
+                                   f" to remove module '{not_loaded_module}': {e}",
+                                   Error.error_module_cannot_remove_not_loaded_module)
 
 def manage_rules_file():
     """It handles the rules file (parsing, checking and processing)
     through RulesManager class.
 
+    Raises:
+        BOAFlowException: could not finish the expected behaviour of
+            the function.
+
     Returns:
-        list: list containing:
-            * int: status code\n
-            * RulesManager: RulesManager instance
+        RulesManager: RulesManager instance
     """
 
     rules_manager = RulesManager(ArgsManager.args.rules_file)
@@ -215,24 +216,25 @@ def manage_rules_file():
     rtn_code = rules_manager.open()
 
     if rtn_code != Meta.ok_code:
-        return [rtn_code, rules_manager]
+        raise BOAFlowException("could not open the rules file", rtn_code)
 
     # Read and save relevant information
     rtn_code = rules_manager.read()
 
     if rtn_code != Meta.ok_code:
-        return [rtn_code, rules_manager]
+        raise BOAFlowException("could not read the rules file", rtn_code)
 
     rtn_code = rules_manager.close()
 
     if rtn_code != Meta.ok_code:
-        return [rtn_code, rules_manager]
+        raise BOAFlowException("could not close the rules file", rtn_code)
 
 	# Check rules and process arguments from rules file
     if not rules_manager.check_rules(True):
-        return [Error.error_rules_bad_checking, rules_manager]
+        raise BOAFlowException("the rules did not pass the checking",
+                               Error.error_rules_bad_checking)
 
-    return [Meta.ok_code, rules_manager]
+    return rules_manager
 
 def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
     """It handles the lifecycles of the instances.
@@ -241,13 +243,15 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
         instances (list): module instances to be executed.
         reports (list): reports to be used by the *instances*.
         lifecycle_args (dict): args to be used by the lifecycle.
-        lifecycles (list): list of names in format "module_name
-            .class_name" to be used.
+        lifecycles (list): list of names in format
+            "module_name.class_name" to be used.
+
+    Raises:
+        BOAFlowException: could not finish the expected behaviour of
+            the function.
 
     Returns:
-        list: list containing:
-            * int: status code\n
-            * BOALifeCycleManager: BOALifeCycleManager instance
+        BOALifeCycleManager: BOALifeCycleManager instance
     """
     lifecycle_manager = None
     lifecycle_instances = []
@@ -260,7 +264,8 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
         Other.lifecycle_abstract_module_class_name)
 
     if not lifecycle_abstract_instance:
-        return [Error.error_lifecycle_could_not_load_abstract_instance, None]
+        raise BOAFlowException("could not get the lifecycle abstract instance",
+                               Error.error_lifecycle_could_not_load_abstract_instance)
 
     # Get lifecycle instances
     for lifecycle in lifecycles:
@@ -273,8 +278,9 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
 
         # Check if the lifecycle file exists
         if not file_exists(lifecycle_path):
-            eprint(f"Error: could not found the lifecycle module '{lifecycle_module_name}'.")
-            return [Error.error_lifecycle_module_not_found, None]
+            raise BOAFlowException("could not found the lifecycle "
+                                   f"module '{lifecycle_module_name}'",
+                                   Error.error_lifecycle_module_not_found)
 
         lifecycle_instance = ModulesImporter.load_and_get_instance(lifecycle_module_name,
                                                                    lifecycle_path,
@@ -282,14 +288,16 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
 
         # Check if the lifecycle instance could be imported and if it is of the expected type
         if not lifecycle_instance:
-            return [Error.error_lifecycle_could_not_load_instance, None]
+            raise BOAFlowException("lifecycle instance has the unexpected"
+                                   f" value '{lifecycle_instance}'",
+                                   Error.error_lifecycle_could_not_load_instance)
         if (not issubclass(lifecycle_instance, lifecycle_abstract_instance) or
                 lifecycle_instance is lifecycle_abstract_instance):
-            eprint(f"Error: instance '{lifecycle_module_name}.{lifecycle_class_name}'"
-                   " has not the expected type (does it inherit from "
-                   f"'{Other.lifecycle_abstract_module_name}"
-                   f".{Other.lifecycle_abstract_module_class_name}'?).")
-            return [Error.error_lifecycle_not_expected_type, None]
+            raise BOAFlowException(f"instance '{lifecycle_module_name}.{lifecycle_class_name}'"
+                                   " has not the expected type (does it inherit from "
+                                   f"'{Other.lifecycle_abstract_module_name}"
+                                   f".{Other.lifecycle_abstract_module_class_name}'?)",
+                                   Error.error_lifecycle_not_expected_type)
 
         lifecycle_instances.append(lifecycle_instance)
 
@@ -300,20 +308,15 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
         rtn_code = lifecycle_manager.handle_lifecycle()
     except BOALCException as e:
         eprint(f"Error: lifecycle exception: {e}.")
-
-        if lifecycle_manager:
-            return [Error.error_lifecycle_exception, lifecycle_manager]
-
-        return [Error.error_lifecycle_exception, None]
+        raise BOAFlowException(f"lifecycle exception: {e}", Error.error_lifecycle_exception)
     except Exception as e:
-        eprint(f"Error: {e}.")
+        raise BOAFlowException(e, Error.error_lifecycle_exception)
 
-        if lifecycle_manager:
-            return [Error.error_lifecycle_exception, lifecycle_manager]
+    if rtn_code != Meta.ok_code:
+        raise BOAFlowException("lifecycle could finish, but not with a correct status",
+                               rtn_code)
 
-        return [Error.error_lifecycle_exception, None]
-
-    return [rtn_code, lifecycle_manager]
+    return lifecycle_manager
 
 def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
     """It handles the BOAParserModule instance.
@@ -330,10 +333,12 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
             information from outside to the parser module. The default value
             is *None*, which means nothing of information to be given.
 
+    Raises:
+        BOAFlowException: could not finish the expected behaviour of
+            the function.
+
     Returns:
-        list: list containing:
-            * int: status code\n
-            * dict: callback results (boa_rules.parser.callback.method) of *boapm_instance*.
+        callback results (boa_rules.parser.callback.method) of *boapm_instance*.
     """
     # Initialize the instance and other necessary information
     boapm_instance = boapm_instance(ArgsManager.args.file, environment_variable_names)
@@ -342,21 +347,20 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
     names = []
     methods = []
     boapm_results = {}
-    rtn_code = Meta.ok_code
 
     # Call initialization methods defined in
     try:
         boapm_instance.initialize()
         boapm_instance.parse()
     except BOAPMInitializationError as e:
-        eprint(f"Error: '{boapm_instance_name}.initialize()': {e}.")
-        return [Error.error_parser_module_failed_in_initialization, boapm_results]
+        raise BOAFlowException(f"'{boapm_instance_name}.initialize()': {e}",
+                               Error.error_parser_module_failed_in_initialization)
     except BOAPMParseError as e:
-        eprint(f"Error: '{boapm_instance_name}.parse()': {e}.")
-        return [Error.error_parser_module_failed_in_parsing, boapm_results]
+        raise BOAFlowException(f"'{boapm_instance_name}.parse()': {e}",
+                               Error.error_parser_module_failed_in_parsing)
     except Exception as e:
-        eprint(f"Error: '{boapm_instance_name}': {e}.")
-        return [Error.error_parser_module_failed_in_execution, boapm_results]
+        raise BOAFlowException(f"'{boapm_instance_name}': {e}",
+                               Error.error_parser_module_failed_in_execution)
 
     if not isinstance(callbacks, list):
         callbacks = [callbacks]
@@ -388,11 +392,13 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
 
     if error:
         if len(boapm_results) == 0:
-            rtn_code = Error.error_parser_module_no_callback_executed
-        else:
-            rtn_code = Error.error_parser_module_some_callback_not_executed
+            raise BOAFlowException("parser modules: no callback was executed",
+                                   Error.error_parser_module_no_callback_executed)
 
-    return [rtn_code, boapm_results]
+        raise BOAFlowException("parser modules: some callbacks were not executed",
+                               Error.error_parser_module_some_callback_not_executed)
+
+    return boapm_results
 
 def get_parser_env_vars(parser_rules):
     """It gets the environment variables from the rules file.
@@ -424,15 +430,17 @@ def process_security_modules(rules_manager):
         rules_manager (RulesManager): rules manager to get the
             arguments.
 
+    Raises:
+        BOAFlowException: could not finish the expected behaviour of
+            the function.
+
     Returns:
         list: list containing:
-            * int: status code\n
-            * list: list containing:\n
-                * list: modules (str)\n
-                * list: classes (str)\n
-                * dict: modules arguments\n
-                * list: reports instances\n
-                * list: lifecycles handler (str)
+            * list: modules (str)\n
+            * list: classes (str)\n
+            * dict: modules arguments\n
+            * list: reports instances\n
+            * list: lifecycles handler (str)
     """
     modules = []
     classes = []
@@ -458,14 +466,15 @@ def process_security_modules(rules_manager):
         lifecycles.append(lifecycle)
 
         if not is_key_in_dict(args, f"{module_name}.{class_name}"):
-            eprint(f"Error: args for module '{module_name}.{class_name}' not found.")
-            return [Error.error_rules_args_not_found, None]
+            raise BOAFlowException(f"args for module '{module_name}.{class_name} not found'",
+                                   Error.error_rules_args_not_found)
 
         severity_enum_path = f"{get_current_path()}/enumerations/severity/{severity_enum_module_name}.py"
 
         if not file_exists(severity_enum_path):
-            eprint(f"Error: could not found the severity enumeration module '{severity_enum_module_name}'.")
-            return [Error.error_report_severity_enum_module_not_found, None]
+            raise BOAFlowException("could not found the severity enumeration"
+                                   f" module '{severity_enum_module_name}'",
+                                   Error.error_report_severity_enum_module_not_found)
 
         severity_enum_instance = ModulesImporter.load_and_get_instance(
             severity_enum_module_name,
@@ -473,30 +482,29 @@ def process_security_modules(rules_manager):
             severity_enum_class_name)
 
         if not severity_enum_instance:
-            eprint(f"Error: could not load the severity enumeration '{severity_enum_name}'.")
-            return [Error.error_report_severity_enum_module_not_loaded, None]
+            raise BOAFlowException(f"could not load the severity enumeration '{severity_enum_name}'",
+                                   Error.error_report_severity_enum_module_not_loaded)
 
         report = None
 
         try:
             report = Report(severity_enum_instance)
         except BOAReportEnumTypeNotExpected:
-            eprint(f"Error: severiry enum type not expected: '{severity_enum_name}'.")
-            return [Error.error_report_severity_enum_not_expected, None]
+            raise BOAFlowException(f"severity enum type not expected: '{severity_enum_name}'",
+                                   Error.error_report_severity_enum_not_expected)
         except Exception as e:
-            eprint(f"Error: {e}.")
-            return [Error.error_report_unknown, None]
+            raise BOAFlowException(e, Error.error_report_unknown)
 
         reports.append(report)
 
         mods_args[f"{module_name}.{class_name}"] = args[f"{module_name}.{class_name}"]
 
     if (len(modules) != len(classes) or len(modules) != len(mods_args)):
-        eprint(f"Error: modules length ({len(modules)}), classes length ({len(classes)})"
-               f" and arguments length ({len(mods_args)}) are not equal.")
-        return [Error.error_rules_modules_classes_args_neq_length, None]
+        raise BOAFlowException(f"modules length ({len(modules)}), classes length ({len(classes)})"
+                               f" and arguments length ({len(mods_args)}) are not equal",
+                               Error.error_rules_modules_classes_args_neq_length)
 
-    return [Meta.ok_code, [modules, classes, mods_args, reports, lifecycles]]
+    return [modules, classes, mods_args, reports, lifecycles]
 
 def load_instances(modules, classes, mods_args, mod_loader):
     """It loads the instances with their arguments.
@@ -508,10 +516,12 @@ def load_instances(modules, classes, mods_args, mod_loader):
         mods_args (dict): args to give to the instances. Each one will
             have access only to its arguments.
 
+    Raises:
+        BOAFlowException: could not finish the expected behaviour of
+            the function.
+
     Returns:
-        list: list containing:
-            * int: status code\n
-            * list: loaded instances
+        loaded instances
     """
     instances = []
     index = 0
@@ -520,18 +530,19 @@ def load_instances(modules, classes, mods_args, mod_loader):
         try:
             mod_args = mods_args[f"{modules[index]}.{classes[index]}"]
         except KeyError as e:
-            eprint(f"Error: could not get {e} arguments due to a bad naming reference.")
-            return [Error.error_rules_bad_naming_references, None]
+            raise BOAFlowException(f"could not get '{e}' arguments"
+                                   " due to a bad naming reference",
+                                   Error.error_rules_bad_naming_references)
 
         rtn = load_instance(mod_loader, modules[index], classes[index], mod_args)
         rtn_code = rtn[0]
         instance = rtn[1]
 
         if rtn_code != Meta.ok_code:
-            return [rtn_code, None]
+            raise BOAFlowException(None, rtn_code)
 
         instances.append(instance)
 
         index += 1
 
-    return [Meta.ok_code, instances]
+    return instances
