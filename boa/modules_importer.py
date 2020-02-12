@@ -60,17 +60,24 @@ class ModulesImporter:
 
         The modules must be in *Other.modules_directory* directory.
         """
-        index = -1
+        index = 0
 
-        for module in self.modules:
-            index = index + 1
+        while index < len(self.modules):
+            module = self.modules[index]
+            filename = self.filenames[index]
+            file_path = f'{get_current_path(__file__)}/{Other.modules_directory}/{filename}'
 
             try:
+                # Check if the module is already loaded
                 if module in sys.modules:
                     eprint(f"Warning: module '{module}' cannot have that name because it collides with a sys module or has been already loaded. Skipping current module.")
                     continue
 
-                file_path = f'{get_current_path(__file__)}/{Other.modules_directory}/{module}.py'
+                # Check if the actual file path does exist
+                if file_exists(file_path) is False:
+                    eprint(f"Warning: file '{file_path}' does not exist. Skipping current module.")
+                    continue
+
                 spec = importlib.util.spec_from_file_location(module, file_path)
 
                 # Check if we could get the module spec
@@ -78,13 +85,8 @@ class ModulesImporter:
                     eprint(f"Warning: module '{module}' could not be loaded. Skipping current module.")
                     continue
 
+                # Load and save the module
                 new_module = importlib.util.module_from_spec(spec)
-
-                # Check if the actual file path does exist
-                if file_exists(file_path) is False:
-                    eprint(f"Warning: file '{file_path}' does not exist. Skipping current module.")
-                    continue
-
                 sys.modules[module] = new_module
 
                 spec.loader.exec_module(new_module)
@@ -99,6 +101,8 @@ class ModulesImporter:
                 eprint(f"Warning: unknown error while loading module '{module}'. Skipping current module.")
                 continue
 
+            index += 1
+
     def is_module_loaded(self, module_name):
         """It checks if a concrete module is already loaded.
 
@@ -111,7 +115,7 @@ class ModulesImporter:
         index = self.modules.index(module_name)
 
         # Check if the module is loaded
-        if self.loaded[index] is False:
+        if self.loaded[index] == False:
             return False
 
         return True
@@ -132,10 +136,10 @@ class ModulesImporter:
             Module if loaded; *None* otherwise
         """
         try:
-            if self.is_module_loaded(module_name) is False:
+            if self.is_module_loaded(module_name) == False:
                 raise BOAModuleNotLoaded()
             # It should not happen
-            if is_key_in_dict(sys.modules, module_name) is False:
+            if is_key_in_dict(sys.modules, module_name) == False:
                 raise Exception()
 
             return sys.modules[module_name]
@@ -213,8 +217,11 @@ class ModulesImporter:
 
     @classmethod
     def load_and_get_instance(cls, module, absolute_file_path, class_name, verbose=True):
-        """Class method which attempts to load a module
-        and return an instance of it.
+        """Class method which attempts to load a module and return an
+        instance of it.
+
+        If the module is already loaded, it will skip the loading part
+        and it will continue to next phase: get the instance.
 
         Arguments:
             module (str): module name to be loaded.
@@ -235,7 +242,7 @@ class ModulesImporter:
         if not file_exists(absolute_file_path):
             eprint(f"Warning: file '{absolute_file_path}' does not exist. "
                    "Skipping current module.")
-            return instance
+            return None
 
         try:
             if not module in sys.modules:
@@ -245,10 +252,9 @@ class ModulesImporter:
                 if spec is None:
                     eprint(f"Warning: module '{module}' could not be loaded."
                            " Skipping current module.")
-                    return instance
+                    return None
 
                 new_module = importlib.util.module_from_spec(spec)
-
                 sys.modules[module] = new_module
 
                 spec.loader.exec_module(new_module)
@@ -257,18 +263,20 @@ class ModulesImporter:
                     print(f"Info: Module '{module}' successfully loaded.")
         except Exception as e:
             eprint(f"Warning: {e}.")
-            return instance
+            return None
         except:
             eprint(f"Warning: unknown error while loading module '{module}'.")
-            return instance
+            return None
 
         # Module has been loaded once reached this point (or it was already loaded)
 
         tmp_module = sys.modules[module]
 
+        # Check if the module is already loaded (it should be if we have reached this point)
         if tmp_module is None:
-            return instance
+            return None
 
+        # Get the instance
         try:
             instance = getattr(sys.modules[module], class_name)
         except AttributeError as e:

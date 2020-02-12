@@ -57,33 +57,35 @@ def main():
         rtn_code = manage_args()
 
         if rtn_code != Meta.ok_code:
-            return rtn_code
+            raise BOAFlowException("args management failed", rtn_code)
 
         # Check if lang. file exists
         if not file_exists(ArgsManager.args.file):
-            eprint(f"Error: file '{ArgsManager.args.file}' not found.")
-
-            return Error.error_file_not_found
+            raise BOAFlowException(f"file '{ArgsManager.args.file}' not found",
+                                   Error.error_file_not_found)
 
         # Manage rules file
         rules_manager = boa_internals.manage_rules_file()
 
         # Process all security modules and get the necessary information
         processed_info_sec_mods = boa_internals.process_security_modules(rules_manager)
+
         modules = processed_info_sec_mods[0]
         classes = processed_info_sec_mods[1]
         mods_args = processed_info_sec_mods[2]
         reports = processed_info_sec_mods[3]
         lifecycles = processed_info_sec_mods[4]
 
-        # Parse lang. file
-
+        # Parser module
         parser_rules = rules_manager.get_rules("boa_rules.parser")
 
+        # Get parser module instance
         boapm_instance = boa_internals.get_boapm_instance(parser_rules['module_name'], parser_rules['class_name'])
 
+        # Get environment variables for the parser module
         parser_env_vars = boa_internals.get_parser_env_vars(parser_rules)
 
+        # Handle parser module and get the result for the lifecycle
         lifecycle_args = boa_internals.handle_boapm(boapm_instance, parser_rules, parser_env_vars)
 
         # Load modules
@@ -96,9 +98,9 @@ def main():
             fail_if_some_user_module_failed = True
 
         if (rtn_code == Error.error_module_some_user_failed and fail_if_some_user_module_failed):
-            return rtn_code
+            raise BOAFlowException("a security module failed", rtn_code)
         if rtn_code not in (Meta.ok_code, Error.error_module_some_user_failed):
-            return rtn_code
+            raise BOAFlowException("a security module failed", rtn_code)
 
         # Remove not loaded modules
         boa_internals.remove_not_loaded_modules(mod_loader, modules, classes, mods_args)
@@ -119,7 +121,7 @@ def main():
         # Error in some internal function.
 
         if e.message:
-            eprint(f"Error: main flow: {e.message}.")
+            eprint(f"Error: {e.message}.")
         if e.error_code:
             return e.error_code
 
