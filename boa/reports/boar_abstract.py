@@ -132,6 +132,110 @@ class BOAReportAbstract:
             str: text to be displayed
         """
 
+    def get_who(self):
+        """It returns the modules which are in the current report.
+        Returns:
+            list (str): list containing the modules which are in the
+            current report
+        """
+        return self.who
+
+    def add(self, who, description, severity, advice=None, row=None, col=None, sort_by_severity=True, severity_enum=None):
+        """It adds a new record to the main report.
+        Arguments:
+            who (str): "module_name.class_name" (without quotes)
+                format to identify who raised the threat.
+            description (str): description about the found threat.
+            severity (SeverityBase): threat severity.
+            advice (str): advice to solve the threat. It is optional.
+            row (int): threat row. It is optional.
+            col (int): threat col. It is optional.
+            sort_by_severity (bool): if *True*, the threats will be
+                added sorting by severity (higher values will be
+                added first). The default value is *True*.
+            severity_enum (type): enumeration which will be used
+                for the threats severity. This arg is intended to
+                be able to join different Report instances. Default
+                is *None* which means to use *self.severity_enum*.
+        Returns:
+            int: status code
+        """
+        # Checking mandatory args
+        if (who is None or
+                description is None or
+                severity is None):
+            return Error.error_report_args_not_optional
+        # Severity enum checking
+        if severity_enum is None:
+            if is_key_in_dict(self.severity_enum_mapping, who):
+                severity_enum = self.severity_enum_mapping[who]
+            else:
+                severity_enum = self.severity_enum
+        elif (not issubclass(severity_enum, SeverityBase) or
+              severity_enum is SeverityBase):
+            raise BOAReportEnumTypeNotExpected()
+        # Type checking
+        if (not isinstance(who, str) or
+                not isinstance(description, str) or
+                not isinstance(severity, severity_enum) or
+                (advice is not None and
+                 not isinstance(advice, str)) or
+                (row is not None and
+                 not isinstance(row, int)) or
+                (col is not None and
+                 not isinstance(col, int))):
+            return Error.error_report_args_not_expected_type
+
+        who_regex_result = re.match(Regex.regex_general_module_class_name, who)
+
+        if who_regex_result is None:
+            return Error.error_report_who_regex_fail
+
+        if not is_key_in_dict(self.severity_enum_mapping, who):
+            self.severity_enum_mapping[who] = severity_enum
+        elif self.severity_enum_mapping[who] != severity_enum:
+            return Error.error_report_severity_enum_does_not_match
+
+        self.who.append(who)
+        self.description.append(description)
+        self.severity.append(severity)
+        self.advice.append(advice)
+        self.rows.append(row)
+        self.cols.append(col)
+
+        if not is_key_in_dict(self.summary, who):
+            # If it is the first threat found by the module, create a list to iterate after
+            self.summary[who] = []
+
+        added = False
+        threat_tuple = (self.who[-1],
+                        self.description[-1],
+                        self.severity[-1],
+                        self.advice[-1],
+                        self.rows[-1],
+                        self.cols[-1],
+                        severity_enum)
+
+        if sort_by_severity:
+            index = 0
+
+            # Iterate to find the first element whose severity is lesser than current
+            while index < len(self.summary[who]):
+                threat = self.summary[who][index]
+
+                if threat[2] < self.severity[-1]:
+                    self.summary[who].insert(index, threat_tuple)
+                    added = True
+                    break
+
+                index += 1
+
+        if (not sort_by_severity or not added):
+            # Append the tuple with all the threat information
+            self.summary[who].append(threat_tuple)
+
+        return Meta.ok_code
+
     def get_summary(self):
         """It returns a summary of all the threat records.
 
@@ -166,7 +270,7 @@ class BOAReportAbstract:
         rtn_code = Meta.ok_code
         appended = False
 
-        if not isinstance(report_instance, Report):
+        if not isinstance(report_instance, BOAReportAbstract):
             raise TypeError()
 
         for who_list in report_instance.summary.values():

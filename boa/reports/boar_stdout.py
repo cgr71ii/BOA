@@ -7,7 +7,7 @@ report after all the modeles has been executed.
 """
 
 # Std libs
-from boar_abstract import BOAReportAbstract
+from reports.boar_abstract import BOAReportAbstract
 
 # Own libs
 from own_exceptions import BOAReportWhoNotFound

@@ -903,10 +903,10 @@ class RulesManager:
         eprint(f"Warning: could not get the args for module '{module}'.")
         return None
 
-def get_report_args(self):
-    """It returns the args for the Report instance.
+    def get_report_args(self):
+        """It returns the args for the Report instance.
 
-    Returns:
-        dict: report args
-    """
-    return self.report_args
+        Returns:
+            dict: report args
+        """
+        return self.report_args

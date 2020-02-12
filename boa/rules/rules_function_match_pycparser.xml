@@ -61,4 +61,9 @@
             </args>
         </module>
     </modules>
+    <report>
+        <args>
+            
+        </args>
+    </report>
 </boa_rules>

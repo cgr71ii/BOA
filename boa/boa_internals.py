@@ -15,8 +15,6 @@ from constants import Meta, Error, Other
 from modules_importer import ModulesImporter
 from lifecycles.boalc_manager import BOALifeCycleManager
 from rules_manager import RulesManager
-#from report import Report
-from reports.boar_abstract import BOAReportAbstract
 
 def load_modules(user_modules):
     """It handles the modules loading through ModulesImporter class.
@@ -319,7 +317,6 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
 
         rtn_code = lifecycle_manager.handle_lifecycle()
     except BOALCException as e:
-        eprint(f"Error: lifecycle exception: {e}.")
         raise BOAFlowException(f"lifecycle exception: {e}", Error.error_lifecycle_exception)
     except Exception as e:
         raise BOAFlowException(e, Error.error_lifecycle_exception)
@@ -476,7 +473,7 @@ def get_boar_instance(module_name, class_name, filename=None):
         class_name)
 
     if not instance:
-        raise BOAFlowException(f"could not load the parser module '{module_name}.{class_name}'",
+        raise BOAFlowException(f"could not load the report module '{module_name}.{class_name}'",
                                Error.error_report_module_not_found)
 
     if (not issubclass(instance, abstract_instance) or
@@ -491,7 +488,6 @@ def get_boar_instance(module_name, class_name, filename=None):
 def handle_boar(rules_manager, severity_enum_instance):
     """
     """
-    report_args = rules_manager.get_report_args()
     report_instance = None
     report_default_handler = Other.other_report_default_handler.split(".")
 
@@ -503,7 +499,11 @@ def handle_boar(rules_manager, severity_enum_instance):
     report_class_name = report_default_handler[1]
     report_args = rules_manager.get_report_args()
 
-    report = Report(severity_enum_instance, report_args)
+    # Get instance
+    report_instance = get_boar_instance(report_module_name, report_class_name)
+
+    # Initialize instance
+    report_instance = report_instance(severity_enum_instance, report_args)
 
     return report_instance
 
@@ -581,6 +581,8 @@ def process_security_modules(rules_manager):
                                    Error.error_report_severity_enum_not_expected)
         except BOAUnexpectedException as e:
             raise BOAFlowException(f"unexpected exception: {e}", Error.error_report_unknown)
+        except BOAFlowException as e:
+            raise e
         except Exception as e:
             raise BOAFlowException(e, Error.error_report_unknown)
 

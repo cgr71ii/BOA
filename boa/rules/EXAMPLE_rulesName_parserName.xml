@@ -58,7 +58,8 @@
                             If you use 'list', 'dict' and 'element' in combination at the same deepness, the result will not be sorted in the same way you wrote the rules
                             If you no use these elements in combination, the result will be sorted
                             Default sorting: 1st dicts; 2nd lists; 3rd elements -->
-                <dict>  <!--    *** Mandatory and unique element as first arg ***
+                <dict>  <!--    Optional
+                                *** Mandatory and unique element as first arg ***
                                 Mandatory 'name' attribute in childs -->
                     <element name="var1" value="val1" />    <!-- Mandatory 'value' attribute -->
                     <element name="var2" value="val2" />
