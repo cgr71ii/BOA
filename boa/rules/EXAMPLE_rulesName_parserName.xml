@@ -58,8 +58,7 @@
                             If you use 'list', 'dict' and 'element' in combination at the same deepness, the result will not be sorted in the same way you wrote the rules
                             If you no use these elements in combination, the result will be sorted
                             Default sorting: 1st dicts; 2nd lists; 3rd elements -->
-                <dict>  <!--    Optional
-                                *** Mandatory and unique element as first arg ***
+                <dict>  <!--    *** Mandatory and unique element as first arg ***
                                 Mandatory 'name' attribute in childs -->
                     <element name="var1" value="val1" />    <!-- Mandatory 'value' attribute -->
                     <element name="var2" value="val2" />
@@ -139,4 +138,25 @@
             </args>
         </module>
     </modules>
+    <report>    <!-- Mandatory -->
+        <module_name></module_name> <!-- Optional; Mandatory if you define <class_name> -->
+        <class_name></class_name>   <!-- Optional; Mandatory if you define <module_name> -->
+        <args_sorting></args_sorting> <!-- IMPORTANT: check 'args_sorting' in 'module' tag
+                                                      for information about the use of this
+                                                      tag -->
+        <args>  <!-- IMPORTANT: check 'args' in 'module' tag for
+                                information about the use of this
+                                tag -->
+            <dict>
+                <element name="n1" value="v1" />    <!-- Mandatory 'value' attribute -->
+                <element name="path" value="/home/boa/reports" />
+                <element name="filename" value="report.html" />
+                <list name="opt">
+                    <dict>
+                    </dict>
+                    <element value="opt_value" />
+                </list>
+            </dict>
+        </args>
+    </report>
 </boa_rules>

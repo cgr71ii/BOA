@@ -80,7 +80,7 @@ class BOARulesIncomplete(Exception):
 class BOARulesError(Exception):
     """BOARulesError exception.
 
-    This exception should be raised when a non-especific error
+    This exception should be raised when a non-specific error
     happens when parsing rules. An example of when to be raised
     could be that if we set a rule and other rule should be set
     because of that and the second is not set, it should be raised.
@@ -138,3 +138,10 @@ class BOAFlowException(Exception):
         """
         self.message = message
         self.error_code = error_code
+
+class BOAUnexpectedException(Exception):
+    """BOAUnexpectedException exception.
+
+    This exception should be raised when an unexpected or unknown
+    situation happens in the internals of BOA, not in the main flow.
+    """

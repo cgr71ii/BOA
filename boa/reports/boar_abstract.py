@@ -1,14 +1,11 @@
-
-"""Report file.
-
-This file contains the Report class, which main goal
-is allocate the found threats and display a record
-report after all the modeles has been executed.
+"""This file contains the class which is the base for
+the Report, which is the class that displays the information
+about all the found threats.
 """
 
 # Std libs
 import re
-from enum import Enum
+from abc import abstractmethod
 
 # Own libs
 from constants import Meta, Error, Regex
@@ -16,14 +13,17 @@ from enumerations.severity.severity_base import SeverityBase
 from util import is_key_in_dict, eprint
 from own_exceptions import BOAReportWhoNotFound, BOAReportEnumTypeNotExpected
 
-class Report:
-    """Report class.
+class BOAReportAbstract:
+    """BOAReportAbstract class.
 
     It implements the necessary methods to initialize,
     fill and display the threats report after the analysis.
+
+    If you want to define your own Report class you will have
+    to define a new class which inherits from this one.
     """
 
-    def __init__(self, severity_enum):
+    def __init__(self, severity_enum, args):
         """It initializes the class with the necessary variables.
 
         Arguments:
@@ -46,130 +46,17 @@ class Report:
         self.summary = {}
         self.severity_enum = severity_enum
         self.severity_enum_mapping = {}
+        self.args = args
 
         if (not issubclass(severity_enum, SeverityBase) or
                 severity_enum is SeverityBase):
             raise BOAReportEnumTypeNotExpected()
 
-    def get_who(self):
-        """It returns the modules which are in the current report.
-
-        Returns:
-            list (str): list containing the modules which are in the
-            current report
-        """
-        return self.who
-
-    def add(self, who, description, severity, advice=None, row=None, col=None, sort_by_severity=True, severity_enum=None):
-        """It adds a new record to the main report.
-
-        Arguments:
-            who (str): "module_name.class_name" (without quotes)
-                format to identify who raised the threat.
-            description (str): description about the found threat.
-            severity (SeverityBase): threat severity.
-            advice (str): advice to solve the threat. It is optional.
-            row (int): threat row. It is optional.
-            col (int): threat col. It is optional.
-            sort_by_severity (bool): if *True*, the threats will be
-                added sorting by severity (higher values will be
-                added first). The default value is *True*.
-            severity_enum (type): enumeration which will be used
-                for the threats severity. This arg is intended to
-                be able to join different Report instances. Default
-                is *None* which means to use *self.severity_enum*.
-
-        Returns:
-            int: status code
-        """
-        # Checking mandatory args
-        if (who is None or
-                description is None or
-                severity is None):
-            return Error.error_report_args_not_optional
-        # Severity enum checking
-        if severity_enum is None:
-            if is_key_in_dict(self.severity_enum_mapping, who):
-                severity_enum = self.severity_enum_mapping[who]
-            else:
-                severity_enum = self.severity_enum
-        elif (not issubclass(severity_enum, SeverityBase) or
-              severity_enum is SeverityBase):
-            raise BOAReportEnumTypeNotExpected()
-        # Type checking
-        if (not isinstance(who, str) or
-                not isinstance(description, str) or
-                not isinstance(severity, severity_enum) or
-                (advice is not None and
-                 not isinstance(advice, str)) or
-                (row is not None and
-                 not isinstance(row, int)) or
-                (col is not None and
-                 not isinstance(col, int))):
-            return Error.error_report_args_not_expected_type
-
-        who_regex_result = re.match(Regex.regex_general_module_class_name, who)
-
-        if who_regex_result is None:
-            return Error.error_report_who_regex_fail
-
-        if not is_key_in_dict(self.severity_enum_mapping, who):
-            self.severity_enum_mapping[who] = severity_enum
-        elif self.severity_enum_mapping[who] != severity_enum:
-            return Error.error_report_severity_enum_does_not_match
-
-        self.who.append(who)
-        self.description.append(description)
-        self.severity.append(severity)
-        self.advice.append(advice)
-        self.rows.append(row)
-        self.cols.append(col)
-
-        if not is_key_in_dict(self.summary, who):
-            # If it is the first threat found by the module, create a list to iterate after
-            self.summary[who] = []
-
-        added = False
-        threat_tuple = (self.who[-1],
-                        self.description[-1],
-                        self.severity[-1],
-                        self.advice[-1],
-                        self.rows[-1],
-                        self.cols[-1],
-                        severity_enum)
-
-        if sort_by_severity:
-            index = 0
-
-            # Iterate to find the first element whose severity is lesser than current
-            while index < len(self.summary[who]):
-                threat = self.summary[who][index]
-
-                if threat[2] < self.severity[-1]:
-                    self.summary[who].insert(index, threat_tuple)
-                    added = True
-                    break
-
-                index += 1
-
-        if (not sort_by_severity or not added):
-            # Append the tuple with all the threat information
-            self.summary[who].append(threat_tuple)
-
-        return Meta.ok_code
-
-    def get_summary(self):
-        """It returns a summary of all the threat records.
-
-        Returns:
-            dict: summary of threat records. Its key format
-            is (without quotes) "module_name.class_name" and
-            the value is a list of tuples
-        """
-        return self.summary
-
+    @abstractmethod
     def pretty_print_tuple(self, t, first_time=False, reported_by=False, display=True):
         """It prints a pretty line about a found threat record.
+
+        This method is intended to be invoked by *display*.
 
         The expected format for the tuple is next:\n
         1. str: module who raised the threat.\n
@@ -207,42 +94,12 @@ class Report:
             *first_time=False* for the rest. If you do not want
             to show it orderly, you should use *reported_by=True*.
         """
-        row = t[4]
-        col = t[5]
-        who = t[0]
-        desc = t[1]
-        severity = t[2]
-        advice = t[3]
-        severity_enum = t[6]
-        text = ""
 
-        if first_time:
-            first_time_row = f"~~~~{'~' * len(who)}~~~~"
-
-            text += f"{first_time_row}\n{first_time_row}\n"
-            text += f"~~~ {who} ~~~\n"
-            text += f"{first_time_row}\n{first_time_row}\n"
-
-        if not reported_by:
-            who = "Threat"
-        if row is None:
-            row = -1
-        if col is None:
-            col = -1
-        if advice is None:
-            advice = "not specified"
-
-        text += f" + {who} ({row}, {col}): {desc}.\n"
-        text += f"   Severity: {severity_enum(severity).name}.\n"
-        text += f"   Advice: {advice}.\n"
-
-        if display:
-            print(text)
-
-        return text
-
+    @abstractmethod
     def display(self, who, display=True):
         """It displays all the threats from a concrete module.
+
+        This method is intended to be invoked by *display_all*.
 
         Arguments:
             who (str): the module which found the threat.
@@ -254,27 +111,16 @@ class Report:
         Returns:
             str: text to be displayed
         """
-        if who not in self.who:
-            raise BOAReportWhoNotFound()
 
-        first_time = True
-        text = ""
-
-        for threat in self.summary[who]:
-            text += self.pretty_print_tuple(threat, first_time, display=False)
-            first_time = False
-            text += "\n"
-
-        text += f"   Total threats: {len(self.summary[who])}\n"
-
-        if display:
-            print(text)
-
-        return text
-
+    @abstractmethod
     def display_all(self, print_summary=True, display=True):
         """It displays all the threats from all the modules.
         Moreover, it prints a summary at the end optionally.
+
+        This method should invoke *display* which should
+        invoke *pretty_print_tuple*. You can avoid this
+        overriding the methods using "pass", but if you do
+        this, this method will have to make all the work.
 
         Arguments:
             print_summary (bool): if *True*, it prints a
@@ -285,30 +131,16 @@ class Report:
         Returns:
             str: text to be displayed
         """
-        total_threats = 0
-        who = list(self.summary.keys())
-        index = 0
-        text = ""
 
-        while index < len(who):
-            text += self.display(who[index], False)
+    def get_summary(self):
+        """It returns a summary of all the threat records.
 
-            if (print_summary or index + 1 != len(who)):
-                text += "\n"
-
-            total_threats += len(self.summary[who[index]])
-            index += 1
-
-        if print_summary:
-            text += "~~~~~~~~~~~\n"
-            text += "~ Summary ~\n"
-            text += "~~~~~~~~~~~\n"
-            text += f" - Total threats (all modules): {total_threats}"
-
-        if display:
-            print(text)
-
-        return text
+        Returns:
+            dict: summary of threat records. Its key format
+            is (without quotes) "module_name.class_name" and
+            the value is a list of tuples
+        """
+        return self.summary
 
     def append(self, report_instance, sort_by_severity=True, stop_if_fails=False, who=None):
         """It appends other threats report records to this.

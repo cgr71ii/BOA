@@ -48,6 +48,7 @@ class RulesManager:
         self.xml_str = None
         self.rules = None
         self.args = None
+        self.report_args = None
 
     def open(self):
         """It opens the rules file, checking if exists first.
@@ -425,12 +426,156 @@ class RulesManager:
 
         return True
 
-    def check_rules(self, save_args):
-        """It checks if the rules file contains the mandatory
-        rules. The checking is performed by name and elements
-        quantity, so it has to match in both properties.
+    def check_rules_init(self):
+        """It makes the initial checks.
 
-        If *self.rules* is *None*, the checking fails.
+        Raises:
+            BOARulesIncomplete: when the number of expected
+                mandatory rules does not match with the actual
+                number of rules or when a concrete rule is not
+                found.
+        """
+        # Check if main tag is defined
+        is_key_in_dict(self.rules, "boa_rules", True,
+                       raise_exception=BOARulesIncomplete,
+                       exception_args="'boa_rules'")
+
+        # Check if there are the expected #elements in the main element
+        if len(self.rules["boa_rules"]) != 3:
+            raise BOARulesIncomplete("'boa_rules' has not the expected #elements")
+
+        # Check if is defined the parser tag
+        is_key_in_dict(self.rules, "boa_rules.parser", True,
+                       raise_exception=BOARulesIncomplete,
+                       exception_args="'boa_rules.parser'")
+
+        # Check if is defined the modules tag
+        is_key_in_dict(self.rules, "boa_rules.modules", True,
+                       raise_exception=BOARulesIncomplete,
+                       exception_args="'boa_rules.modules'")
+
+        # Check if is defined the report tab
+        is_key_in_dict(self.rules, "boa_rules.report", True,
+                       raise_exception=BOARulesIncomplete,
+                       exception_args="'boa_rules.report'")
+
+
+    def check_rules_parser(self):
+        """It makes the checks relative to the parser.
+
+        Raises:
+            BOARulesIncomplete: when the number of expected
+                mandatory rules does not match with the actual
+                number of rules or when a concrete rule is not
+                found.
+        """
+        # Check if there are the expected #elements in the parser element
+        if len(self.rules["boa_rules"]["parser"]) != 6:
+            raise BOARulesIncomplete("'boa_rules.parser' has not the expected #elements")
+
+        # Check if the expected elements are in the parser element
+        is_key_in_dict(self.rules, "boa_rules.parser.name", True,
+                       raise_exception=BOARulesIncomplete,
+                       exception_args="'boa_rules.parser.name'")
+        is_key_in_dict(self.rules, "boa_rules.parser.lang_objective", True,
+                       raise_exception=BOARulesIncomplete,
+                       exception_args="'boa_rules.parser.lang_objective'")
+        is_key_in_dict(self.rules, "boa_rules.parser.module_name", True,
+                       raise_exception=BOARulesIncomplete,
+                       exception_args="'boa_rules.parser.module_name'")
+        is_key_in_dict(self.rules, "boa_rules.parser.class_name", True,
+                       raise_exception=BOARulesIncomplete,
+                       exception_args="'boa_rules.parser.class_name'")
+        is_key_in_dict(self.rules, "boa_rules.parser.callback", True,
+                       raise_exception=BOARulesIncomplete,
+                       exception_args="'boa_rules.parser.callback'")
+        is_key_in_dict(self.rules, "boa_rules.parser.callback.method", True,
+                       raise_exception=BOARulesIncomplete,
+                       exception_args="'boa_rules.parser.callback.method'")
+        is_key_in_dict(self.rules, "boa_rules.parser.env_vars", True,
+                       raise_exception=BOARulesIncomplete,
+                       exception_args="'boa_rules.parser.env_vars'")
+
+        # Check concrete restrictions about the elements of the parser element
+        if len(self.rules["boa_rules"]["parser"]["callback"]) != 1:
+            raise BOARulesIncomplete("'boa_rules.parser.callback' has not"
+                                     " the expected #elements")
+        if (self.rules["boa_rules"]["parser"]["env_vars"] and
+                len(self.rules["boa_rules"]["parser"]["env_vars"]) != 1):
+            raise BOARulesIncomplete("'boa_rules.parser.env_vars' has not"
+                                     " the expected #elements")
+
+        is_key_in_dict(self.rules, "boa_rules.parser.callback.method", True,
+                       raise_exception=BOARulesIncomplete,
+                       exception_args="'boa_rules.parser.callback.method'")
+
+        methods = self.rules["boa_rules"]["parser"]["callback"]["method"]
+
+        if not isinstance(methods, list):
+            methods = [methods]
+
+        # Check parser callback elements
+        for method in methods:
+            if len(method) != 2:
+                raise BOARulesIncomplete("'boa_rules.parser.callback.method'"
+                                         " has not the expected #elements")
+
+            is_key_in_dict(method, "@name", False,
+                           raise_exception=BOARulesIncomplete,
+                           exception_args="'boa_rules.parser.callback.method@name'")
+            is_key_in_dict(method, "@callback", False,
+                           raise_exception=BOARulesIncomplete,
+                           exception_args="'boa_rules.parser.callback.method@callback'")
+
+    def check_rules_arg_high_level(self, dict_tag, parent_tag_name, tag_prefix, save_args):
+        """This is the method that should be invoked when
+        you want to check, and optionally parse, the arguments
+        from the rules file.
+
+        Raises:
+            BOARulesIncomplete: when the number of expected
+                mandatory rules does not match with the actual
+                number of rules or when a concrete rule is not
+                found.
+            BOARulesUnexpectedFormat: when the format of a rule
+                is not the expected.
+            BOARulesError: when an non-specific error happens.
+        """
+        args_sorting_defined_test = False
+
+        is_key_in_dict(dict_tag, "args", False,
+                       raise_exception=BOARulesIncomplete,
+                       exception_args=f"'{tag_prefix}.args'")
+
+        args = dict_tag["args"]
+        sort_args = False
+
+        if (not is_key_in_dict(dict_tag, "args_sorting") and args_sorting_defined_test):
+            raise BOARulesIncomplete(f"'{tag_prefix}' has not the"
+                                     " expected #elements")
+        if args_sorting_defined_test:
+            if dict_tag["args_sorting"].lower() == "true":
+                sort_args = True
+            elif dict_tag["args_sorting"].lower() != "false":
+                raise BOARulesUnexpectedFormat(f"'{tag_prefix}.args_sorting' has not"
+                                               " the expected format (allowed values"
+                                               " are 'true' and 'false')")
+
+        if not isinstance(args, list):
+            args = [args]
+
+        arg_reference = {}
+
+        # Args processing
+        for arg in args:
+            if not self.check_rules_arg(arg, "args", parent_tag_name, save_args,
+                                        arg_reference, sort_args):
+                raise BOARulesError(f"'{tag_prefix}.args' is not correct")
+
+        return arg_reference
+
+    def check_rules_modules(self, save_args):
+        """It makes the checks relative to the modules.
 
         Arguments:
             save_args (bool): it indicates that the arguments
@@ -443,6 +588,187 @@ class RulesManager:
                 found.
             BOARulesUnexpectedFormat: when the format of a rule
                 is not the expected.
+            BOARulesError: when an non-specific error happens.
+        """
+        # Check if there are the expected #elements in the modules element
+        if len(self.rules["boa_rules"]["modules"]) != 1:
+            raise BOARulesIncomplete("'boa_rules.modules' has not the expected #elements")
+
+        is_key_in_dict(self.rules, "boa_rules.modules.module", True,
+                       raise_exception=BOARulesIncomplete,
+                       exception_args="'boa_rules.modules.module'")
+
+        modules = self.rules["boa_rules"]["modules"]["module"]
+
+        if not isinstance(modules, list):
+            modules = [modules]
+
+        # Check concrete restrictions for each module
+        for module in modules:
+            severity_enum = Other.other_report_default_severity_enum
+            lifecycle_handler = Other.other_lifecycle_default_handler
+            module_name = module["module_name"]
+            class_name = module["class_name"]
+            total_tags_found = 0
+            total_mandatory_tags = 3
+
+            if is_key_in_dict(module, "args_sorting"):
+                args_sorting_defined_test = True
+                total_tags_found += 1
+            if is_key_in_dict(module, "severity_enum"):
+                if not module["severity_enum"]:
+                    raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
+                                                   ".severity_enum' cannot be"
+                                                   f" empty ('{module_name}.{class_name}')")
+
+                regex_result = re.match(Regex.regex_general_module_class_name,
+                                        module["severity_enum"])
+
+                if regex_result is None:
+                    raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
+                                                   ".severity_enum' does not match with"
+                                                   f" the expected regex "
+                                                   f"('{module_name}.{class_name}')")
+
+                severity_enum = module["severity_enum"]
+                total_tags_found += 1
+            if is_key_in_dict(module, "lifecycle_handler"):
+                if not module["lifecycle_handler"]:
+                    raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
+                                                   ".lifecycle_handler' cannot be"
+                                                   f" empty ('{module_name}.{class_name}')")
+
+                regex_result = re.match(Regex.regex_general_module_class_name,
+                                        module["lifecycle_handler"])
+
+                if regex_result is None:
+                    raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
+                                                   ".lifecycle_handler' does not match with"
+                                                   f" the expected regex "
+                                                   f"('{module_name}.{class_name}')")
+
+                lifecycle_handler = module["lifecycle_handler"]
+                total_tags_found += 1
+
+            if len(module) != (total_mandatory_tags + total_tags_found):
+                raise BOARulesIncomplete("'boa_rules.modules.module' has not the expected"
+                                         f" #elements in '{module_name}.{class_name}'")
+
+            # Set default values if no value was set
+            if not is_key_in_dict(module, "severity_enum"):
+                module["severity_enum"] = severity_enum
+            if not is_key_in_dict(module, "lifecycle_handler"):
+                module["lifecycle_handler"] = lifecycle_handler
+
+            # Args checking
+            arg_reference = {}
+
+            if (save_args and self.args is None):
+                # Initialize args to dict to work with the reference
+                # TODO check if this is necessary
+                self.args = {}
+
+            try:
+                arg_reference = self.check_rules_arg_high_level(module,
+                                                                "module",
+                                                                "boa_rules.modules.module",
+                                                                save_args)
+            except BOARulesIncomplete as e:
+                raise BOARulesIncomplete(f"{e} in '{module_name}.{class_name}'")
+            except BOARulesUnexpectedFormat as e:
+                raise BOARulesUnexpectedFormat(f"{e} in '{module_name}.{class_name}'")
+            except BOARulesError as e:
+                if save_args:
+                    # Reset the args because the args checking failed
+                    # TODO check if this smash all the other modules arguments...
+                    self.args = None
+
+                raise BOARulesError(f"{e} in '{module_name}.{class_name}'")
+
+            # Set the args
+            if (save_args and not self.set_args(f"{module_name}.{class_name}", arg_reference)):
+                # Reset the args because we could not set the args
+                # TODO check if this smash all the other modules arguments...
+                self.args = None
+                raise BOARulesError("'boa_rules.modules.module' is not correct "
+                                    f"('{module_name}.{class_name}' already set?)")
+
+    def check_rules_report(self):
+        """It makes the checks relative to the report.
+
+        Raises:
+            BOARulesIncomplete: when the number of expected
+                mandatory rules does not match with the actual
+                number of rules or when a concrete rule is not
+                found.
+            BOARulesError: when a semantic rule is broken.
+                You have to follow the rules documentation to
+                avoid this exception.
+        """
+        # Check if there are the expected #elements in the modules element
+        report = self.rules["boa_rules"]["report"]
+        save_args = True
+        total_tags_found = 0
+
+
+        # The 'report' tag can have [1, 4] #elements
+        if (len(report) == 0 or len(report) > 4):
+            raise BOARulesIncomplete("'boa_rules.report' has not the expected #elements")
+
+        # Check if both, module and class name, are defined or not
+        if is_key_in_dict(report, "module_name") ^ is_key_in_dict(report, "class_name"):
+            raise BOARulesError("'boa_rules.report' has to have defined both 'module_name'"
+                                " and 'class_name' or have not defined any of them")
+
+        if is_key_in_dict(report, "module_name"):
+            # Both 'module_name' and 'class_name' are defined
+            total_tags_found += 2
+
+        if is_key_in_dict(report, "args_sorting"):
+            total_tags_found += 1
+
+        if is_key_in_dict(report, "args"):
+            total_tags_found += 1
+
+        if len(report) != total_tags_found:
+            raise BOARulesIncomplete("'boa_rules.report' has not the expected #elements")
+
+        # Args checking
+        arg_reference = {}
+
+        if (save_args and self.report_args is None):
+            # Initialize args to dict to work with the reference
+            self.report_args = {}
+
+        try:
+            arg_reference = self.check_rules_arg_high_level(report,
+                                                            "report",
+                                                            "boa_rules.report",
+                                                            save_args)
+        #except BOARulesIncomplete as e:
+        #    raise BOARulesIncomplete(e)
+        #except BOARulesUnexpectedFormat as e:
+        #    raise BOARulesUnexpectedFormat(e)
+        except BOARulesError as e:
+            if save_args:
+                # Reset the report args because the args checking failed
+                self.report_args = None
+
+            raise BOARulesError(e)
+
+        # Set the report args
+        self.report_args = arg_reference
+
+    def check_rules(self, save_args):
+        """It checks if the rules file contains the mandatory
+        rules. The checking is performed by name and elements
+        quantity, so it has to match in both properties.
+
+        If *self.rules* is *None*, the checking fails.
+
+        Arguments:
+            save_args (bool): it indicates that the arguments
+                have to be saved while they are being checked.
 
         Returns:
             bool: true if the rules are valid; false otherwise
@@ -451,196 +777,18 @@ class RulesManager:
             return False
 
         try:
-            is_key_in_dict(self.rules, "boa_rules", True,
-                           raise_exception=BOARulesIncomplete,
-                           exception_args="'boa_rules'")
+            # It makes the initial checks about the main tags
+            self.check_rules_init()
 
-            if len(self.rules["boa_rules"]) != 2:
-                raise BOARulesIncomplete("'boa_rules' has not the expected #elements")
+            # It makes the checks relative to the parser
+            self.check_rules_parser()
 
-            is_key_in_dict(self.rules, "boa_rules.parser", True,
-                           raise_exception=BOARulesIncomplete,
-                           exception_args="'boa_rules.parser'")
+            # It makes the checks relative to the modules
+            self.check_rules_modules(save_args)
 
-            if len(self.rules["boa_rules"]["parser"]) != 6:
-                raise BOARulesIncomplete("'boa_rules.parser' has not the expected #elements")
+            # It makes the checks relative to the report
+            self.check_rules_report()
 
-            is_key_in_dict(self.rules, "boa_rules.parser.name", True,
-                           raise_exception=BOARulesIncomplete,
-                           exception_args="'boa_rules.parser.name'")
-            is_key_in_dict(self.rules, "boa_rules.parser.lang_objective", True,
-                           raise_exception=BOARulesIncomplete,
-                           exception_args="'boa_rules.parser.lang_objective'")
-            is_key_in_dict(self.rules, "boa_rules.parser.module_name", True,
-                           raise_exception=BOARulesIncomplete,
-                           exception_args="'boa_rules.parser.module_name'")
-            is_key_in_dict(self.rules, "boa_rules.parser.class_name", True,
-                           raise_exception=BOARulesIncomplete,
-                           exception_args="'boa_rules.parser.class_name'")
-            is_key_in_dict(self.rules, "boa_rules.parser.callback", True,
-                           raise_exception=BOARulesIncomplete,
-                           exception_args="'boa_rules.parser.callback'")
-            is_key_in_dict(self.rules, "boa_rules.parser.callback.method", True,
-                           raise_exception=BOARulesIncomplete,
-                           exception_args="'boa_rules.parser.callback.method'")
-            is_key_in_dict(self.rules, "boa_rules.parser.env_vars", True,
-                           raise_exception=BOARulesIncomplete,
-                           exception_args="'boa_rules.parser.env_vars'")
-
-            if len(self.rules["boa_rules"]["parser"]["callback"]) != 1:
-                raise BOARulesIncomplete("'boa_rules.parser.callback' has not"
-                                         " the expected #elements")
-            if (self.rules["boa_rules"]["parser"]["env_vars"] and
-                    len(self.rules["boa_rules"]["parser"]["env_vars"]) != 1):
-                raise BOARulesIncomplete("'boa_rules.parser.env_vars' has not"
-                                         " the expected #elements")
-
-            is_key_in_dict(self.rules, "boa_rules.parser.callback.method", True,
-                           raise_exception=BOARulesIncomplete,
-                           exception_args="'boa_rules.parser.callback.method'")
-
-            methods = self.rules["boa_rules"]["parser"]["callback"]["method"]
-
-            if not isinstance(methods, list):
-                methods = [methods]
-
-            for method in methods:
-                if len(method) != 2:
-                    raise BOARulesIncomplete("'boa_rules.parser.callback.method'"
-                                             " has not the expected #elements")
-
-                is_key_in_dict(method, "@name", False,
-                               raise_exception=BOARulesIncomplete,
-                               exception_args="'boa_rules.parser.callback.method@name'")
-                is_key_in_dict(method, "@callback", False,
-                               raise_exception=BOARulesIncomplete,
-                               exception_args="'boa_rules.parser.callback.method@callback'")
-
-            is_key_in_dict(self.rules, "boa_rules.modules", True,
-                           raise_exception=BOARulesIncomplete,
-                           exception_args="'boa_rules.modules'")
-
-            if len(self.rules["boa_rules"]["modules"]) != 1:
-                raise BOARulesIncomplete("'boa_rules.modules' has not the expected #elements")
-
-            is_key_in_dict(self.rules, "boa_rules.modules.module", True,
-                           raise_exception=BOARulesIncomplete,
-                           exception_args="'boa_rules.modules.module'")
-
-            modules = self.rules["boa_rules"]["modules"]["module"]
-
-            if not isinstance(modules, list):
-                modules = [modules]
-
-            for module in modules:
-                args_sorting_defined_test = False
-                severity_enum = Other.other_report_default_severity_enum
-                lifecycle_handler = Other.other_lifecycle_default_handler
-                module_name = module["module_name"]
-                class_name = module["class_name"]
-                total_modules_found = 0
-                total_mandatory_modules = 3
-
-                if is_key_in_dict(module, "args_sorting"):
-                    args_sorting_defined_test = True
-                    total_modules_found += 1
-                if is_key_in_dict(module, "severity_enum"):
-                    if not module["severity_enum"]:
-                        raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
-                                                       ".severity_enum' cannot be"
-                                                       f" empty ('{module_name}.{class_name}')")
-
-                    regex_result = re.match(Regex.regex_general_module_class_name,
-                                            module["severity_enum"])
-
-                    if regex_result is None:
-                        raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
-                                                       ".severity_enum' does not match with"
-                                                       f" the expected regex "
-                                                       f"('{module_name}.{class_name}')")
-
-                    severity_enum = module["severity_enum"]
-                    total_modules_found += 1
-                if is_key_in_dict(module, "lifecycle_handler"):
-                    if not module["lifecycle_handler"]:
-                        raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
-                                                       ".lifecycle_handler' cannot be"
-                                                       f" empty ('{module_name}.{class_name}')")
-
-                    regex_result = re.match(Regex.regex_general_module_class_name,
-                                            module["lifecycle_handler"])
-
-                    if regex_result is None:
-                        raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
-                                                       ".lifecycle_handler' does not match with"
-                                                       f" the expected regex "
-                                                       f"('{module_name}.{class_name}')")
-
-                    lifecycle_handler = module["lifecycle_handler"]
-                    total_modules_found += 1
-
-                if len(module) != (total_mandatory_modules + total_modules_found):
-                    raise BOARulesIncomplete("'boa_rules.modules.module' has not the expected"
-                                             f" #elements in '{module_name}.{class_name}'")
-
-                #if len(severity_enum.split(".")) != 2:
-                #    raise BOARulesUnexpectedFormat("'boa_rules.modules.module.severity_enum'"
-                #                                   " has not the expected format in"
-                #                                   f" '{module_name}.{class_name}': "
-                #                                   "'module_name.class_name'")
-
-                # Default values are not set
-                if not is_key_in_dict(module, "severity_enum"):
-                    module["severity_enum"] = severity_enum
-                if not is_key_in_dict(module, "lifecycle_handler"):
-                    module["lifecycle_handler"] = lifecycle_handler
-
-                is_key_in_dict(module, "args", False,
-                               raise_exception=BOARulesIncomplete,
-                               exception_args="'boa_rules.modules.module.args'")
-
-                # Args checking
-                args = module["args"]
-                sort_args = False
-
-                if (not is_key_in_dict(module, "args_sorting") and args_sorting_defined_test):
-                    raise BOARulesIncomplete("'boa_rules.modules.module' has not the"
-                                             " expected #elements in"
-                                             f"'{module_name}.{class_name}'")
-                if args_sorting_defined_test:
-                    if module["args_sorting"].lower() == "true":
-                        sort_args = True
-                    elif module["args_sorting"].lower() != "false":
-                        raise BOARulesUnexpectedFormat("'boa_rules.modules.module.args_sorting'"
-                                                       " has not the expected format in "
-                                                       f"'{module_name}.{class_name}': allowed"
-                                                       " values are 'true' and 'false'")
-
-                if not isinstance(args, list):
-                    args = [args]
-
-                arg_reference = {}
-
-                if (save_args and self.args is None):
-                    # Initialize args to dict to work with the reference
-                    self.args = {}
-
-                # Args processing
-                for arg in args:
-                    if not self.check_rules_arg(arg, "args", "module", save_args,
-                                                arg_reference, sort_args):
-                        if save_args:
-                            # Reset the args because the args checking failed
-                            self.args = None
-
-                        raise BOARulesError(f"'boa_rules.modules.module.args' is not"
-                                            f" correct in '{module_name}.{class_name}'")
-
-                if (save_args and not self.set_args(f"{module_name}.{class_name}", arg_reference)):
-                    # Reset the args because we could not set the args
-                    self.args = None
-                    raise BOARulesError("'boa_rules.modules.module' is not correct "
-                                        f"('{module_name}.{class_name}' already set?)")
         except BOARulesUnexpectedFormat as e:
             eprint(f"Error: wrong format: {e}.")
             return False
@@ -740,7 +888,7 @@ class RulesManager:
                 The default value is *None*.
 
         Returns:
-            dict: module's args or all the module's args;
+            dict: module args or all the modules args;
             *None* if a module were specified and could
             not find it
         """
@@ -754,3 +902,11 @@ class RulesManager:
 
         eprint(f"Warning: could not get the args for module '{module}'.")
         return None
+
+def get_report_args(self):
+    """It returns the args for the Report instance.
+
+    Returns:
+        dict: report args
+    """
+    return self.report_args

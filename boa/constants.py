@@ -96,16 +96,20 @@ class Error:
     error_lifecycle_not_expected_type = 57
 
     # Report errors
-    error_report_args_not_optional = 60
-    error_report_args_not_expected_type = 61
-    error_report_who_regex_fail = 62
-    error_report_append_failed = 63
-    error_report_unknown = 64
+    error_report_args_not_optional = 600
+    error_report_args_not_expected_type = 601
+    error_report_who_regex_fail = 602
+    error_report_append_failed = 603
+    error_report_unknown = 604
+    error_report_module_abstract_not_loaded = 605
+    error_report_module_not_found = 606
+    error_report_module_abstract_not_expected_type = 607
+
     # Report -> severity enum errors
-    error_report_severity_enum_does_not_match = 65
-    error_report_severity_enum_not_expected = 66
-    error_report_severity_enum_module_not_found = 67
-    error_report_severity_enum_module_not_loaded = 68
+    error_report_severity_enum_does_not_match = 610
+    error_report_severity_enum_not_expected = 611
+    error_report_severity_enum_module_not_found = 612
+    error_report_severity_enum_module_not_loaded = 613
 
     # Parser module errors
     error_parser_module_not_found = 70
@@ -140,6 +144,7 @@ class Other:
     other_report_default_severity_enum = "severity_syslog.SeveritySyslog"
     other_util_invoke_by_name_error_return = "check_with_id_or_is"
     other_lifecycle_default_handler = "boalc_basic.BOALCBasic"
+    other_report_default_handler = "boar_stdout.BOARStdout"
 
     # Modules
     modules_directory = "modules"
@@ -157,3 +162,9 @@ class Other:
     lifecycle_abstract_module_filename = "boalc_abstract.py"
     lifecycle_abstract_module_name = "lifecycles.boalc_abstract"
     lifecycle_abstract_module_class_name = "BOALifeCycleAbstract"
+
+    # Report
+    report_modules_directory = "reports"
+    report_abstract_module_filename = "boar_abstract.py"
+    report_abstract_module_name = "reports.boar_abstract"
+    report_abstract_module_class_name = "BOAReportAbstract"

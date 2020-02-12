@@ -20,7 +20,7 @@ class BOALifeCycleAbstract:
     """
 
     def __init__(self, instance, report, lifecycle_args, execute_method_callback):
-        """
+        """It initializes the class.
         """
         self.instance = instance
         self.report = report

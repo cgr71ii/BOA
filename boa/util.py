@@ -102,8 +102,8 @@ def is_key_in_dict(dictionary, key, split_by_point=False,
             be raised with *exception_args* as args.
 
     Returns:
-        bool: true if the dictionary contains the key;
-        false otherwise
+        bool: *True* if the dictionary contains the key;
+        *False* otherwise
     """
     try:
         if split_by_point:

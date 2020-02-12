@@ -5,16 +5,18 @@ and more readable.
 
 # Own libs
 from args_manager import ArgsManager
-from own_exceptions import BOAPMInitializationError, BOAPMParseError
-from own_exceptions import BOALCException, BOAReportEnumTypeNotExpected
-from own_exceptions import BOAModulesImporterException, BOAFlowException
+from own_exceptions import BOAPMInitializationError, BOAPMParseError,\
+                           BOALCException, BOAReportEnumTypeNotExpected,\
+                           BOAModulesImporterException, BOAFlowException,\
+                           BOAUnexpectedException
+from util import eprint, is_key_in_dict, file_exists, get_current_path,\
+                 invoke_by_name, get_name_from_class_instance
 from constants import Meta, Error, Other
-from util import eprint, is_key_in_dict, file_exists, get_current_path
-from util import invoke_by_name, get_name_from_class_instance
 from modules_importer import ModulesImporter
 from lifecycles.boalc_manager import BOALifeCycleManager
 from rules_manager import RulesManager
-from report import Report
+#from report import Report
+from reports.boar_abstract import BOAReportAbstract
 
 def load_modules(user_modules):
     """It handles the modules loading through ModulesImporter class.
@@ -121,22 +123,32 @@ def load_instance(module_loader, module_name, class_name, module_args):
 
     return [Meta.ok_code, instance]
 
-def get_boapm_instance(module_name, class_name):
+def get_boapm_instance(module_name, class_name, filename=None):
     """It attempts to load a BOAPM module and get an
     instance of it.
+
+    It checks that the loaded BOAPM class is subclass of
+    the BOAPM abstract class.
 
     Arguments:
         module_name (str): BOAPM module name.
         class_name (str): BOAPM class name.
 
+    Raises:
+        BOAFlowException: if could not load the abstract
+            instance or the file does not exist.
+
     Returns:
         loaded instance
     """
+    if filename is None:
+        filename = f"{module_name}.py"
+
     file_path = f'{get_current_path(__file__)}/{Other.parser_modules_directory}'
     abstract_instance = ModulesImporter.load_and_get_instance(Other.abstract_parser_module_name,
                                                               f'{file_path}/{Other.abstract_parser_module_filename}',
                                                               Other.abstract_parser_module_class_name)
-    file_path = f'{file_path}/{module_name}.py'
+    file_path = f'{file_path}/{filename}'
 
     if not abstract_instance:
         raise BOAFlowException("could not load and get an instance of "
@@ -422,6 +434,80 @@ def get_parser_env_vars(parser_rules):
 
     return env_vars
 
+# TODO check if it works and use it in handle_boar()
+def get_boar_instance(module_name, class_name, filename=None):
+    """It attempts to load a BOAR module and get an
+    instance of it.
+
+    It checks that the loaded BOAR class is subclass of
+    the BOAR abstract class.
+
+    Arguments:
+        module_name (str): BOAR module name.
+        class_name (str): BOAPR class name.
+
+    Raises:
+        BOAFlowException: if could not load the abstract
+            instance or the file does not exist.
+
+    Returns:
+        loaded instance
+    """
+    if filename is None:
+        filename = f"{module_name}.py"
+
+    file_path = f'{get_current_path(__file__)}/{Other.report_modules_directory}'
+    abstract_instance = ModulesImporter.load_and_get_instance(Other.report_abstract_module_name,
+                                                              f'{file_path}/{Other.report_abstract_module_filename}',
+                                                              Other.report_abstract_module_class_name)
+    file_path = f'{file_path}/{filename}'
+
+    if not abstract_instance:
+        raise BOAFlowException("could not load and get an instance of "
+                               f"'{Other.report_abstract_module_name}.{Other.report_abstract_module_class_name}'",
+                               Error.error_report_module_abstract_not_loaded)
+    if not file_exists(file_path):
+        raise BOAFlowException(f"file '{file_path}' not found",
+                               Error.error_report_module_not_found)
+
+    instance = ModulesImporter.load_and_get_instance(
+        module_name,
+        file_path,
+        class_name)
+
+    if not instance:
+        raise BOAFlowException(f"could not load the parser module '{module_name}.{class_name}'",
+                               Error.error_report_module_not_found)
+
+    if (not issubclass(instance, abstract_instance) or
+            instance is abstract_instance):
+        raise BOAFlowException(f"instance '{module_name}.{class_name}' has not the expected"
+                               f" type (does it inherit from '{Other.abstract_parser_module_name}."
+                               f"{Other.abstract_parser_module_class_name}'?)",
+                               Error.error_report_module_abstract_not_expected_type)
+
+    return instance
+
+def handle_boar(rules_manager, severity_enum_instance):
+    """
+    """
+    report_args = rules_manager.get_report_args()
+    report_instance = None
+    report_default_handler = Other.other_report_default_handler.split(".")
+
+    if (not report_default_handler or len(report_default_handler) != 2):
+        raise BOAUnexpectedException("the default report handler has not the expected value:"
+                                     f" '{Other.other_report_default_handler}'")
+
+    report_module_name = report_default_handler[0]
+    report_class_name = report_default_handler[1]
+    report_args = rules_manager.get_report_args()
+
+    report = Report(severity_enum_instance, report_args)
+
+    return report_instance
+
+
 def process_security_modules(rules_manager):
     """It process the necessary information to work with the
     security modules.
@@ -488,10 +574,13 @@ def process_security_modules(rules_manager):
         report = None
 
         try:
-            report = Report(severity_enum_instance)
+            #report = Report(severity_enum_instance)
+            report = handle_boar(rules_manager, severity_enum_instance)
         except BOAReportEnumTypeNotExpected:
             raise BOAFlowException(f"severity enum type not expected: '{severity_enum_name}'",
                                    Error.error_report_severity_enum_not_expected)
+        except BOAUnexpectedException as e:
+            raise BOAFlowException(f"unexpected exception: {e}", Error.error_report_unknown)
         except Exception as e:
             raise BOAFlowException(e, Error.error_report_unknown)
 
