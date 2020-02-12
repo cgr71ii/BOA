@@ -50,8 +50,14 @@
         </module>
     </modules>
     <report>
+        <module_name>boar_basic_html</module_name>
+        <class_name>BOARBasicHTML</class_name>
         <args>
-
+            <dict>
+                <element name="absolute_path" value="/tmp" />
+                <element name="filename" value="_boa_test.html" />
+                <element name="prefix_time" value="true" />
+            </dict>
         </args>
     </report>
 </boa_rules>

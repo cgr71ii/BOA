@@ -10,7 +10,7 @@ from abc import abstractmethod
 # Own libs
 from constants import Meta, Error, Regex
 from enumerations.severity.severity_base import SeverityBase
-from util import is_key_in_dict, eprint
+from util import is_key_in_dict, eprint, get_name_from_class_instance
 from own_exceptions import BOAReportWhoNotFound, BOAReportEnumTypeNotExpected
 
 class BOAReportAbstract:
@@ -47,6 +47,7 @@ class BOAReportAbstract:
         self.severity_enum = severity_enum
         self.severity_enum_mapping = {}
         self.args = args
+        self.who_i_am = get_name_from_class_instance(self)
 
         if (not issubclass(severity_enum, SeverityBase) or
                 severity_enum is SeverityBase):

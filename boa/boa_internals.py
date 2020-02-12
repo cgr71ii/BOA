@@ -431,7 +431,6 @@ def get_parser_env_vars(parser_rules):
 
     return env_vars
 
-# TODO check if it works and use it in handle_boar()
 def get_boar_instance(module_name, class_name, filename=None):
     """It attempts to load a BOAR module and get an
     instance of it.
@@ -498,6 +497,12 @@ def handle_boar(rules_manager, severity_enum_instance):
     report_module_name = report_default_handler[0]
     report_class_name = report_default_handler[1]
     report_args = rules_manager.get_report_args()
+    report_rules = rules_manager.get_rules("boa_rules.report")
+
+    if is_key_in_dict(report_rules, "module_name"):
+        report_module_name = report_rules["module_name"]
+    if is_key_in_dict(report_rules, "class_name"):
+        report_class_name = report_rules["class_name"]
 
     # Get instance
     report_instance = get_boar_instance(report_module_name, report_class_name)
