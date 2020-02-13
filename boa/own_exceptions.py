@@ -63,6 +63,14 @@ class BOAReportEnumTypeNotExpected(Exception):
         * *SeverityBase*.
     """
 
+class BOAReportException(Exception):
+    """BOAReportException exception.
+
+    This exception should be raised when you want to abort
+    a report because something necessary was missing or
+    you cannot continue for whatever reason.
+    """
+
 class BOARulesUnexpectedFormat(Exception):
     """BOARulesUnexpectedFormat exception.
 

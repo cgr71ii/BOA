@@ -663,11 +663,6 @@ class RulesManager:
             # Args checking
             arg_reference = {}
 
-            if (save_args and self.args is None):
-                # Initialize args to dict to work with the reference
-                # TODO check if this is necessary
-                self.args = {}
-
             try:
                 arg_reference = self.check_rules_arg_high_level(module,
                                                                 "module",
@@ -678,18 +673,10 @@ class RulesManager:
             except BOARulesUnexpectedFormat as e:
                 raise BOARulesUnexpectedFormat(f"{e} in '{module_name}.{class_name}'")
             except BOARulesError as e:
-                if save_args:
-                    # Reset the args because the args checking failed
-                    # TODO check if this smash all the other modules arguments...
-                    self.args = None
-
                 raise BOARulesError(f"{e} in '{module_name}.{class_name}'")
 
             # Set the args
             if (save_args and not self.set_args(f"{module_name}.{class_name}", arg_reference)):
-                # Reset the args because we could not set the args
-                # TODO check if this smash all the other modules arguments...
-                self.args = None
                 raise BOARulesError("'boa_rules.modules.module' is not correct "
                                     f"('{module_name}.{class_name}' already set?)")
 
@@ -736,10 +723,6 @@ class RulesManager:
         # Args checking
         arg_reference = {}
 
-        if (save_args and self.report_args is None):
-            # Initialize args to dict to work with the reference
-            self.report_args = {}
-
         try:
             arg_reference = self.check_rules_arg_high_level(report,
                                                             "report",
@@ -750,10 +733,6 @@ class RulesManager:
         #except BOARulesUnexpectedFormat as e:
         #    raise BOARulesUnexpectedFormat(e)
         except BOARulesError as e:
-            if save_args:
-                # Reset the report args because the args checking failed
-                self.report_args = None
-
             raise BOARulesError(e)
 
         # Set the report args

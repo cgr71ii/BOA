@@ -21,6 +21,10 @@ class BOAReportAbstract:
 
     If you want to define your own Report class you will have
     to define a new class which inherits from this one.
+
+    Raises:
+        BOAReportException: this exception could be raised
+            anywhere in the class.
     """
 
     def __init__(self, severity_enum, args):
@@ -135,6 +139,7 @@ class BOAReportAbstract:
 
     def get_who(self):
         """It returns the modules which are in the current report.
+
         Returns:
             list (str): list containing the modules which are in the
             current report
@@ -143,6 +148,7 @@ class BOAReportAbstract:
 
     def add(self, who, description, severity, advice=None, row=None, col=None, sort_by_severity=True, severity_enum=None):
         """It adds a new record to the main report.
+
         Arguments:
             who (str): "module_name.class_name" (without quotes)
                 format to identify who raised the threat.

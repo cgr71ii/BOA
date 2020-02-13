@@ -1,7 +1,7 @@
 
 .. _main-modules-boa:
 
-BOA main
-========
+BOA main flow
+=============
 .. automodule:: boa
    :members:

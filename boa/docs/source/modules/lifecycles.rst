@@ -12,8 +12,8 @@
 Lifecycles
 ==========
 
-BOA's internals
----------------
+BOA internals
+-------------
 * :ref:`lifecycles-boalc-manager`
 * :ref:`lifecycles-boalc-abstract`
 

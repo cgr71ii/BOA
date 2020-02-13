@@ -1,8 +1,8 @@
 
 .. _sec-modules-boam-abstract:
 
-BOAModule Abstract
-==================
+BOAModuleAbstract
+=================
 .. automodule:: modules.boam_abstract
    :members:
    :special-members:

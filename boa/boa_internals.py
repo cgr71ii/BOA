@@ -8,7 +8,7 @@ from args_manager import ArgsManager
 from own_exceptions import BOAPMInitializationError, BOAPMParseError,\
                            BOALCException, BOAReportEnumTypeNotExpected,\
                            BOAModulesImporterException, BOAFlowException,\
-                           BOAUnexpectedException
+                           BOAUnexpectedException, BOAReportException
 from util import eprint, is_key_in_dict, file_exists, get_current_path,\
                  invoke_by_name, get_name_from_class_instance
 from constants import Meta, Error, Other
@@ -318,6 +318,8 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
         rtn_code = lifecycle_manager.handle_lifecycle()
     except BOALCException as e:
         raise BOAFlowException(f"lifecycle exception: {e}", Error.error_lifecycle_exception)
+    except BOAReportException as e:
+        raise BOAFlowException(f"report exception: {e}", Error.error_report_unknown)
     except Exception as e:
         raise BOAFlowException(e, Error.error_lifecycle_exception)
 

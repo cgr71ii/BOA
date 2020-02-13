@@ -2,8 +2,10 @@
 
 <boa_rules> <!-- Mandatory -->
     <parser>    <!-- Mandatory -->
-        <name>pycparser</name>  <!-- Mandatory -->
-        <lang_objective>C</lang_objective>  <!-- Mandatory -->
+        <name>pycparser</name>  <!-- Mandatory
+                                     Metadata -->
+        <lang_objective>C</lang_objective>  <!-- Mandatory
+                                                 Metadata -->
         <module_name>module name in "parser_modules" directory</module_name>    <!-- Mandatory -->
         <class_name>class name in the module</class_name>   <!-- Mandatory -->
         <callback>  <!-- Mandatory -->

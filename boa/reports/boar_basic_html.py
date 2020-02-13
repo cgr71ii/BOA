@@ -5,7 +5,7 @@
 from datetime import datetime
 
 # Own libs
-from own_exceptions import BOAReportWhoNotFound
+from own_exceptions import BOAReportWhoNotFound, BOAReportException
 from util import is_key_in_dict, eprint
 from reports.boar_abstract import BOAReportAbstract
 
@@ -60,19 +60,21 @@ class BOARBasicHTML(BOAReportAbstract):
         severity = t[2]
         advice = t[3]
         severity_enum = t[6]
-        text = ""
         inner_html = ""
-
-        if first_time:
-            inner_html += f"<h3>{self.who}</h3>\n"
 
         if not reported_by:
             who = "Threat"
 
+        # Add column values
         inner_html +=\
-"""<table>
+f"""                    <td>{who}</td>
+                    <td>{row}</td>
+                    <td>{col}</td>
+                    <td>{severity_enum(severity).name}</td>
+                    <td>{desc}</td>
+                    <td>{advice}</td>"""
 
-</table>"""
+        return inner_html
 
 
     def display(self, who, display=True):
@@ -88,6 +90,47 @@ class BOARBasicHTML(BOAReportAbstract):
         Returns:
             str: text to be displayed
         """
+        if who not in self.who:
+            raise BOAReportWhoNotFound()
+
+        first_time = True
+        # Add HTML table header
+        inner_html = \
+f"""        <h3>{who}</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Who</th>
+                    <th>Row</th>
+                    <th>Column</th>
+                    <th>Severity</th>
+                    <th>Description</th>
+                    <th>Advice</th>
+                </tr>
+            </thead>
+            <tbody>
+"""
+
+        for threat in self.summary[who]:
+            inner_html +=\
+f"""                <tr>
+{self.pretty_print_tuple(threat, first_time, display=False)}
+                </tr>"""
+            first_time = False
+            inner_html += "\n"
+
+        # Close HTML tags and append footer with found threats
+        inner_html += \
+f"""            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5">Total threats:</td>
+                    <td>{len(self.summary[who])}</td>
+                </tr>
+            </tfoot>
+        </table>"""
+
+        return inner_html
 
     def display_all(self, print_summary=True, display=True):
         """It displays all the threats from all the modules.
@@ -102,27 +145,76 @@ class BOARBasicHTML(BOAReportAbstract):
         Returns:
             str: text to be displayed
         """
+        total_threats = 0
+        who = list(self.summary.keys())
+        index = 0
+        # Initial HTML tags and style
         inner_html =\
-f"""<html>
+f"""<!DOCTYPE html>
+<html lang="en">
     <head>
         <title>BOA - Report</title>
         <meta charset="utf-8" />
+        <style>
+            table, th, td{{
+                border: 1px solid black;
+            }}
+
+            td{{
+                padding: 5px;
+            }}
+
+            tfoot{{
+                font-weight: bold;
+            }}
+        </style>
     </head>
     <body>
         <h1>BOA - Report</h1>
 
 """
 
-        inner_html +=\
-"""    </body>
-</html>
-        """
+        while index < len(who):
+            inner_html += self.display(who[index], False)
+            total_threats += len(self.summary[who[index]])
+            index += 1
 
+        # Print summary
+        if print_summary:
+            inner_html +=\
+f"""
+        <h2>Summary</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Property</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Total threats</td>
+                    <td>{total_threats}</td>
+                </tr>
+            </tbody>
+        </table>"""
+
+        # Close HTML tags
+        inner_html +=\
+f"""
+    </body>
+</html>"""
+
+        # Save inner HTML in a file
         self.save_html(inner_html)
 
     def save_html(self, inner_html):
         try:
             path = None
+
+            if (not is_key_in_dict(self.args, "absolute_path") or
+                    not is_key_in_dict(self.args, "filename")):
+                raise BOAReportException("'absolute_path' and 'filename' has to be defined as args")
 
             if is_key_in_dict(self.args, "prefix_time"):
                 if self.args["prefix_time"].lower() == "true":
@@ -137,6 +229,6 @@ f"""<html>
 
             file.write(inner_html)
 
-            print(f"HTML generated at '{path}'.")
+            print(f"Report: HTML report generated at '{path}'.")
         except Exception as e:
             eprint(f"Error: BOARBasicHTML: {e}.")

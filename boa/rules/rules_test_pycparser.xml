@@ -55,8 +55,14 @@
         <args>
             <dict>
                 <element name="absolute_path" value="/tmp" />
+                <element name="prefix_time" value="false" /> <!-- Optional
+                                                                  It appends the current datetime
+                                                                  to the filename -->
+                <!--
                 <element name="filename" value="_boa_test.html" />
                 <element name="prefix_time" value="true" />
+                -->
+                <element name="filename" value="boa_test.html" />
             </dict>
         </args>
     </report>

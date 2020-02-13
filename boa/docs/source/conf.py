@@ -27,7 +27,7 @@ copyright = '2020, Cristian Garcia Romero'
 author = 'Cristian Garcia Romero'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+release = '0.2'
 
 
 # -- General configuration ---------------------------------------------------
@@ -64,3 +64,7 @@ html_static_path = ['_static']
 
 # Own configuration
 todo_include_todos = True
+
+html_css_files = [
+    'css/custom.css',
+]

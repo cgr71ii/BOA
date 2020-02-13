@@ -18,8 +18,8 @@ directory "modules". The files you will find there will have
 a name like "boam_whatever.py", but is not necessary to follow
 the nomenclature. You can name your modules as you like.
 
-BOA's internals
----------------
+BOA internals
+-------------
 * :ref:`sec-modules-boam-abstract`
 
 Modules
