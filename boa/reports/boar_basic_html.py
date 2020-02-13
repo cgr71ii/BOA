@@ -1,4 +1,7 @@
-"""
+
+"""This file contains the implementation of the necessary
+methods of the report abstract class. This report class
+uses HTML files to report about the found threats.
 """
 
 # Std libs
@@ -11,7 +14,10 @@ from reports.boar_abstract import BOAReportAbstract
 
 # TODO finish
 class BOARBasicHTML(BOAReportAbstract):
-    """
+    """BOARBasicHTML class.
+
+    It implements the necessary methods to alert about
+    the found threats and interact with the HTML file.
     """
 
     def pretty_print_tuple(self, t, first_time=False, reported_by=False, display=True):
@@ -45,13 +51,7 @@ class BOARBasicHTML(BOAReportAbstract):
             display (bool): if *True*, it displays the threat.
 
         Returns:
-            str: text to be displayed
-
-        Note:
-            If you want to show orderly the threats, you should
-            use *first_time=True* for the first record and
-            *first_time=False* for the rest. If you do not want
-            to show it orderly, you should use *reported_by=True*.
+            str: text to be displayed in HTML format
         """
         row = t[4]
         col = t[5]
@@ -78,7 +78,7 @@ f"""                    <td>{who}</td>
 
 
     def display(self, who, display=True):
-        """It displays all the threats from a concrete module.
+        """It creates the HTML table for a concrete module.
 
         Arguments:
             who (str): the module which found the threat.
@@ -88,7 +88,7 @@ f"""                    <td>{who}</td>
             BOAReportWhoNotFound: if the given module is not found.
 
         Returns:
-            str: text to be displayed
+            str: text to be displayed in HTML format
         """
         if who not in self.who:
             raise BOAReportWhoNotFound()
@@ -135,6 +135,7 @@ f"""            </tbody>
     def display_all(self, print_summary=True, display=True):
         """It displays all the threats from all the modules.
         Moreover, it prints a summary at the end optionally.
+        All in HTML format.
 
         Arguments:
             print_summary (bool): if *True*, it prints a
@@ -143,7 +144,7 @@ f"""            </tbody>
             display (bool): if *True*, it displays the threat.
 
         Returns:
-            str: text to be displayed
+            str: text to be displayed in HTML format.
         """
         total_threats = 0
         who = list(self.summary.keys())
@@ -208,7 +209,19 @@ f"""
         # Save inner HTML in a file
         self.save_html(inner_html)
 
+        return inner_html
+
     def save_html(self, inner_html):
+        """It saves the HTML content in the expectified file.
+
+        Arguments:
+            inner_html (str): HTML content.
+
+        Raises:
+            BOAReportException: if the args "absolute_path" and
+                "filename" are not defined as args in the rules
+                files, this exception is raised.
+        """
         try:
             path = None
 

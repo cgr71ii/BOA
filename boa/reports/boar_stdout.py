@@ -1,9 +1,9 @@
 
-"""Report file.
-
-This file contains the Report class, which main goal
-is allocate the found threats and display a record
-report after all the modeles has been executed.
+"""This file contains the BOARStdout class, which
+inherits from the abstract Report class. This base
+has the goal of report the found threats using the
+standard output. It is a basic way of report the
+threats.
 """
 
 # Std libs
@@ -13,7 +13,7 @@ from reports.boar_abstract import BOAReportAbstract
 from own_exceptions import BOAReportWhoNotFound
 
 class BOARStdout(BOAReportAbstract):
-    """Report class.
+    """BOARStdout class.
 
     It implements the necessary methods to initialize,
     fill and display the threats report after the analysis.
