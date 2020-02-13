@@ -214,13 +214,11 @@ f"""
     def save_html(self, inner_html):
         """It saves the HTML content in the expectified file.
 
+        Args "absolute_path" and "filename" has to be defined
+        in the rules file.
+
         Arguments:
             inner_html (str): HTML content.
-
-        Raises:
-            BOAReportException: if the args "absolute_path" and
-                "filename" are not defined as args in the rules
-                files, this exception is raised.
         """
         try:
             path = None
