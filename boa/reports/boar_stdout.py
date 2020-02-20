@@ -83,8 +83,13 @@ class BOARStdout(BOAReportAbstract):
         if advice is None:
             advice = "not specified"
 
+        # Get severity as str
+        severity_name = severity_enum(severity).name
+        # Replace '_' by ' '
+        severity_name = severity_name.replace("_", " ")
+
         text += f" + {who} ({row}, {col}): {desc}.\n"
-        text += f"   Severity: {severity_enum(severity).name}.\n"
+        text += f"   Severity: {severity_name}.\n"
         text += f"   Advice: {advice}.\n"
 
         if display:

@@ -21,49 +21,101 @@
             <lifecycle_handler>boalc_pycparser_ast.BOALCPycparserAST</lifecycle_handler>
             <args>
                 <dict>
-                    <!-- Old -->
                     <!--
-                    <list name="methods">
-                        <element value="put" />
-                        <element value="printf" />
-                        <element value="strcpy" />
-                    </list>
-                    <list name="severity">
-                        <element value="CRITICAL" />
-                        <element value="NORMAL" />
-                        <element value="HIGH" />
-                    </list>
-                    <list name="description">
-                        <element value="The function 'put' can make crash your program when the input length is higher than the destination pointer" />
-                        <element value="First argument has to be constant and not an user controlled input to avoid buffer overflow and data leakage" />
-                        <element value="Destination pointer length has to be greater than origin to avoid buffer overflow threats" />
-                    </list>
+                        References
+
+                        https://security.web.cern.ch/security/recommendations/en/codetools/c.shtml
+                        
                     -->
-                    <!-- New -->
                     <list name="methods">
                         <dict>
-                            <element name="method" value="put" />
+                            <element name="method" value="gets" />
                             <element name="severity" value="CRITICAL" />
-                            <element name="description" value="The function 'put' can make crash your program when the input length is higher than the destination pointer" />
+                            <element name="description" value="gets: the function 'gets' can leads your program to a buffer overflow when the input length is higher or equal than the destination pointer" />
+                            <element name="advice" value="Do not use 'gets'. Instead use 'fgets' or 'getline'"/>
                         </dict>
                         <dict>
                             <element name="method" value="printf" />
-                            <element name="severity" value="NORMAL" />
-                            <element name="description" value="First argument has to be constant and not an user controlled input to avoid buffer overflow and data leakage" />
+                            <element name="severity" value="MISUSED" />
+                            <element name="description" value="printf: first argument has to be constant and not an user controlled input to avoid buffer overflow and data leakage" />
+                            <element name="advice" value="Use a constant value as first parameter" />
+                        </dict>
+                        <dict>
+                            <element name="method" value="sprintf" />
+                            <element name="severity" value="MISUSED" />
+                            <element name="description" value="sprintf: if you don't use constant values for the third, fourth, ... arguments and use user controlled values, a buffer overflow could happen. Moreover, as with 'printf', if you use a user controlled value in the second argument, buffer overflow and data leakeages could happen too. If you want a safer version, check 'snprintf'" />
+                            <element name="advice" value="Use a constant value as second argument and if you don't use constant values for the rest of parameters, be sure that the total length of the buffers in the given format fits in the destination buffer. If you want a safer function, use 'snprintf'" />
+                        </dict>
+                        <dict>
+                            <element name="method" value="vsprintf" />
+                            <element name="severity" value="MISUSED" />
+                            <element name="description" value="vsprintf: if you don't use constant values for the set of variadic arguments (third argument) and use user controlled values, a buffer overflow could happen. Moreover, as with 'printf', if you use a user controlled value in the second argument, buffer overflow and data leakeages could happen too. If you want a safer version, check 'vsnprintf'" />
+                            <element name="advice" value="Use a constant value as second argument and if you don't use constant values for the rest of parameters, be sure that the total length of the buffers in the given format fits in the destination buffer. If you want a safer function, use 'snprintf'" />
                         </dict>
                         <dict>
                             <element name="method" value="strcpy" />
-                            <element name="severity" value="HIGH" />
-                            <element name="description" value="Destination pointer length has to be greater than origin to avoid buffer overflow threats" />
+                            <element name="severity" value="FREQUENTLY_MISUSED" />
+                            <element name="description" value="strcpy: destination pointer (first argument) length has to be greater or equal than origin (second argument) to avoid buffer overflow threats" />
+                            <element name="advice" value="You can use 'strcpy', but be sure about the length problem (check boundaries) and set correctly the end caracter. If you want a safer function, check 'strncpy', which is safer but not safe or 'strlcpy'" />
                         </dict>
+                        <dict>
+                            <element name="method" value="strncpy" />
+                            <element name="severity" value="LOW" />
+                            <element name="description" value="strncpy: this function finish copying values when the indicated length is reached, but if the maximum length of the destination buffer (first argument) is reached, there will not be space for the end character, and this can lead to a buffer overflow threat, more space for allocate payloads, etc." />
+                            <element name="advice" value="If you use as maximum length the destination buffer (first argument), be sure you set the end character after in the last position. If you are sure that the end character is set, you can use as maximum length the destination buffer length - 1. If you want a safer version, check 'strlcpy'" />
+                        </dict>
+                        <dict>
+                            <element name="method" value="strcat" />
+                            <element name="severity" value="FREQUENTLY_MISUSED" />
+                            <element name="description" value="strcat: destination pointer (first argument) length has to be greater or equal than destination + origin (first argument + second argument) to avoid buffer overflow threats" />
+                            <element name="advice" value="You can use 'strcat', but be sure about the length problem (check boundaries) and set correctly the end caracter. If you want a safer function, check 'strncat', which is safer but not safe or 'strlcat'" />
+                        </dict>
+                        <dict>
+                            <element name="method" value="strncat" />
+                            <element name="severity" value="MISUSED" />
+                            <element name="description" value="strncat: this function appends as many characters as indicated (third parameter), but if the maximum length of the destination buffer (first argument) is reached, there will not be space for the end character, and this can lead to a buffer overflow threat, more space for allocate payloads, etc." />
+                            <element name="advice" value="Take care with how many characters remains to reach the length of the destination buffer (first argument) and be sure that the end character is set (you can use as n sizeof(destination buffer) - 1 - strlen(destination buffer) if you want to reach the maximum possible). If you want a safer version, check 'strlcat'" />
+                        </dict>
+                        <dict>
+                            <element name="method" value="strcmp" />
+                            <element name="severity" value="LOW" />
+                            <element name="description" value="strcmp: if you use a string without end character, you could past the end of a buffer, being in a buffer overflow situation" />
+                            <element name="advice" value="Use 'strcmp' with string which has end character and be sure that strings has the end character. If you want to work with string without end character you should use 'memcmp'. If you want to use a function which limit the length, check 'strncmp'" />
+                        </dict>
+
+                        <!-- Template
+                        <dict>
+                            <element name="method" value="" />
+                            <element name="severity" value="" />
+                            <element name="description" value="" />
+                            <element name="advice" value="" />
+                        </dict>
+
+                        Allowed severity levels (severity_function_match.SeverityFunctionMatch):
+                            VERY_LOW = 1
+                            LOW = 2
+                            MISUSED = 3
+                            FREQUENTLY_MISUSED = 4
+                            HIGH = 5
+                            CRITICAL = 6
+                        -->
                     </list>
                 </dict>
             </args>
         </module>
     </modules>
     <report>
+        <!--
+        <module_name>boar_basic_html</module_name>
+        <class_name>BOARBasicHTML</class_name>
+        -->
         <args>
-            
+            <!--
+            <dict>
+                <element name="absolute_path" value="/tmp" />
+                <element name="filename" value="function_match.html" />
+            </dict>
+            -->
         </args>
     </report>
 </boa_rules>

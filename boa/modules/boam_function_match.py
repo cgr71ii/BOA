@@ -10,6 +10,7 @@ from boam_abstract import BOAModuleAbstract
 from own_exceptions import BOAModuleException
 from constants import Meta
 from util import eprint
+from pycparser.c_ast import FuncCall
 
 class BOAModuleFunctionMatch(BOAModuleAbstract):
     """BOAModuleFunctionMatch class. It implements the class BOAModuleAbstract.
@@ -54,19 +55,37 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
         Arguments:
             token: AST node.
         """
-        if str(type(token)) == "<class 'pycparser.c_ast.FuncCall'>":
+        # Look for function calls
+        if isinstance(token, FuncCall):
+            # Get the calling function name
             function_name = token.name.name
 
             if function_name in self.all_methods_name:
                 index = self.all_methods_name.index(function_name)
                 row = str(token.coord).split(':')[-2]
                 col = str(token.coord).split(':')[-1]
-                severity = self.all_methods_reference[index]["severity"]
-                description = self.all_methods_reference[index]["description"]
+                severity = None
+                description = None
+                advice = None
+                append = True
 
-                self.threats.append((self.who_i_am, description, severity, None, int(row), int(col)))
+                try:
+                    severity = self.all_methods_reference[index]["severity"]
+                    description = self.all_methods_reference[index]["description"]
+                    advice = self.all_methods_reference[index]["advice"]
+                except KeyError:
+                    if (severity is None or description is None):
+                        append = False
 
-                #print(f"{self.__class__.__name__}: {function_name}:{row}:{col} -> {severity} -> {description}")
+                if append:
+                    self.threats.append((self.who_i_am,
+                                         description,
+                                         severity,
+                                         advice,
+                                         int(row),
+                                         int(col)))
+                else:
+                    eprint(f"Warning: could not append a threat in '{self.who_i_am}'.")
 
     def clean(self):
         """It does nothing.
