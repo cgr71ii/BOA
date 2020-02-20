@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 
-BOA's documentation
+BOA documentation
 ===================
 
 BOA (Buffer Overflow Annihilator) is a vulnerability analyzer of general purpose.
@@ -12,6 +12,13 @@ It is written in Python, and the main principle which it has coded has been to
 give the maximum flexibility to the user, and for that reason, modularity is a
 BOA's priority. Through dynamic module loading, it is possible to use the language
 parser which the user wants and use it to focus their own security needs.
+
+.. figure:: media/BOA_architecture_transparent_background.png
+   :scale: 100 %
+   :alt: BOA Architecture
+
+   BOA Architecture
+
 
 .. toctree::
    :hidden:
