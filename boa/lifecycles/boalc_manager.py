@@ -32,7 +32,7 @@ class BOALifeCycleManager:
         Arguments:
             instances: module instances that are going to be saved.
             reports (list): list of Report instances.
-            lifecycle_args (dict): processed AST that is going to be saved.
+            lifecycle_args (dict): args to be used by the lifecycles.
             lifecycle_instances (list): instances of lifecycles to
                 be used by the *instances*.
         """

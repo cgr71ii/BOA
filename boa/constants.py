@@ -124,7 +124,7 @@ class Error:
 
 
     # Other errors
-
+    error_other_reserved_keyword_being_used = 1001
 
 class Regex:
     """Regex class.
@@ -145,6 +145,7 @@ class Other:
     other_util_invoke_by_name_error_return = "check_with_id_or_is"
     other_lifecycle_default_handler = "boalc_basic.BOALCBasic"
     other_report_default_handler = "boar_stdout.BOARStdout"
+    other_argument_name_for_dependencies_in_modules = "__dependencies"
 
     # Modules
     modules_directory = "modules"

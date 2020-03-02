@@ -76,7 +76,7 @@ def load_modules(user_modules):
 
     return [rtn_code, mod_loader]
 
-def load_instance(module_loader, module_name, class_name, module_args):
+def load_instance(module_loader, module_name, class_name, module_args, module_dependencies):
     """It handles the instances loading throught a ModulesImporter instance.
     It loads one instance from a class.
 
@@ -84,12 +84,17 @@ def load_instance(module_loader, module_name, class_name, module_args):
         module_loader (ModulesImporter): instance which will load modules.
         module_name (str): module name.
         class_name (str): class name.
-        module_args: args to use to initialize the instance.
+        module_args (dict): args to use to initialize the instance.
+        module_dependencies (dict): module dependencies.
 
     Returns:
         list: list containing:
             * int: status code\n
             * loaded instance
+
+    Raises:
+        BOAFlowException: could not finish the expected behaviour of
+            the function.
 
     Note:
         All the modules has to inherit from *constants.Meta.
@@ -110,7 +115,18 @@ def load_instance(module_loader, module_name, class_name, module_args):
                f"'{Other.abstract_module_name}.{Other.abstract_module_class_name}'?).")
         return [Error.error_module_not_expected_type, None]
 
+    if is_key_in_dict(module_args, Other.other_argument_name_for_dependencies_in_modules):
+        raise BOAFlowException("argument"
+                               f" '{Other.other_argument_name_for_dependencies_in_modules}'"
+                               " must not be defined because it is used for intenal purposes"
+                               f" ({module_name}.{class_name})",
+                               Error.error_other_reserved_keyword_being_used)
+
     try:
+        # Load dependencies
+        module_args[Other.other_argument_name_for_dependencies_in_modules] = module_dependencies
+
+        # Initilize instance
         instance = instance(module_args)
 
         print(f"Info: Instance '{module_name}.{class_name}' initialized.")
@@ -174,7 +190,8 @@ def get_boapm_instance(module_name, class_name, filename=None):
 
     return instance
 
-def remove_not_loaded_modules(mod_loader, modules, classes, mods_args):
+def remove_not_loaded_modules(mod_loader, modules, classes, mods_args,
+                              mods_dependencies, reports, lifecycles):
     """It handles the non-loaded modules errors (it is optional to continue if
     some modules did not be loaded properly) through a ModulesImporter instance.
 
@@ -187,6 +204,11 @@ def remove_not_loaded_modules(mod_loader, modules, classes, mods_args):
             attempted to loading (its index is related with *modules*).
         mods_args (dict): dict which contains the arguments of all
             the modules.
+        mods_dependencies (dict): dict which contains the dependencies
+            of all the modules.
+        reports (list): list which contains the reports of all the modules.
+        lifecycles (list): list which contains the lifecycles of all the
+            modules.
 
     Raises:
         BOAFlowException: could not finish the expected behaviour of
@@ -200,12 +222,19 @@ def remove_not_loaded_modules(mod_loader, modules, classes, mods_args):
 
             removed_module = modules.pop(index)
             removed_class = classes.pop(index)
-            removed_mod_args = mods_args.pop(removed_class)
 
-            print(f"Info: Instance '{removed_module}.{removed_class}' with args '{removed_mod_args}' was removed.")
+            mods_args.pop(f"{removed_module}.{removed_class}")
+
+            if is_key_in_dict(mods_dependencies, f"{removed_module}.{removed_class}"):
+                mods_dependencies.pop(f"{removed_module}.{removed_class}")
+
+            reports.pop(index)
+            lifecycles.pop(index)
+
+            print(f"Warning: Instance '{removed_module}.{removed_class}' was removed.")
         except Exception as e:
-            raise BOAFlowException(f"could not remove a module/class/arg while trying"
-                                   f" to remove module '{not_loaded_module}': {e}",
+            raise BOAFlowException("could not remove a module/class/arg/dependencie while"
+                                   f" trying to remove module '{not_loaded_module}': {e}",
                                    Error.error_module_cannot_remove_not_loaded_module)
 
 def manage_rules_file():
@@ -487,7 +516,19 @@ def get_boar_instance(module_name, class_name, filename=None):
     return instance
 
 def handle_boar(rules_manager, severity_enum_instance):
-    """
+    """It handles the reports instances which will be
+    used as parameter for the modules instances.
+
+    Arguments:
+        rules_manager (RulesManager): rules manager instance
+            which will allow us to get the arguments of the
+            report instance.
+        severity_enum_instance (SeverityBase): severity enum
+            instance which will be used for the report
+            instance which will be returned.
+
+    Returns:
+        BOAReportAbstract: report instance
     """
     report_instance = None
     report_default_handler = Other.other_report_default_handler.split(".")
@@ -532,16 +573,20 @@ def process_security_modules(rules_manager):
             * list: modules (str)\n
             * list: classes (str)\n
             * dict: modules arguments\n
+            * dict: modules dependencies\n
             * list: reports instances\n
             * list: lifecycles handler (str)
     """
     modules = []
     classes = []
-    mods_args = {}	# {"class": {"arg1": "value2", "arg2": ["value2", "value3"]}}
+    mods_args = {}	# {"mod.class": {"arg1": "value2", "arg2": ["value2", "value3"]}}
+    mods_dependencies = {}  # {"mod.class": {"mod_dep1.class_dep1": {"name1": "value1",
+                            #   "name2": "value2"}, "mod_dep2.class_dep2": {"a": "b"}}}
     reports = []
     lifecycles = []
 
     args = rules_manager.get_args()
+    dependencies = rules_manager.get_dependencies()
     rmodules = rules_manager.get_rules("boa_rules.modules.module", True)
 
     for m in rmodules:
@@ -595,24 +640,32 @@ def process_security_modules(rules_manager):
 
         reports.append(report)
 
-        mods_args[f"{module_name}.{class_name}"] = args[f"{module_name}.{class_name}"]
+        mods_args[f"{module_name}.{class_name}"] = \
+             args[f"{module_name}.{class_name}"]
+
+        # Set dependencies if exists (are optional)
+        if is_key_in_dict(dependencies, f"{module_name}.{class_name}"):
+            mods_dependencies[f"{module_name}.{class_name}"] = \
+                 dependencies[f"{module_name}.{class_name}"]
 
     if (len(modules) != len(classes) or len(modules) != len(mods_args)):
         raise BOAFlowException(f"modules length ({len(modules)}), classes length ({len(classes)})"
                                f" and arguments length ({len(mods_args)}) are not equal",
                                Error.error_rules_modules_classes_args_neq_length)
 
-    return [modules, classes, mods_args, reports, lifecycles]
+    return [modules, classes, mods_args, mods_dependencies, reports, lifecycles]
 
-def load_instances(modules, classes, mods_args, mod_loader):
+def load_instances(modules, classes, mods_args, mod_loader, rules_manager):
     """It loads the instances with their arguments.
 
     Arguments:
-        mod_loader (ModulesImporter): instance which will load modules.
         modules (list): list of modules names.
         classes (list): list of classes names.
         mods_args (dict): args to give to the instances. Each one will
             have access only to its arguments.
+        mod_loader (ModulesImporter): instance which will load modules.
+        rules_manager (RulesManager): rules manager instance which
+            will allow us to get information.
 
     Raises:
         BOAFlowException: could not finish the expected behaviour of
@@ -632,7 +685,9 @@ def load_instances(modules, classes, mods_args, mod_loader):
                                    " due to a bad naming reference",
                                    Error.error_rules_bad_naming_references)
 
-        rtn = load_instance(mod_loader, modules[index], classes[index], mod_args)
+        rtn = load_instance(mod_loader, modules[index], classes[index],
+                            mod_args, rules_manager.get_dependencies(
+                                f"{modules[index]}.{classes[index]}"))
         rtn_code = rtn[0]
         instance = rtn[1]
 

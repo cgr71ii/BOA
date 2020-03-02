@@ -9,7 +9,8 @@
         <module_name>module name in "parser_modules" directory</module_name>    <!-- Mandatory -->
         <class_name>class name in the module</class_name>   <!-- Mandatory -->
         <callback>  <!-- Mandatory -->
-            <method name="ast" callback="get_ast" />    <!-- Mandatory: at least 1; Mandatory 'name' and 'callback' attributes -->
+            <method name="ast" callback="get_ast" />    <!-- Mandatory: at least 1
+                                                             Mandatory 'name' and 'callback' attributes -->
             <method name="cfg" callback="get_cfg" />
         </callback>
         <env_vars>  <!-- Mandatory -->
@@ -24,7 +25,7 @@
             <severity_enum></severity_enum> <!-- Optional
                                                  Default value: severity_syslog.SeveritySyslog
                                                  Allowed values: module name from 
-                                                    /path/to/BOA/enumerations/severity"."class name"
+                                                    /path/to/BOA/enumerations/"severity enum"."class name"
                                                  It allows the user to select a different way to
                                                     show and sort the found threats through an
                                                     enumeration defined by the own user. The enumeration
@@ -51,18 +52,37 @@
             <lifecycle_handler></lifecycle_handler> <!-- Optional
                                                          Default value: boalc_basic.BOALCBasic
                                                          Allowed values: module name from 
-                                                            /path/to/BOA/lifecycles/boalc_module"."class_name"
+                                                            /path/to/BOA/lifecycles/"boalc_module"."class_name"
                                                          It allows the user to select a different lifecycle
                                                             to execute a concrete module. The lifecycle
                                                             has to inherit from /path/to/BOA/lifecycles
-                                                            /boalc_abstracto.BOALifeCycleAbstract to work -->
+                                                            /boalc_abstract.BOALifeCycleAbstract to work -->
+            <dependencies>  <!-- Optional
+                                 It allows to write other module dependencies which this module needs -->
+                <dependencie>    <!-- Madatory: at least 1 -->
+                    <module_name>module which exists</module_name>  <!-- Mandatory -->
+                    <class_name>class which exists</class_name> <!-- Mandatory -->
+                    <callback>  <!-- Mandatory -->
+                        <method name="arg1" callback="get_arg1" />  <!-- Mandatory: at least 1
+                                                                         Mandatory 'name' and 'callback' attributes -->
+                        <method name="arg2" callback="get_arg2" />
+                    </callback>
+                </dependencie>
+                <dependencie>
+                    <module_name>mod_dep2</module_name>
+                    <class_name>class_dep2</class_name>
+                    <callback>
+                        <method name="arg3" callback="get_arg3" />
+                    </callback>
+                </dependencie>
+            </dependencies>
             <args>  <!--    Mandatory
                             If you use 'list', 'dict' and 'element' in combination at the same deepness, the result will not be sorted in the same way you wrote the rules
                             If you no use these elements in combination, the result will be sorted
                             Default sorting: 1st dicts; 2nd lists; 3rd elements -->
                 <dict>  <!--    Optional
-                                *** Mandatory and unique element as first arg ***
-                                Mandatory 'name' attribute in childs -->
+                                *** Mandatory and unique element (only because is the first arg) ***
+                                Mandatory 'name' attribute in direct childs -->
                     <element name="var1" value="val1" />    <!-- Mandatory 'value' attribute -->
                     <element name="var2" value="val2" />
 

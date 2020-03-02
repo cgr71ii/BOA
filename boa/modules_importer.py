@@ -115,7 +115,7 @@ class ModulesImporter:
         index = self.modules.index(module_name)
 
         # Check if the module is loaded
-        if self.loaded[index] == False:
+        if not self.loaded[index]:
             return False
 
         return True

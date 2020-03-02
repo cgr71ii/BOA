@@ -73,8 +73,9 @@ def main():
         modules = processed_info_sec_mods[0]
         classes = processed_info_sec_mods[1]
         mods_args = processed_info_sec_mods[2]
-        reports = processed_info_sec_mods[3]
-        lifecycles = processed_info_sec_mods[4]
+        mods_dependencies = processed_info_sec_mods[3]
+        reports = processed_info_sec_mods[4]
+        lifecycles = processed_info_sec_mods[5]
 
         # Parser module
         parser_rules = rules_manager.get_rules("boa_rules.parser")
@@ -92,6 +93,7 @@ def main():
         rtn = boa_internals.load_modules(modules)
         rtn_code = rtn[0]
         mod_loader = rtn[1]
+        # TODO fix --no-fail argument behaviour and its description
         fail_if_some_user_module_failed = False
 
         if ArgsManager.args.no_fail is not None:
@@ -103,18 +105,22 @@ def main():
             raise BOAFlowException("a security module failed", rtn_code)
 
         # Remove not loaded modules
-        boa_internals.remove_not_loaded_modules(mod_loader, modules, classes, mods_args)
+        boa_internals.remove_not_loaded_modules(mod_loader, modules, classes, mods_args,
+                                                mods_dependencies, reports, lifecycles)
 
         # Load rules and instances with that rules as args
-        instances = boa_internals.load_instances(modules, classes, mods_args, mod_loader)
+        instances = boa_internals.load_instances(modules, classes, mods_args,
+                                                 mod_loader, rules_manager)
 
         # It handles the lifecycles
-        lifecycle_handler = boa_internals.manage_lifecycles(instances, reports, lifecycle_args, lifecycles)
+        lifecycle_handler = boa_internals.manage_lifecycles(instances, reports,
+                                                            lifecycle_args, lifecycles)
 
         # Display all the found threats
         report = lifecycle_handler.get_final_report()
 
         if report:
+            # Blank line and display
             print()
             report.display_all()
     except BOAFlowException as e:

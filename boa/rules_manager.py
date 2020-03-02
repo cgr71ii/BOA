@@ -48,6 +48,7 @@ class RulesManager:
         self.xml_str = None
         self.rules = None
         self.args = None
+        self.dependencies = None
         self.report_args = None
 
     def open(self):
@@ -609,12 +610,15 @@ class RulesManager:
             lifecycle_handler = Other.other_lifecycle_default_handler
             module_name = module["module_name"]
             class_name = module["class_name"]
-            total_tags_found = 0
+            dependencies = None
+            total_tags_found = 0    # Madantory + optional
             total_mandatory_tags = 3
 
+            # <args_sorting> checking
             if is_key_in_dict(module, "args_sorting"):
                 args_sorting_defined_test = True
                 total_tags_found += 1
+            # <severity_enum> checking
             if is_key_in_dict(module, "severity_enum"):
                 if not module["severity_enum"]:
                     raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
@@ -632,6 +636,7 @@ class RulesManager:
 
                 severity_enum = module["severity_enum"]
                 total_tags_found += 1
+            # <lifecycle_handler> checking
             if is_key_in_dict(module, "lifecycle_handler"):
                 if not module["lifecycle_handler"]:
                     raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
@@ -649,6 +654,16 @@ class RulesManager:
 
                 lifecycle_handler = module["lifecycle_handler"]
                 total_tags_found += 1
+            # <dependencies> checking
+            if is_key_in_dict(module, "dependencies"):
+                if not module["dependencies"]:
+                    raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
+                                                   ".dependencies' cannot be"
+                                                   f" empty ('{module_name}.{class_name}')")
+
+                dependencies = module["dependencies"]
+                total_tags_found += 1
+
 
             if len(module) != (total_mandatory_tags + total_tags_found):
                 raise BOARulesIncomplete("'boa_rules.modules.module' has not the expected"
@@ -659,6 +674,102 @@ class RulesManager:
                 module["severity_enum"] = severity_enum
             if not is_key_in_dict(module, "lifecycle_handler"):
                 module["lifecycle_handler"] = lifecycle_handler
+
+            # Dependencies checking
+            dependencies_reference = None
+
+            if dependencies is not None:
+                dependencies_reference = {}
+
+                is_key_in_dict(dependencies, "dependencie", False,
+                               raise_exception=BOARulesIncomplete,
+                               exception_args="'boa_rules.modules.module."
+                                              "dependencies.dependencie'")
+
+                if len(dependencies) != 1:
+                    raise BOARulesIncomplete("'boa_rules.modules.module.dependencies' has not the"
+                                             f" expected #elements in '{module_name}.{class_name}'")
+
+                dependencies = dependencies["dependencie"]
+
+                if not isinstance(dependencies, list):
+                    dependencies = [dependencies]
+
+                for dependencie in dependencies:
+                    dependencie_key = f"{dependencie['module_name']}.{dependencie['class_name']}"
+
+                    if is_key_in_dict(dependencies_reference, dependencie_key):
+                        raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
+                                                       ".dependencies.dependencie' cannot have"
+                                                       " different dependencies with same"
+                                                       " module and class name"
+                                                       f" ('{module_name}.{class_name}')")
+
+                    dependencies_reference[dependencie_key] = {}
+
+                    if not dependencie:
+                        raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
+                                                       ".dependencies.dependencie' cannot be"
+                                                       f" empty ('{module_name}.{class_name}')")
+                    if len(dependencie) != 3:
+                        raise BOARulesIncomplete("'boa_rules.modules.module.dependencies."
+                                                 ".dependencie' has not the expected #elements"
+                                                 f" in '{module_name}.{class_name}'")
+
+                    is_key_in_dict(dependencie, "module_name", False,
+                                   raise_exception=BOARulesIncomplete,
+                                   exception_args="'boa_rules.modules.module."
+                                                  "dependencies.dependencie.module_name'")
+                    is_key_in_dict(dependencie, "class_name", False,
+                                   raise_exception=BOARulesIncomplete,
+                                   exception_args="'boa_rules.modules.module."
+                                                  "dependencies.dependencie.class_name'")
+                    is_key_in_dict(dependencie, "callback", False,
+                                   raise_exception=BOARulesIncomplete,
+                                   exception_args="'boa_rules.modules.module."
+                                                  "dependencies.dependencie.callback'")
+                    is_key_in_dict(dependencie, "callback.method", True,
+                                   raise_exception=BOARulesIncomplete,
+                                   exception_args="'boa_rules.modules.module."
+                                                  "dependencies.dependencie.callback.method'")
+
+                    callback = dependencie["callback"]
+
+                    if not callback:
+                        raise BOARulesUnexpectedFormat("'boa_rules.modules.module"
+                                                       ".dependencies.dependencie.callback' cannot"
+                                                       f" be empty ('{module_name}.{class_name}')")
+                    if len(callback) != 1:
+                        raise BOARulesIncomplete("'boa_rules.modules.module.dependencies."
+                                                 ".dependencie.callback' has not the expected"
+                                                 f" #elements in '{module_name}.{class_name}'")
+
+                    methods = callback["method"]
+
+                    if not isinstance(methods, list):
+                        methods = [methods]
+
+                    for method in methods:
+                        if len(method) != 2:
+                            raise BOARulesIncomplete("'boa_rules.modules.module.dependencies"
+                                                     ".dependencie.callback.method' has not the"
+                                                     " expected #elements in"
+                                                     f" '{module_name}.{class_name}'")
+
+                        is_key_in_dict(method, "@name", False,
+                                       raise_exception=BOARulesIncomplete,
+                                       exception_args="'boa_rules.modules.module.dependencies."
+                                                      "dependencie.callback.method@name'")
+                        is_key_in_dict(method, "@callback", False,
+                                       raise_exception=BOARulesIncomplete,
+                                       exception_args="'boa_rules.modules.module.dependencies."
+                                                      "dependencie.callback.method@callback'")
+
+                        if is_key_in_dict(dependencies_reference, method["@name"]):
+                            eprint(f"Warning: dependencie '{method['@name']}' has been smashed.")
+
+                        dependencies_reference[dependencie_key][method["@name"]] = \
+                            method["@callback"]
 
             # Args checking
             arg_reference = {}
@@ -678,6 +789,12 @@ class RulesManager:
             # Set the args
             if (save_args and not self.set_args(f"{module_name}.{class_name}", arg_reference)):
                 raise BOARulesError("'boa_rules.modules.module' is not correct "
+                                    f"('{module_name}.{class_name}' already set?)")
+            # Set the dependencies
+            if (dependencies_reference is not None and
+                    not self.set_dependencies(f"{module_name}.{class_name}",
+                                              dependencies_reference)):
+                raise BOARulesError("'boa_rules.modules.module.dependencies' is not correct "
                                     f"('{module_name}.{class_name}' already set?)")
 
     def check_rules_report(self):
@@ -880,6 +997,69 @@ class RulesManager:
             return self.args[module]
 
         eprint(f"Warning: could not get the args for module '{module}'.")
+        return None
+
+    def set_dependencies(self, module, dependencies):
+        """It adds dependencies for a concrete module.
+        This method should only be used for internal management.
+
+        Arguments:
+            module (str): instance identification as string. The
+                expected format is (without quotes): "module_name
+                .class_name". Check *util.get_name_from_class_instance*.
+            dependencies (dict): the new dependencies for the module.
+
+        Returns:
+            bool: *True* if the dependencies could be apppended; *False* otherwise
+        """
+        if self.dependencies is None:
+            self.dependencies = {}
+        elif not isinstance(self.dependencies, dict):
+            eprint("Error: dependencies type is not a dict.")
+            return False
+        if not is_key_in_dict(self.dependencies, module):
+            self.dependencies[module] = {}
+        elif not isinstance(self.dependencies[module], dict):
+            eprint(f"Error: dependencies['{module}'] type is not a dict.")
+            return False
+
+        try:
+            for key, value in dependencies.items():
+                if is_key_in_dict(self.dependencies[module], key):
+                    eprint(f"Warning: dependencie '{key}' for module '{module}' already exists."
+                           " Overwriting it.")
+
+                self.dependencies[module][key] = value
+
+            return True
+        except Exception as e:
+            eprint(f"Error: {e}.")
+
+            return False
+
+    def get_dependencies(self, module=None):
+        """It returns the dependencies for a concrete module.
+
+        Arguments:
+            module (str): module from which args are going
+                to be returned. The expected format is
+                (without quotes): "module_name.class_name".
+                Check *util.get_name_from_class_instance*.
+                The default value is *None*.
+
+        Returns:
+            dict: module dependencies or all the modules dependencies;
+            *None* if a module were specified and could not find it,
+            what means that the module does not have dependencies
+        """
+        if module is None:
+            return self.dependencies
+
+        if (self.dependencies is not None and
+                isinstance(self.dependencies, dict) and
+                is_key_in_dict(self.dependencies, module)):
+            return self.dependencies[module]
+
         return None
 
     def get_report_args(self):

@@ -45,6 +45,26 @@
             <module_name>boam_test</module_name>
             <class_name>BOAModuleTest</class_name>
             <!--<severity_enum>severity_syslog.SeveritySyslog</severity_enum>-->
+            <dependencies>
+                <dependencie>
+                    <module_name>mod_dep2</module_name>
+                    <class_name>class_dep2</class_name>
+                    <callback>
+                        <method name="arg3" callback="get_arg3" />
+                        <method name="arg4" callback="get_arg4" />
+                        <method name="arg5" callback="get_arg5" />
+                    </callback>
+                </dependencie>
+                <dependencie>
+                    <module_name>mod_dep2</module_name>
+                    <class_name>class_dep3</class_name>
+                    <callback>
+                        <method name="arg6" callback="get_arg6" />
+                        <method name="arg7" callback="get_arg7" />
+                        <method name="arg8" callback="get_arg8" />
+                    </callback>
+                </dependencie>
+            </dependencies>
             <args>
             </args>
         </module>

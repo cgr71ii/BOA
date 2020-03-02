@@ -16,6 +16,7 @@ from abc import abstractmethod
 
 # Own libs
 from util import get_name_from_class_instance, eprint
+from constants import Other
 
 # This  file name has to match with constants.Meta.abstract_module_name
 # This class name has to match with constants.Meta.abstract_module_class_name
@@ -38,19 +39,25 @@ class BOAModuleAbstract:
         It should not be overriden, and if overrided, the defined variables
         are:
 
-        * self._args (dict)
+        * self._dependencies (dict): if no dependencies, the value is an empty dict.
+
+        * self._args (dict): if no args, the value is an empty dict.
 
         * self._who_i_am (str): expected format is '"module_name"."class_name"'.
 
         * self._stop (bool)
 
         Arguments:
-            args (list): arguments which will be used by those modules which
+            args (dict): arguments which will be used by those modules which
                 implements this class.
         """
+        self._dependencies = args.pop(Other.other_argument_name_for_dependencies_in_modules)
         self._args = args
         self._who_i_am = get_name_from_class_instance(self)
         self._stop = False
+
+        if self._dependencies is None:
+            self._dependencies = {}
 
     @abstractmethod
     def initialize(self):
@@ -116,6 +123,15 @@ class BOAModuleAbstract:
         of the instance.
         """
         return self._who_i_am
+
+    @property
+    def dependencies(self):
+        """Dependencies property. Read only.
+
+        It contains information about the dependencies of the
+        instance.
+        """
+        return self._dependencies
 
     @property
     def stop(self):

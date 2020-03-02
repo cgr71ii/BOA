@@ -24,7 +24,9 @@ class PreorderVisitor(NodeVisitor):
 
         Arguments:
             callback: callback to be invoked after. If *None*,
-                *util.do_nothing* will be invoked instead.
+                *util.do_nothing* will be invoked instead. When
+                callback is invoked, the current Pycparser node
+                is set as parameter.
         """
         if callback is None:
             self.callback = do_nothing

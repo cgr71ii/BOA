@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<boa_rules>
+    <parser>
+        <name>pycparser</name>
+        <lang_objective>C</lang_objective>
+        <module_name>boapm_pycparser</module_name>
+        <class_name>BOAPMPycparser</class_name>
+        <callback>
+            <method name="ast" callback="get_ast" />
+        </callback>
+        <env_vars>
+            <env_var>PYCPARSER_FAKE_LIBC_INCLUDE_PATH</env_var>
+        </env_vars>
+    </parser>
+    <modules>
+        <module>
+            <module_name>boam_cfg</module_name>
+            <class_name>BOAModuleControlFlowGraph</class_name>
+            <lifecycle_handler>boalc_pycparser_ast.BOALCPycparserAST</lifecycle_handler>
+            <args>
+                <dict>
+                </dict>
+            </args>
+        </module>
+    </modules>
+    <report>
+        <args>
+            <dict>
+            </dict>
+        </args>
+    </report>
+</boa_rules>
