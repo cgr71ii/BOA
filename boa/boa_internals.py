@@ -15,7 +15,6 @@ from constants import Meta, Error, Other
 from modules_importer import ModulesImporter
 from lifecycles.boalc_manager import BOALifeCycleManager
 from rules_manager import RulesManager
-from copy import deepcopy
 
 def load_modules(user_modules):
     """It handles the modules loading through ModulesImporter class.
@@ -77,7 +76,8 @@ def load_modules(user_modules):
 
     return [rtn_code, mod_loader]
 
-def load_instance(module_loader, module_name, class_name, module_args, module_dependencies):
+def load_instance(module_loader, module_name, class_name, module_args,
+                  module_dependencies):
     """It handles the instances loading throught a ModulesImporter instance.
     It loads one instance from a class.
 
@@ -676,19 +676,26 @@ def load_instances(modules, classes, mods_args, mod_loader, rules_manager):
         loaded instances
     """
     instances = []
+    instances_dict = {}
     index = 0
 
     while index < len(modules):
+        name_formatted = f"{modules[index]}.{classes[index]}"
+
         try:
-            mod_args = mods_args[f"{modules[index]}.{classes[index]}"]
+            mod_args = mods_args[name_formatted]
         except KeyError as e:
             raise BOAFlowException(f"could not get '{e}' arguments"
                                    " due to a bad naming reference",
                                    Error.error_rules_bad_naming_references)
 
-        rtn = load_instance(mod_loader, modules[index], classes[index],
-                            mod_args, rules_manager.get_dependencies(
-                                f"{modules[index]}.{classes[index]}"))
+        # Replace string callback with the real callback
+        dependencies = rules_manager.get_dependencies(name_formatted)
+
+        replace_dependencies_callbacks(dependencies, instances_dict)
+
+        # Load instance
+        rtn = load_instance(mod_loader, modules[index], classes[index], mod_args, dependencies)
         rtn_code = rtn[0]
         instance = rtn[1]
 
@@ -696,10 +703,52 @@ def load_instances(modules, classes, mods_args, mod_loader, rules_manager):
             raise BOAFlowException(None, rtn_code)
 
         instances.append(instance)
+        instances_dict[name_formatted] = instance
 
         index += 1
 
     return instances
+
+def replace_dependencies_callbacks(dependencies, instances_dict):
+    """It replaces the callback string of the dependencies
+    for the actual callback.
+
+    Example:
+        dependencies =
+            {'boam_function_match.BOAModuleFunctionMatch': {'arg0': 'clean',
+                'arg1': 'finish'}}
+        instances_dict =
+            {'boam_function_match.BOAModuleFunctionMatch':
+                <boam_function_match.BOAModuleFunctionMatch object at 0x7f7bb49a7c50>}
+
+        After invoke *replace_dependencies_callbacks(dependencies, instances_dict)*:
+
+        dependencies =
+            {'boam_function_match.BOAModuleFunctionMatch':
+                {'arg0': <bound method BOAModuleFunctionMatch.clean of
+                    <boam_function_match.BOAModuleFunctionMatch object at 0x7f7bb49a7c50>>,
+                    'arg1': <bound method BOAModuleFunctionMatch.finish of
+                    <boam_function_match.BOAModuleFunctionMatch object at 0x7f7bb49a7c50>>}}
+
+    Arguments
+        dependencies (dict): dependencies of a concrete module.
+        instances_dict (dict): dictionary which contains the
+            instances as values and the name of the instances
+            as key.
+    """
+    for dependencie, args in dependencies.items():
+        for arg, callback in args.items():
+            try:
+                dependencies[dependencie][arg] = \
+                    getattr(instances_dict[dependencie], callback)
+            except AttributeError:
+                raise BOAFlowException(f"callback '{callback}' does not exist"
+                                       f" in dependencie '{dependencie}'",
+                                       Error.error_module_dependencie_callback_not_found)
+            except NameError as e:
+                raise BOAFlowException(e, Error.error_unknown)
+            except Exception as e:
+                raise BOAFlowException(e, Error.error_unknown)
 
 def check_dependencies(modules, classes, mods_dependencies):
     """It checks if the dependencies are correct. Concretely,

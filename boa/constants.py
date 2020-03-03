@@ -75,9 +75,11 @@ class Error:
     error_module_cannot_load_abstract_instance = 306
     error_module_not_expected_type = 307
     error_module_importer_could_not_be_instantiated = 308
-    error_module_dependencie_failed = 309
-    error_module_dependencie_itself = 310
-    error_module_dependencies_cyclic = 311
+    # Modules errors -> dependencies
+    error_module_dependencie_failed = 321
+    error_module_dependencie_itself = 322
+    error_module_dependencies_cyclic = 323
+    error_module_dependencie_callback_not_found = 324
 
     # Rules errors
     error_rules_modules_classes_args_neq_length = 40

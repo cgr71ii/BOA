@@ -400,7 +400,7 @@ class RulesManager:
             if grandpa == "dict":
                 # Mandatory "name" attribute
                 if is_key_in_dict(__arg, "@name"):
-                    __arg["@name"]
+                    #__arg["@name"]
                     valid += 1
                 else:
                     return False
@@ -411,7 +411,7 @@ class RulesManager:
                     return False
                 # Mandatory "value" attribute
                 if is_key_in_dict(__arg, "@value"):
-                    __arg["@value"]
+                    #__arg["@value"]
                     valid += 1
                 else:
                     return False

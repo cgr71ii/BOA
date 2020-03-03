@@ -23,9 +23,8 @@
                     <module_name>boam_function_match</module_name>
                     <class_name>BOAModuleFunctionMatch</class_name>
                     <callback>
-                        <method name="arg0" callback="get_arg0" />
-                        <method name="arg1" callback="get_arg1" />
-                        <method name="arg2" callback="get_arg2" />
+                        <method name="arg0" callback="clean" />
+                        <method name="arg1" callback="finish" />
                     </callback>
                 </dependencie>
             </dependencies>
