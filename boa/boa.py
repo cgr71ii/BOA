@@ -77,6 +77,15 @@ def main():
         reports = processed_info_sec_mods[4]
         lifecycles = processed_info_sec_mods[5]
 
+        # Check if the dependencies are ok (detect cyclic dependencies and dependencies to itself)
+        dependencies_graph = boa_internals.check_dependencies(modules, classes, mods_dependencies)
+
+        # Get the correct execution order to avoid dependencies problems
+        execution_order = boa_internals.get_execution_order(dependencies_graph)
+
+        # Apply execution order
+        boa_internals.apply_execution_order(execution_order, modules, classes, reports, lifecycles)
+
         # Parser module
         parser_rules = rules_manager.get_rules("boa_rules.parser")
 

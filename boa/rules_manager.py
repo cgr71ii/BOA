@@ -796,6 +796,11 @@ class RulesManager:
                                               dependencies_reference)):
                 raise BOARulesError("'boa_rules.modules.module.dependencies' is not correct "
                                     f"('{module_name}.{class_name}' already set?)")
+            elif (dependencies_reference is None and
+                  not self.set_dependencies(f"{module_name}.{class_name}",
+                                            {})):
+                raise BOARulesError("'boa_rules.modules.module.dependencies' is not correct "
+                                    f"('{module_name}.{class_name}' already set?)")
 
     def check_rules_report(self):
         """It makes the checks relative to the report.

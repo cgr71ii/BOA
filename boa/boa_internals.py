@@ -10,11 +10,12 @@ from own_exceptions import BOAPMInitializationError, BOAPMParseError,\
                            BOAModulesImporterException, BOAFlowException,\
                            BOAUnexpectedException, BOAReportException
 from util import eprint, is_key_in_dict, file_exists, get_current_path,\
-                 invoke_by_name, get_name_from_class_instance
+                 invoke_by_name, get_name_from_class_instance, is_graph_cyclic
 from constants import Meta, Error, Other
 from modules_importer import ModulesImporter
 from lifecycles.boalc_manager import BOALifeCycleManager
 from rules_manager import RulesManager
+from copy import deepcopy
 
 def load_modules(user_modules):
     """It handles the modules loading through ModulesImporter class.
@@ -699,3 +700,152 @@ def load_instances(modules, classes, mods_args, mod_loader, rules_manager):
         index += 1
 
     return instances
+
+def check_dependencies(modules, classes, mods_dependencies):
+    """It checks if the dependencies are correct. Concretely,
+    it checks
+
+    Arguments:
+        modules (list): list of modules.
+        classes (list): list of classes.
+        mods_dependencies (dict): dependencies of the modules.
+
+    Raises:
+        BOAFlowException: the dependencies are not ok.
+
+    Returns:
+        dict: dependencies graph
+    """
+    if (len(modules) != len(classes) or len(classes) != len(mods_dependencies)):
+        raise BOAFlowException(f"length of modules ({len(modules)}), classes"
+                               f" ({len(classes)}) and dependencies"
+                               f" ({len(mods_dependencies)}) should be equal",
+                               Error.error_rules_modules_classes_args_neq_length)
+
+    dependencies_names = []
+    dependencies_graph = {}
+
+    for m, c in zip(modules, classes):
+        dependencies_names.append(f"{m}.{c}")
+
+    for key_module, value_dependencies in mods_dependencies.items():
+        for key_mod_dependecie in value_dependencies:
+            # Check if the dependecie exist
+            if key_mod_dependecie not in dependencies_names:
+                # The dependencie does not exist
+                raise BOAFlowException(f"module '{key_module}' has the module dependencie"
+                                       f" '{key_mod_dependecie}', which is not loaded",
+                                       Error.error_module_dependencie_failed)
+
+            # Check that the module it is not a dependencie of itself
+            if key_module == key_mod_dependecie:
+                # The module has a dependencie of itself
+                raise BOAFlowException(f"module '{key_module}' has a dependencie of itself,"
+                                       " which it is not allowed",
+                                       Error.error_module_dependencie_itself)
+
+            # Fill dependencies graph
+            if not is_key_in_dict(dependencies_graph, key_module):
+                dependencies_graph[key_module] = []
+
+            dependencies_graph[key_module].append(key_mod_dependecie)
+
+    # If there are not dependencies for a concrete module, is not initialized, so we have to
+    for dependencie_name in dependencies_names:
+        if not is_key_in_dict(dependencies_graph, dependencie_name):
+            # Initialize modules without dependencies
+            dependencies_graph[dependencie_name] = []
+
+    # Check if the dependencies are cyclic
+    if is_graph_cyclic(dependencies_graph):
+        raise BOAFlowException(f"cyclic dependencies detected",
+                               Error.error_module_dependencies_cyclic)
+
+    return dependencies_graph
+
+def get_execution_order(dependencies_graph):
+    """The objective is return an order of execution
+    which avoids dependencies problems
+
+    Arguments:
+        dependencies_graph (dict): dependencies of the modules.
+            The graph has not to be cyclic and has not to contain
+            self references of nodes.
+
+    Returns:
+        list: list with an order which avoids dependencies
+        problems. The elements that will contain the list
+        are the keys of the *dependencies_graph*.
+
+    Note:
+        If you use a cyclic graph or a graph which contains
+        self references, it might fell in an infinite loop.
+        Check *check_dependencies* method if you are in that
+        situation.
+    """
+    result = []
+
+    # Will not finish until we have the order of execution
+    while len(result) != len(dependencies_graph):
+        for module, dependencies in dependencies_graph.items():
+            # Check if the current module has been executed or not
+            if module not in result:
+                # The current module has not been executed
+
+                # Check if the current module has not dependencies
+                if len(dependencies) == 0:
+                    result.append(module)
+                # The current module has dependencies
+                else:
+                    found_dependencies = []
+
+                    # Check if all the dependencies of the current module has been executed
+                    for dependencie in dependencies:
+                        if dependencie in result:
+                            # The current dependencie has been executed
+                            found_dependencies.append(dependencie)
+
+                    if len(dependencies) == len(found_dependencies):
+                        # All the dependencies of the current module has been executed
+                        result.append(module)
+
+    return result
+
+def apply_execution_order(execution_order, modules, classes, reports, lifecycles):
+    """It applies a concrete execution order.
+
+    Arguments:
+        execution_order (list): order to be applied. It contains
+            values in the format "module_name"."class_name" (without
+            the quotes).
+        modules (list): list of modules.
+        classes (list): list of classes.
+        reports (list): list of reports.
+        lifecycles (list): list of lifecycles.
+    """
+    expected_format = []
+
+    for mod_name, class_name in zip(modules, classes):
+        expected_format.append(f"{mod_name}.{class_name}")
+
+    index = 0
+    found_indexes = []
+
+    while index < len(execution_order):
+        if index in found_indexes:
+            index += 1
+            continue
+
+        # Get the current position of the module to be executed
+        current_index = expected_format.index(execution_order[index])
+
+        # Swap the current position with the order of execution
+        modules[current_index], modules[index] = modules[index], modules[current_index]
+        classes[current_index], classes[index] = classes[index], classes[current_index]
+        reports[current_index], reports[index] = reports[index], reports[current_index]
+        lifecycles[current_index], lifecycles[index] = lifecycles[index], lifecycles[current_index]
+
+        found_indexes.append(index)
+        found_indexes.append(current_index)
+
+        index += 1

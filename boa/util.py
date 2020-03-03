@@ -249,3 +249,48 @@ def invoke_by_name(instance, method):
         eprint(f"Error: invoke by name: {e}.")
 
     return Other.other_util_invoke_by_name_error_return
+
+def is_graph_cyclic(graph, visited_nodes=None, current_connection=None):
+    """It checks if a graph is cyclic.
+
+    Arguments:
+        graph (dict): this dict has to contain all
+            the nodes of the graph and has to contain
+            a list for each node with the connections
+            among the nodes. If a node has not any
+            connection, it is expected an empty list.
+            The values of the dict are expected to be strings.
+        visited_nodes (list): it is used in order to check
+            if we are visiting again a node, and in that case,
+            the graph is cyclic. This argument should be *None*
+            at begin.
+        current_connection (string): the current connection
+            which will allow us to check if it is in the
+            *visited_nodes* list. This argument should be
+            *None* at begin.
+
+    Returns:
+        bool: *True* if the graph is cyclic. *False* otherwise
+    """
+    # Initialization
+    if (visited_nodes is None and current_connection is None):
+        current_connection = list(graph)[0]
+        visited_nodes = [current_connection]
+    elif (visited_nodes is None or current_connection is None):
+        eprint("Warning: unexpected behaviour could happen in method 'is_graph_cyclic'."
+               " 'visited_nodes' or 'current_connection' is 'None', but both were expected to"
+               " be 'None'.")
+
+    # Base case: check if the node has been visited before
+    if current_connection in visited_nodes[0:-1]:
+        # The graph is cyclic
+        return True
+
+    # Recursive case: visit all the connections for the current node
+    for node, connections in graph.items():
+        if node == current_connection:
+            for connection in connections:
+                if is_graph_cyclic(graph, visited_nodes + [connection], connection):
+                    return True
+
+    return False

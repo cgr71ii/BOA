@@ -15,6 +15,24 @@
     </parser>
     <modules>
         <module>
+            <module_name>boam_test</module_name>
+            <class_name>BOAModuleTest</class_name>
+            <!--<severity_enum>severity_syslog.SeveritySyslog</severity_enum>-->
+            <dependencies>
+                <dependencie>
+                    <module_name>boam_function_match</module_name>
+                    <class_name>BOAModuleFunctionMatch</class_name>
+                    <callback>
+                        <method name="arg0" callback="get_arg0" />
+                        <method name="arg1" callback="get_arg1" />
+                        <method name="arg2" callback="get_arg2" />
+                    </callback>
+                </dependencie>
+            </dependencies>
+            <args>
+            </args>
+        </module>
+        <module>
             <module_name>boam_function_match</module_name>
             <class_name>BOAModuleFunctionMatch</class_name>
             <severity_enum>severity_function_match.SeverityFunctionMatch</severity_enum>
@@ -39,33 +57,6 @@
                         </dict>
                     </list>
                 </dict>
-            </args>
-        </module>
-        <module>
-            <module_name>boam_test</module_name>
-            <class_name>BOAModuleTest</class_name>
-            <!--<severity_enum>severity_syslog.SeveritySyslog</severity_enum>-->
-            <dependencies>
-                <dependencie>
-                    <module_name>mod_dep2</module_name>
-                    <class_name>class_dep2</class_name>
-                    <callback>
-                        <method name="arg3" callback="get_arg3" />
-                        <method name="arg4" callback="get_arg4" />
-                        <method name="arg5" callback="get_arg5" />
-                    </callback>
-                </dependencie>
-                <dependencie>
-                    <module_name>mod_dep2</module_name>
-                    <class_name>class_dep3</class_name>
-                    <callback>
-                        <method name="arg6" callback="get_arg6" />
-                        <method name="arg7" callback="get_arg7" />
-                        <method name="arg8" callback="get_arg8" />
-                    </callback>
-                </dependencie>
-            </dependencies>
-            <args>
             </args>
         </module>
     </modules>

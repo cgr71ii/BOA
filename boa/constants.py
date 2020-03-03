@@ -66,15 +66,18 @@ class Error:
     error_parse_parse = 20
 
     # Modules errors
-    error_module_some_mandatory_and_user_failed = 30
-    error_module_some_mandatory_failed = 31
-    error_module_some_user_failed = 32
-    error_module_cannot_load_instance = 33
-    error_module_some_instance_loading_failed = 34
-    error_module_cannot_remove_not_loaded_module = 35
-    error_module_cannot_load_abstract_instance = 36
-    error_module_not_expected_type = 37
-    error_module_importer_could_not_be_instantiated = 38
+    error_module_some_mandatory_and_user_failed = 300
+    error_module_some_mandatory_failed = 301
+    error_module_some_user_failed = 302
+    error_module_cannot_load_instance = 303
+    error_module_some_instance_loading_failed = 304
+    error_module_cannot_remove_not_loaded_module = 305
+    error_module_cannot_load_abstract_instance = 306
+    error_module_not_expected_type = 307
+    error_module_importer_could_not_be_instantiated = 308
+    error_module_dependencie_failed = 309
+    error_module_dependencie_itself = 310
+    error_module_dependencies_cyclic = 311
 
     # Rules errors
     error_rules_modules_classes_args_neq_length = 40
