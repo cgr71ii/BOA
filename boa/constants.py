@@ -17,9 +17,13 @@ class Meta:
 
     It contains information about BOA like the version, the description, ...
     """
-    version = 0.2
+    version = 0.3
     name = "BOA"
-    description = "It attempts to detect buffer overflow threats in C language files."
+    description = "In its first days attempted to detect buffer overflow" \
+                  " threats in C language files. Nowadays, it attemts to" \
+                  " detect all possible security threats from different" \
+                  " programming languages. To achieve our goal, we use" \
+                  " rules files."
     ok_code = 0
 
 class Args:
@@ -33,12 +37,18 @@ class Args:
     # Mandatory arguments has not to start with "--"
     args_str = ["file",
                 "rules_file"]
-    args_help = ["C language file to analyze.",
-                 "Rules file"]
+    args_help = ["language file to analyze.",
+                 "rules file"]
+    # None or default value
+    args_bool = [None,
+                 None]
 
     # Optional arguments has to start with "--"
     opt_args_str = ["--no-fail"]
-    opt_args_help = ["If a user module loading fails, BOA will stop."]
+    opt_args_help = ["if a user module loading fails, execution will not stop." \
+                     " Default value is False."]
+    # None or default value
+    opt_args_bool = [False]
 
 class Error:
     """Error class.
@@ -76,10 +86,10 @@ class Error:
     error_module_not_expected_type = 307
     error_module_importer_could_not_be_instantiated = 308
     # Modules errors -> dependencies
-    error_module_dependencie_failed = 321
-    error_module_dependencie_itself = 322
+    error_module_dependency_failed = 321
+    error_module_dependency_itself = 322
     error_module_dependencies_cyclic = 323
-    error_module_dependencie_callback_not_found = 324
+    error_module_dependency_callback_not_found = 324
 
     # Rules errors
     error_rules_modules_classes_args_neq_length = 40

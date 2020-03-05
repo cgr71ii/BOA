@@ -29,6 +29,24 @@ class ArgsManager:
         """
         self.parser = argparse.ArgumentParser(description=Meta.description)
 
+    def str2bool(self, value):
+        """Method that parses string to bool.
+
+        Arguments:
+            value (string): value to be parsed to boolean.
+
+        Returns:
+            bool: boolean value from a string.
+        """
+        if isinstance(value, bool):
+            return value
+        if value.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        if value.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+
+        raise argparse.ArgumentTypeError('boolean value expected.')
+
     # It loads the args configuration
     def load_args(self):
         """It loads the arguments from *constants.Args* module.
@@ -41,12 +59,24 @@ class ArgsManager:
         opt_argc = len(Args.opt_args_str)
 
         for i in range(argc):
-            self.parser.add_argument(Args.args_str[i],
-                                     help=Args.args_help[i])
+            if Args.args_bool[i] is not None:
+                self.parser.add_argument(Args.args_str[i],
+                                         help=Args.args_help[i],
+                                         type=self.str2bool, nargs='?',
+                                         const=True, default=Args.args_bool[i])
+            else:
+                self.parser.add_argument(Args.args_str[i],
+                                         help=Args.args_help[i])
 
         for i in range(opt_argc):
-            self.parser.add_argument(Args.opt_args_str[i],
-                                     help=Args.opt_args_help[i])
+            if Args.opt_args_bool[i] is not None:
+                self.parser.add_argument(Args.opt_args_str[i],
+                                         help=Args.opt_args_help[i],
+                                         type=self.str2bool, nargs='?',
+                                         const=True, default=Args.opt_args_bool[i])
+            else:
+                self.parser.add_argument(Args.opt_args_str[i],
+                                         help=Args.opt_args_help[i])
 
 
     # It parses the arguments to easily check if they are correct

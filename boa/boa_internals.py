@@ -234,7 +234,7 @@ def remove_not_loaded_modules(mod_loader, modules, classes, mods_args,
 
             print(f"Warning: Instance '{removed_module}.{removed_class}' was removed.")
         except Exception as e:
-            raise BOAFlowException("could not remove a module/class/arg/dependencie while"
+            raise BOAFlowException("could not remove a module/class/arg/dependency while"
                                    f" trying to remove module '{not_loaded_module}': {e}",
                                    Error.error_module_cannot_remove_not_loaded_module)
 
@@ -736,15 +736,15 @@ def replace_dependencies_callbacks(dependencies, instances_dict):
             instances as values and the name of the instances
             as key.
     """
-    for dependencie, args in dependencies.items():
+    for dependency, args in dependencies.items():
         for arg, callback in args.items():
             try:
-                dependencies[dependencie][arg] = \
-                    getattr(instances_dict[dependencie], callback)
+                dependencies[dependency][arg] = \
+                    getattr(instances_dict[dependency], callback)
             except AttributeError:
                 raise BOAFlowException(f"callback '{callback}' does not exist"
-                                       f" in dependencie '{dependencie}'",
-                                       Error.error_module_dependencie_callback_not_found)
+                                       f" in dependency '{dependency}'",
+                                       Error.error_module_dependency_callback_not_found)
             except NameError as e:
                 raise BOAFlowException(e, Error.error_unknown)
             except Exception as e:
@@ -781,17 +781,17 @@ def check_dependencies(modules, classes, mods_dependencies):
         for key_mod_dependecie in value_dependencies:
             # Check if the dependecie exist
             if key_mod_dependecie not in dependencies_names:
-                # The dependencie does not exist
-                raise BOAFlowException(f"module '{key_module}' has the module dependencie"
+                # The dependency does not exist
+                raise BOAFlowException(f"module '{key_module}' has the module dependency"
                                        f" '{key_mod_dependecie}', which is not loaded",
-                                       Error.error_module_dependencie_failed)
+                                       Error.error_module_dependency_failed)
 
-            # Check that the module it is not a dependencie of itself
+            # Check that the module it is not a dependency of itself
             if key_module == key_mod_dependecie:
-                # The module has a dependencie of itself
-                raise BOAFlowException(f"module '{key_module}' has a dependencie of itself,"
+                # The module has a dependency of itself
+                raise BOAFlowException(f"module '{key_module}' has a dependency of itself,"
                                        " which it is not allowed",
-                                       Error.error_module_dependencie_itself)
+                                       Error.error_module_dependency_itself)
 
             # Fill dependencies graph
             if not is_key_in_dict(dependencies_graph, key_module):
@@ -800,10 +800,10 @@ def check_dependencies(modules, classes, mods_dependencies):
             dependencies_graph[key_module].append(key_mod_dependecie)
 
     # If there are not dependencies for a concrete module, is not initialized, so we have to
-    for dependencie_name in dependencies_names:
-        if not is_key_in_dict(dependencies_graph, dependencie_name):
+    for dependency_name in dependencies_names:
+        if not is_key_in_dict(dependencies_graph, dependency_name):
             # Initialize modules without dependencies
-            dependencies_graph[dependencie_name] = []
+            dependencies_graph[dependency_name] = []
 
     # Check if the dependencies are cyclic
     if is_graph_cyclic(dependencies_graph):
@@ -849,10 +849,10 @@ def get_execution_order(dependencies_graph):
                     found_dependencies = []
 
                     # Check if all the dependencies of the current module has been executed
-                    for dependencie in dependencies:
-                        if dependencie in result:
-                            # The current dependencie has been executed
-                            found_dependencies.append(dependencie)
+                    for dependency in dependencies:
+                        if dependency in result:
+                            # The current dependency has been executed
+                            found_dependencies.append(dependency)
 
                     if len(dependencies) == len(found_dependencies):
                         # All the dependencies of the current module has been executed

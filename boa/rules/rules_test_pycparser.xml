@@ -19,14 +19,14 @@
             <class_name>BOAModuleTest</class_name>
             <!--<severity_enum>severity_syslog.SeveritySyslog</severity_enum>-->
             <dependencies>
-                <dependencie>
+                <dependency>
                     <module_name>boam_function_match</module_name>
                     <class_name>BOAModuleFunctionMatch</class_name>
                     <callback>
                         <method name="arg0" callback="clean" />
                         <method name="arg1" callback="finish" />
                     </callback>
-                </dependencie>
+                </dependency>
             </dependencies>
             <args>
             </args>

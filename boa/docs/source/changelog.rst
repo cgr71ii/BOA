@@ -8,6 +8,21 @@ Changelog
 =========
 You will find here the main changes from one version to others.
 
+Version 0.3
+-----------
+Dependencies among modules are possible.
+
+Changes:
+
+* The results of a module can be a dependency for others.
+
+Fixed errors:
+
+* Main argument "--no-fail" was not working as expected.
+* When a module loading failed and the execution continued,
+  was not being correctly removed.
+* Minnor fixes.
+
 Version 0.2
 -----------
 This version has made other elements to be customizable.

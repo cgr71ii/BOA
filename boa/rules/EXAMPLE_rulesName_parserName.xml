@@ -59,7 +59,7 @@
                                                             /boalc_abstract.BOALifeCycleAbstract to work -->
             <dependencies>  <!-- Optional
                                  It allows to write other module dependencies which this module needs -->
-                <dependencie>    <!-- Madatory: at least 1 -->
+                <dependency>    <!-- Madatory: at least 1 -->
                     <module_name>module which exists</module_name>  <!-- Mandatory -->
                     <class_name>class which exists</class_name> <!-- Mandatory -->
                     <callback>  <!-- Mandatory -->
@@ -67,14 +67,14 @@
                                                                          Mandatory 'name' and 'callback' attributes -->
                         <method name="arg2" callback="get_arg2" />
                     </callback>
-                </dependencie>
-                <dependencie>
+                </dependency>
+                <dependency>
                     <module_name>mod_dep2</module_name>
                     <class_name>class_dep2</class_name>
                     <callback>
                         <method name="arg3" callback="get_arg3" />
                     </callback>
-                </dependencie>
+                </dependency>
             </dependencies>
             <args>  <!--    Mandatory
                             If you use 'list', 'dict' and 'element' in combination at the same deepness, the result will not be sorted in the same way you wrote the rules
