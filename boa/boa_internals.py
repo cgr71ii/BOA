@@ -888,13 +888,18 @@ def apply_execution_order(execution_order, modules, classes, reports, lifecycles
         # Get the current position of the module to be executed
         current_index = expected_format.index(execution_order[index])
 
+        if current_index <= index:
+            # Do not move the modules that are in the correct position
+            index += 1
+            continue
+
         # Swap the current position with the order of execution
         modules[current_index], modules[index] = modules[index], modules[current_index]
         classes[current_index], classes[index] = classes[index], classes[current_index]
         reports[current_index], reports[index] = reports[index], reports[current_index]
         lifecycles[current_index], lifecycles[index] = lifecycles[index], lifecycles[current_index]
 
-        found_indexes.append(index)
-        found_indexes.append(current_index)
+        #found_indexes.append(index)
+        #found_indexes.append(current_index)
 
         index += 1

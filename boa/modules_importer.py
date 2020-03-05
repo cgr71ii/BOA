@@ -171,7 +171,7 @@ class ModulesImporter:
         try:
             instance = getattr(sys.modules[module_name], class_name)
         except AttributeError as e:
-            eprint(f"Error: {e}.")
+            eprint(f"Error: ModulesImporter: {e}.")
         except:
             eprint(f"Error: unknown error while trying to get {module_name}.{class_name}.")
 
@@ -280,7 +280,7 @@ class ModulesImporter:
         try:
             instance = getattr(sys.modules[module], class_name)
         except AttributeError as e:
-            eprint(f"Error: {e}.")
+            eprint(f"Error: ModulesImporter: {e}.")
         except:
             eprint(f"Error: unknown error while trying to get {module}.{class_name}.")
 

@@ -192,10 +192,10 @@ class BOALifeCycleManager:
             else:
                 getattr(instance, method_name)(args)
         except BOAModuleException as e:
-            eprint(f"Error: {e.message}.")
+            eprint(f"Error: BOALifeCycleManager: {e.message}.")
             exception = True
         except Exception as e:
-            eprint(f"Error: {e}.")
+            eprint(f"Error: BOALifeCycleManager: {e}.")
             exception = True
         except:
             eprint(f"Error: could not {error_verb} the instance '{instance_name}'.")

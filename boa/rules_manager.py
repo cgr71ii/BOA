@@ -64,7 +64,7 @@ class RulesManager:
         try:
             self.file = open(self.rules_file_path, "r")
         except Exception as e:
-            eprint(f"Error: {e}.")
+            eprint(f"Error: RulesManager: {e}.")
             return Error.error_rules_could_not_open_file
 
         return Meta.ok_code
@@ -84,7 +84,7 @@ class RulesManager:
 
             self.rules = xmltodict.parse(self.xml_str)
         except Exception as e:
-            eprint(f"Error: {e}.")
+            eprint(f"Error: RulesManager: {e}.")
             return Error.error_rules_could_not_read_file
         return Meta.ok_code
 
@@ -97,7 +97,7 @@ class RulesManager:
         try:
             self.file.close()
         except Exception as e:
-            eprint(f"Error: {e}.")
+            eprint(f"Error: RulesManager: {e}.")
             return Error.error_rules_could_not_close_file
 
         return Meta.ok_code
@@ -974,7 +974,7 @@ class RulesManager:
 
             return True
         except Exception as e:
-            eprint(f"Error: {e}.")
+            eprint(f"Error: RulesManager: {e}.")
 
             return False
 
@@ -1038,7 +1038,7 @@ class RulesManager:
 
             return True
         except Exception as e:
-            eprint(f"Error: {e}.")
+            eprint(f"Error: RulesManager: {e}.")
 
             return False
 

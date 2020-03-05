@@ -88,7 +88,11 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
             index += 1
 
     def finish(self):
-        print(f"Total function definitions: {len(self.function)}")
+        pass
+        #print(f"Total function definitions: {len(self.function)}")
 
-        for key, value in self.cfg.items():
-            print(f"cfg['{key}'] = {value}")
+        #for key, value in self.cfg.items():
+        #    print(f"cfg['{key}'] = {value}")
+
+    def get_cfg(self):
+        return self.cfg

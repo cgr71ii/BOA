@@ -58,6 +58,13 @@
                 </dict>
             </args>
         </module>
+        <module>
+            <module_name>boam_cfg</module_name>
+            <class_name>BOAModuleControlFlowGraph</class_name>
+            <args>
+
+            </args>
+        </module>
     </modules>
     <report>
         <module_name>boar_basic_html</module_name>

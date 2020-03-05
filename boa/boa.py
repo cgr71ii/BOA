@@ -102,7 +102,6 @@ def main():
         rtn = boa_internals.load_modules(modules)
         rtn_code = rtn[0]
         mod_loader = rtn[1]
-        # TODO fix --no-fail argument behaviour and its description
         fail_if_some_user_module_failed = False
 
         if ArgsManager.args.no_fail is not None:
@@ -136,7 +135,7 @@ def main():
         # Error in some internal function.
 
         if e.message:
-            eprint(f"Error: {e.message}.")
+            eprint(f"Error: BOA: {e.message}.")
         if e.error_code:
             return e.error_code
 
@@ -145,7 +144,7 @@ def main():
     except Exception as e:
         # Unexpected and unknown error.
 
-        eprint(f"Error: {e}.")
+        eprint(f"Error: BOA: {e}.")
         return Error.error_unknown
 
     return Meta.ok_code
