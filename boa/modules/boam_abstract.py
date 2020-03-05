@@ -65,12 +65,12 @@ class BOAModuleAbstract:
         """
 
     @abstractmethod
-    def process(self, arg):
+    def process(self, args):
         """It process the given information from the rules
         file and attempts to look for security threats.
 
         Arguments:
-            arg: given information.
+            args: given information.
         """
 
     # This method will be invoked before the next token is processed

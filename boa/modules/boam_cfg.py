@@ -1,3 +1,5 @@
+"""This module creates a basic CFG only containing function calls.
+"""
 
 # Own libs
 from boam_abstract import BOAModuleAbstract
@@ -10,11 +12,15 @@ from pycparser.c_ast import FuncDef
 from pycparser.c_ast import FuncCall
 
 class BOAModuleControlFlowGraph(BOAModuleAbstract):
+    """It defines the necessary functions to create the CFG.
+    """
 
     def initialize(self):
+        """It initialices the class.
+        """
         self.threats = []
         self.function = {}
-        self.cfg = {}
+        self.basic_cfg = {}
 
         #self.threats.append((self.who_i_am, "desc1", "CRITICAL", "adv1", 5, None))
 
@@ -23,7 +29,7 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
 
         Arguments:
             function_name (str): function name.
-            function (pycparser.c_ast.Decl): code of the function.
+            function (pycparser.c_ast.FuncDef): code of the function.
         """
         visitor = PreorderVisitor(self.compute_function_cfg_callback)
 
@@ -39,23 +45,33 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
 
         visitor.visit(function)
 
+        # Even if there was any function call, the node has to be in the graph
+        if not function_name in self.basic_cfg.keys():
+            # There was any function call and we create the node
+            self.basic_cfg[function_name] = []
+
         # Remove self.compute_function_cfg_function
         del self.compute_function_cfg_function
 
     def compute_function_cfg_callback(self, node):
+        """Callback which will be invoked from the PreorderVisitor.
+
+        Arguments:
+            node: AST node.
+        """
         # It checks if self.compute_function_cfg_function exists
         try:
             self.compute_function_cfg_function
-        except:
+        except Exception:
             eprint("Error: variable 'self.compute_function_cfg_function' should exist.")
 
         if isinstance(node, FuncCall):
             # Create a list if no element was inserted before
-            if not is_key_in_dict(self.cfg, self.compute_function_cfg_function):
-                self.cfg[self.compute_function_cfg_function] = []
+            if not is_key_in_dict(self.basic_cfg, self.compute_function_cfg_function):
+                self.basic_cfg[self.compute_function_cfg_function] = []
 
             # Insert element in list
-            self.cfg[self.compute_function_cfg_function].append(node.name.name)
+            self.basic_cfg[self.compute_function_cfg_function].append(node.name.name)
 
     def process(self, token):
         if isinstance(token, FuncDef):
@@ -68,31 +84,41 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
             self.compute_function_cfg(function_name, function)
 
     def clean(self):
+        """It does nothing.
+        """
         pass
 
     def save(self, report):
-        index = 0
-
-        for threat in self.threats:
-            severity = report.get_severity_enum_instance_by_who(self.who_i_am)
-
-            if severity is None:
-                eprint(f"Error: could not append the threat record #{index} in '{self.who_i_am}'. Wrong severity enum instance.")
-            else:
-                severity = severity[threat[2]]
-                rtn_code = report.add(threat[0], threat[1], severity, threat[3], threat[4], threat[5])
-
-                if rtn_code != Meta.ok_code:
-                    eprint(f"Error: could not append the threat record #{index} (status code: {rtn_code}) in '{self.who_i_am}'.")
-
-            index += 1
+        """It does nothing
+        """
+        #index = 0
+#
+        #for threat in self.threats:
+        #    severity = report.get_severity_enum_instance_by_who(self.who_i_am)
+#
+        #    if severity is None:
+        #        eprint(f"Error: could not append the threat record #{index} in '{self.who_i_am}'. Wrong severity enum instance.")
+        #    else:
+        #        severity = severity[threat[2]]
+        #        rtn_code = report.add(threat[0], threat[1], severity, threat[3], threat[4], threat[5])
+#
+        #        if rtn_code != Meta.ok_code:
+        #            eprint(f"Error: could not append the threat record #{index} (status code: {rtn_code}) in '{self.who_i_am}'.")
+#
+        #    index += 1
 
     def finish(self):
-        pass
+        """It does nothing.
+        """
         #print(f"Total function definitions: {len(self.function)}")
-
-        #for key, value in self.cfg.items():
+#
+        #for key, value in self.basic_cfg.items():
         #    print(f"cfg['{key}'] = {value}")
 
-    def get_cfg(self):
-        return self.cfg
+    def get_basic_cfg(self):
+        """It returns the basic CFG.
+
+        Returns:
+            dict: basic CFG
+        """
+        return self.basic_cfg

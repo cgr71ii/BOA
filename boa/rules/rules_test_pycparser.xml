@@ -20,11 +20,10 @@
             <!--<severity_enum>severity_syslog.SeveritySyslog</severity_enum>-->
             <dependencies>
                 <dependency>
-                    <module_name>boam_function_match</module_name>
-                    <class_name>BOAModuleFunctionMatch</class_name>
+                    <module_name>boam_cfg</module_name>
+                    <class_name>BOAModuleControlFlowGraph</class_name>
                     <callback>
-                        <method name="arg0" callback="clean" />
-                        <method name="arg1" callback="finish" />
+                        <method name="get_basic_cfg" callback="get_basic_cfg" />
                     </callback>
                 </dependency>
             </dependencies>
@@ -61,6 +60,7 @@
         <module>
             <module_name>boam_cfg</module_name>
             <class_name>BOAModuleControlFlowGraph</class_name>
+            <lifecycle_handler>boalc_pycparser_ast.BOALCPycparserAST</lifecycle_handler>
             <args>
 
             </args>
