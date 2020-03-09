@@ -5,7 +5,7 @@ you want to use an AST and process each token separately.
 
 # Own libs
 from lifecycles.boalc_abstract import BOALifeCycleAbstract
-from lifecycles.auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
+from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
 from util import is_key_in_dict
 
 class BOALCPycparserAST(BOALifeCycleAbstract):

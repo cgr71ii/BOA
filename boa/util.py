@@ -264,7 +264,7 @@ def is_graph_cyclic(graph, visited_nodes=None, current_connection=None):
             if we are visiting again a node, and in that case,
             the graph is cyclic. This argument should be *None*
             at begin.
-        current_connection (string): the current connection
+        current_connection (str): the current connection
             which will allow us to check if it is in the
             *visited_nodes* list. This argument should be
             *None* at begin.

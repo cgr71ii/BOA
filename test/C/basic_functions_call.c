@@ -1,4 +1,14 @@
 
+void Z()
+{
+    // Not invoked
+}
+
+void W()
+{
+    return;
+}
+
 void A()
 {
 

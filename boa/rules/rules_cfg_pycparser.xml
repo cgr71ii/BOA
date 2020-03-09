@@ -19,15 +19,13 @@
             <class_name>BOAModuleControlFlowGraph</class_name>
             <lifecycle_handler>boalc_pycparser_ast.BOALCPycparserAST</lifecycle_handler>
             <args>
-                <dict>
-                </dict>
+                <!-- Empty -->
             </args>
         </module>
     </modules>
     <report>
         <args>
-            <dict>
-            </dict>
+            <!-- Empty -->
         </args>
     </report>
 </boa_rules>
