@@ -89,3 +89,21 @@ def get_real_next_instruction(root, instruction, debug=False):
         index += 1
 
     return result
+
+def get_instructions_type(instructions, second_function_to_apply=None):
+    """It maps the instructions to their types.
+
+    Parameters:
+        instructions (list): list of instructions.
+        second_function_to_apply (lambda): optional second
+            function to apply. Default value is *None*.
+
+    Returns:
+        list: list with the type of the instructions
+    """
+    result = list(map(lambda instr: type(instr), instructions))
+
+    if second_function_to_apply is not None:
+        result = list(map(second_function_to_apply, result))
+
+    return result

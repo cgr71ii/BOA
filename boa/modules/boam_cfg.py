@@ -1,6 +1,9 @@
 """This module creates a basic CFG only containing function calls.
 """
 
+# Std libs
+import sys
+
 # Pycparser libs
 import pycparser.c_ast as ast
 
@@ -9,7 +12,7 @@ from boam_abstract import BOAModuleAbstract
 from constants import Meta
 from util import eprint, is_key_in_dict
 from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
-from auxiliary_modules.pycparser_cfg import CFG
+import auxiliary_modules.pycparser_cfg as cfg
 import auxiliary_modules.pycparser_util as pycutil
 
 class BOAModuleControlFlowGraph(BOAModuleAbstract):
@@ -75,10 +78,19 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
         function_calls = self.get_function_calls()
         function_invoked_by = self.process_cfg.get_function_invoked_by()
 
-        #print(function_invoked_by)
+        # Resolve special nodes
+        # Special node: functions not invoked
+        self.process_cfg.resolve_functions_not_invoked()
 
+        # Special node: end of graph (e.g. last instruction in main,
+        #  exit(), ...)
+        self.process_cfg.resolve_end_of_graph_nodes()
+
+        # Resolve dependencies (successive instructions)
         for function_name, invoked in function_invoked_by.items():
             self.process_cfg.resolve_succs(function_name, invoked)
+
+        self.process_cfg.resolve_broken_succs()
 
         #graph = self.process_cfg.basic_cfg
         #self.display_graph(graph)
@@ -105,7 +117,7 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
 class ProcessCFG():
 
     def __init__(self):
-        self.basic_cfg = CFG()
+        self.basic_cfg = cfg.CFG()
         self.funcion_calls = {}
         self.branching_instr = [ast.FuncCall, ast.If, ast.For, ast.While,
                                 ast.DoWhile, ast.Goto, ast.Switch, ast.Break,
@@ -185,7 +197,7 @@ class ProcessCFG():
         self.basic_cfg.append_instruction(current_function_name, node)
 
     def resolve_succs_return_calls(self, from_function_name, to_function_name,
-                                   instruction):
+                                   first_from_function_name, instruction):
         """It resolves the *FuncCall* to functions which have
         the Return statment recursevely. Also, it resolves
         the invocations from one method to another recursively.
@@ -196,12 +208,14 @@ class ProcessCFG():
                 other *FuncCall*.
             to_function_name (str): function which invokes to
                 *from_function_name* function.
+            first_from_function_name (str): function which contains
+                the Return statement or, because of recursion,
+                other *FuncCall*. It is not modified when doing
+                recursion.
             instruction (pycparser.c_ast.Node): instruction which
                 is going to be linked from *from_function_name*
                 to *to_function_name*.
         """
-        print(" ********************************** YOU'RE IN")
-        from_function_instructions_cfg = self.basic_cfg.get_cfg(from_function_name)
         to_function_instructions_cfg = self.basic_cfg.get_cfg(to_function_name)
         to_function_instructions = list(map(lambda instr: instr.get_instruction(),
                                             to_function_instructions_cfg))
@@ -226,9 +240,12 @@ class ProcessCFG():
                     #  that is not the original because there is not next
                     #  instruction
                     function_invoked_by = self.basic_cfg.get_function_invoked_by()
-                    #function_invoked_by = function_invoked_by[]
-                    
-                    #for invoke in function_invoked_by
+                    function_invoked_by = function_invoked_by[to_function_name]
+
+                    for invoke in function_invoked_by:
+                        self.resolve_succs_return_calls(to_function_name, invoke,
+                                                        first_from_function_name,
+                                                        instruction)
                 else:
                     to_function_index = list(map(lambda instr:
                                                  instr.get_instruction(),
@@ -238,7 +255,7 @@ class ProcessCFG():
                     from_function_index = list(map(lambda instr:
                                                    instr.get_instruction(),
                                                    self.basic_cfg.get_cfg\
-                                                       (from_function_name)))\
+                                                       (first_from_function_name)))\
                                                        .index(instruction)
                     #print(f" ** to_function_index: {to_function_index}")
                     #print(f" ** from_function_index: {from_function_index}")
@@ -246,10 +263,70 @@ class ProcessCFG():
                     #print(f" ** instruction: {to_function_instructions_cfg[to_function_index].get_type()}")
                     #print(f" ** function: {from_function_name}")
                     #print(f" ** instruction: {from_function_instructions_cfg[from_function_index].get_type()}")
+                    from_function_instructions_cfg = self.basic_cfg.get_cfg\
+                                                         (first_from_function_name)
+
                     from_function_instructions_cfg[from_function_index]\
                         .append_succ(to_function_instructions_cfg\
                                         [to_function_index])
 
+    def resolve_functions_not_invoked(self):
+        """It resolves the functions which are not invoked.
+        For that purpose, we append a node to those functions
+        to know that we are in that situation and make
+        easier the dependencies resolution.
+        """
+        function_invoked_by = self.get_function_invoked_by()
+
+        for function, invoked_by in function_invoked_by.items():
+            if len(invoked_by) == 0:
+                # This function is not being invoked
+                instructions = list(map(lambda instr: instr.get_instruction(),
+                                        self.basic_cfg.get_cfg(function)))
+                not_invoked_node = cfg.NotInvoked()
+
+                for instr in instructions:
+                    if isinstance(instr, ast.Compound):
+                        # It should be the body of the function
+                        if instr.block_items is None:
+                            instr.block_items = [not_invoked_node]
+                        else:
+                            instr.block_items.append(not_invoked_node)
+
+                        break
+
+                # It appends the new node
+                self.basic_cfg.append_instruction(function, not_invoked_node)
+
+    def resolve_end_of_graph_nodes(self):
+        """It resolves those nodes which are the end of
+        our CFG (e.g. last instruction of main, exit(), ...).
+        """
+
+    def resolve_broken_succs(self):
+        """It resolves those dependencies which could not
+        be resolved before because of complexity.
+        """
+        functions = self.basic_cfg.get_cfg(None)
+
+        for function_name, instructions in functions.items():
+            types = list(map(lambda x: x.get_type(), instructions))
+            # Resolve dependencies of functions that are not invoked
+            if cfg.NotInvoked in types:
+                previous_instr = None
+
+                # TODO check if works and finish it
+
+                for instr in instructions:
+                    if (isinstance(instr, cfg.NotInvoked) and
+                            isinstance(previous_instr, ast.Return)):
+                        index = list(map(lambda x: x.get_instruction(),
+                                         functions[function_name])).index(
+                                             previous_instr)
+                        print(f" **** index: {index}")
+                    previous_instr = instr
+
+                continue
 
     def resolve_succs_return(self, function_name, rtn_instruction,
                              function_instructions, function_invoked_by):
@@ -281,7 +358,7 @@ class ProcessCFG():
 
         for invoke in function_invoked_by:
             self.resolve_succs_return_calls(function_name, invoke,
-                                            instr_to_functions)
+                                            function_name, instr_to_functions)
             #rtn_instrs[-1].append_succ(
             #    self.basic_cfg.get_cfg(invoke)[0])
 

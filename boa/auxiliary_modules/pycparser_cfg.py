@@ -8,11 +8,19 @@ import pycparser.c_ast as ast
 # Own libs
 from util import is_key_in_dict
 
-class FinalNode(ast.Node):
-    """Empty pycparser class which is a reference
+class FinalNode(ast.EmptyStatement):
+    """Empty pycparser statement which is a reference
     to set a final node and to know that if we reach
     this node, the execution would finish (e.g. end
     of main function, exit(), ...)
+    """
+
+class NotInvoked(ast.Node):
+    """Empty pycparser statement which is a reference
+    to use when a function is not invoked by any
+    other function. This is useful to avoid other
+    reference problems (e.g. expecting a reference
+    when doing tail recursion optimization)
     """
 
 class Instruction():
@@ -74,20 +82,20 @@ class CFG():
         self.function_invoked_by = {}
         self.instructions = {}
 
-    def append_instruction(self, function, instruction):
+    def append_instruction(self, function_name, instruction):
         """It appends an instruction from a function.
 
         Arguments:
-            function (str): function from where the instruction
-                is going to be executed.
+            function_name (str): function from where the
+                instruction is going to be executed.
             instruction (pycparser.c_ast.Node): instruction.
         """
         instr = Instruction(instruction)
 
-        if not is_key_in_dict(self.instructions, function):
-            self.instructions[function] = [instr]
+        if not is_key_in_dict(self.instructions, function_name):
+            self.instructions[function_name] = [instr]
         else:
-            self.instructions[function].append(instr)
+            self.instructions[function_name].append(instr)
 
     def append_function_call(self, origin, destiny):
         """It appends a function call from other function

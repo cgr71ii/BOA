@@ -1,14 +1,4 @@
 
-void Z()
-{
-    // Not invoked
-}
-
-void W()
-{
-    return;
-}
-
 void A()
 {
 
@@ -43,6 +33,31 @@ int F(int max)
     {
         F(max--);
     }
+}
+
+int I()
+{
+    return 1;
+}
+
+int J()
+{
+    return I();
+}
+
+int K()
+{
+    return J();
+}
+
+void W()
+{
+    return;
+}
+
+void Z()
+{
+    // Not invoked
 }
 
 int main(int argc, char** argv)
