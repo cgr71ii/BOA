@@ -71,11 +71,13 @@ class ModulesImporter:
                 # Check if the module is already loaded
                 if module in sys.modules:
                     eprint(f"Warning: module '{module}' cannot have that name because it collides with a sys module or has been already loaded. Skipping current module.")
+                    index += 1
                     continue
 
                 # Check if the actual file path does exist
                 if file_exists(file_path) is False:
                     eprint(f"Warning: file '{file_path}' does not exist. Skipping current module.")
+                    index += 1
                     continue
 
                 spec = importlib.util.spec_from_file_location(module, file_path)
@@ -83,6 +85,7 @@ class ModulesImporter:
                 # Check if we could get the module spec
                 if spec is None:
                     eprint(f"Warning: module '{module}' could not be loaded. Skipping current module.")
+                    index += 1
                     continue
 
                 # Load and save the module
@@ -96,9 +99,11 @@ class ModulesImporter:
                 print(f"Info: Module '{module}' successfully loaded.")
             except Exception as e:
                 eprint(f"Warning: {e}. Skipping current module.")
+                index += 1
                 continue
             except:
                 eprint(f"Warning: unknown error while loading module '{module}'. Skipping current module.")
+                index += 1
                 continue
 
             index += 1
