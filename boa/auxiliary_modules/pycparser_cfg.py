@@ -2,11 +2,18 @@
 data structure.
 """
 
+# Pycparser libs
+import pycparser.c_ast as ast
+
 # Own libs
 from util import is_key_in_dict
 
-# Pycparser libs
-import pycparser.c_ast
+class FinalNode(ast.Node):
+    """Empty pycparser class which is a reference
+    to set a final node and to know that if we reach
+    this node, the execution would finish (e.g. end
+    of main function, exit(), ...)
+    """
 
 class Instruction():
 
@@ -28,9 +35,9 @@ class Instruction():
         will be ignored.
 
         Arguments:
-            succ_instr (pycparser.c_ast.Node): successive
-                instruction which could be executed after
-                the current instruction.
+            succ_instr (Instruction): successive instruction
+                which could be executed after the current
+                instruction.
         """
         if not succ_instr in self.succs:
             self.succs.append(succ_instr)
@@ -73,7 +80,7 @@ class CFG():
         Arguments:
             function (str): function from where the instruction
                 is going to be executed.
-            instruction (pycparser.c_ast): instruction.
+            instruction (pycparser.c_ast.Node): instruction.
         """
         instr = Instruction(instruction)
 
@@ -112,22 +119,25 @@ class CFG():
         else:
             self.function_invoked_by[destiny].append(origin)
 
-    def get_cfg(self, function):
+    def get_cfg(self, function_name):
         """It returns the CFG starting in a concrete function.
         If *function* is *None*, the whole CFG will be returned.
 
         Arguments:
-            function (str): function.
+            function_name (str): function.
 
         Returns:
-            dict: CFG of a function. If *function* is *None*, the
-            whole CFG will be returned. If *function* is not defined,
-            *None* will be returned.
+            list: CFG of a function. If *function_name* is *None*,
+            the whole CFG will be returned. If *function_name* is
+            not defined, *None* will be returned. The type of the
+            elements is *Instruction*
         """
-        if not is_key_in_dict(self.instructions, function):
+        if function_name is None:
+            return self.instructions
+        if not is_key_in_dict(self.instructions, function_name):
             return None
 
-        return self.instructions[function]
+        return self.instructions[function_name]
 
     def get_function_calls(self):
         """It returns the function calls.

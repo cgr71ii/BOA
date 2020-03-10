@@ -1,15 +1,16 @@
 """This module creates a basic CFG only containing function calls.
 """
 
+# Pycparser libs
+import pycparser.c_ast as ast
+
 # Own libs
 from boam_abstract import BOAModuleAbstract
 from constants import Meta
 from util import eprint, is_key_in_dict
 from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
 from auxiliary_modules.pycparser_cfg import CFG
-
-# Pycparser libs
-import pycparser.c_ast as ast
+import auxiliary_modules.pycparser_util as pycutil
 
 class BOAModuleControlFlowGraph(BOAModuleAbstract):
     """It defines the necessary functions to create the CFG.
@@ -74,14 +75,13 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
         function_calls = self.get_function_calls()
         function_invoked_by = self.process_cfg.get_function_invoked_by()
 
-        print(function_invoked_by)
+        #print(function_invoked_by)
 
-        for function, invoked in function_invoked_by.items():
-            self.process_cfg.solve_succs(function, invoked)
+        for function_name, invoked in function_invoked_by.items():
+            self.process_cfg.resolve_succs(function_name, invoked)
 
-        graph = self.process_cfg.basic_cfg
-
-        self.display_graph(graph)
+        #graph = self.process_cfg.basic_cfg
+        #self.display_graph(graph)
 
     def get_function_calls(self):
         """It returns a graph with the function calls
@@ -112,6 +112,13 @@ class ProcessCFG():
                                 ast.Continue, ast.Return]
 
     def process(self, function_name, function):
+        """It process a concrete function for the CFG.
+        It completes the CFG incrementally.
+
+        Parameters:
+            function_name (str): function name.
+            function (pycparser.c_ast.FuncDef): code of the function.
+        """
         self.compute_function_cfg(function_name, function)
 
     def compute_function_cfg(self, function_name, function):
@@ -132,6 +139,10 @@ class ProcessCFG():
         except:
             self.compute_function_cfg_function = function_name
 
+        # Append first instruction (it should be FuncDef)
+        self.basic_cfg.append_instruction(function_name, function)
+
+        # Append the rest of instructions
         visitor.visit(function)
 
         # Even if there was any function call, the node has to be in the graph
@@ -173,21 +184,121 @@ class ProcessCFG():
         # Append instruction
         self.basic_cfg.append_instruction(current_function_name, node)
 
-    def solve_succs(self, function, function_invoked_by):
-        """It solves the successives instructions of
+    def resolve_succs_return_calls(self, from_function_name, to_function_name,
+                                   instruction):
+        """It resolves the *FuncCall* to functions which have
+        the Return statment recursevely. Also, it resolves
+        the invocations from one method to another recursively.
+
+        Parameters:
+            from_function_name (str): function which contains
+                the Return statement or, because of recursion,
+                other *FuncCall*.
+            to_function_name (str): function which invokes to
+                *from_function_name* function.
+            instruction (pycparser.c_ast.Node): instruction which
+                is going to be linked from *from_function_name*
+                to *to_function_name*.
+        """
+        print(" ********************************** YOU'RE IN")
+        from_function_instructions_cfg = self.basic_cfg.get_cfg(from_function_name)
+        to_function_instructions_cfg = self.basic_cfg.get_cfg(to_function_name)
+        to_function_instructions = list(map(lambda instr: instr.get_instruction(),
+                                            to_function_instructions_cfg))
+        func_call_instructions = pycutil.get_instructions_of_instance(\
+                                    ast.FuncCall, to_function_instructions)
+
+        #print("******************************")
+        #print(f" * from: {from_function_name}")
+        #print(f" * to: {to_function_name}")
+        #print(f" * func call instrs: {list(map(lambda x: type(x), func_call_instructions))}")
+
+        for fc_instruction in func_call_instructions:
+            #print(f" ** {fc_instruction.name.name}")
+            if fc_instruction.name.name == from_function_name:
+                next_instruction = pycutil.get_real_next_instruction(\
+                    to_function_instructions[0], fc_instruction)
+
+                if next_instruction is None:
+                    # Tail recursion optimization -> instead of return to the
+                    #  original function which invoked the function, return to
+                    #  function which continues the execution (recursively),
+                    #  that is not the original because there is not next
+                    #  instruction
+                    function_invoked_by = self.basic_cfg.get_function_invoked_by()
+                    #function_invoked_by = function_invoked_by[]
+                    
+                    #for invoke in function_invoked_by
+                else:
+                    to_function_index = list(map(lambda instr:
+                                                 instr.get_instruction(),
+                                                 self.basic_cfg.get_cfg\
+                                                     (to_function_name)))\
+                                                     .index(next_instruction)
+                    from_function_index = list(map(lambda instr:
+                                                   instr.get_instruction(),
+                                                   self.basic_cfg.get_cfg\
+                                                       (from_function_name)))\
+                                                       .index(instruction)
+                    #print(f" ** to_function_index: {to_function_index}")
+                    #print(f" ** from_function_index: {from_function_index}")
+                    #print(f" ** function: {to_function_name}")
+                    #print(f" ** instruction: {to_function_instructions_cfg[to_function_index].get_type()}")
+                    #print(f" ** function: {from_function_name}")
+                    #print(f" ** instruction: {from_function_instructions_cfg[from_function_index].get_type()}")
+                    from_function_instructions_cfg[from_function_index]\
+                        .append_succ(to_function_instructions_cfg\
+                                        [to_function_index])
+
+
+    def resolve_succs_return(self, function_name, rtn_instruction,
+                             function_instructions, function_invoked_by):
+        """It resolves the successive instructions of a
+        return statement and all the dependencies.
+
+        Parameters:
+            function_name (str): name of the function which contains
+                the Return statement.
+            rtn_instruction (pycparser_cfg.Instruction): return instruction.
+            function_instructions (list): list of instructions of
+                the function which contains the Return statement.
+                The type is *pycparser_cfg.Instruction*.
+            function_invoked_by (list): list of function which
+                invokes the function which contains the Return statement.
+        """
+        real_instruction = rtn_instruction.get_instruction()
+        rtn_instrs = pycutil.get_instruction_path(real_instruction)
+        index = function_instructions.index(rtn_instruction)
+        instr_to_functions = real_instruction   # Function which its succs are
+                                                #  other functions
+
+        # The Return instruction is the only one without
+        #  successive instruction
+        if len(rtn_instrs) != 0:
+            rtn_instruction.append_succ(function_instructions[index + 1])
+
+            instr_to_functions = rtn_instrs[-1]
+
+        for invoke in function_invoked_by:
+            self.resolve_succs_return_calls(function_name, invoke,
+                                            instr_to_functions)
+            #rtn_instrs[-1].append_succ(
+            #    self.basic_cfg.get_cfg(invoke)[0])
+
+    def resolve_succs(self, function_name, function_invoked_by):
+        """It resolves the successives instructions of
         a concrete function.
 
         Arguments:
-            function (str): function.
+            function_name (str): function.
             function_invoked_by (list): functions which
                 invokes *function*.
         """
-        instructions = self.basic_cfg.get_cfg(function)
-        visitor = PreorderVisitor()
+        instructions = self.basic_cfg.get_cfg(function_name)
 
-        print(f" -------------{'-' * len(function)}---")
-        print(f" -- Function: {function} --")
-        print(f" -------------{'-' * len(function)}---")
+        print(f" -------------{'-' * len(function_name)}---")
+        print(f" -- Function: {function_name} --")
+        print(f" -------------{'-' * len(function_name)}---")
 
         index = 0
 
@@ -197,31 +308,12 @@ class ProcessCFG():
 
             print(f" -- Instruction: {instruction.get_type()}")
             if instruction.get_type() in self.branching_instr:
-                if index + 1 != len(instructions):
-                    # Is not the last instruction
-                    if isinstance(real_instruction, ast.Return):
-                        print("-- RETURN --")
-                        print(real_instruction.children())
-                        print(len(real_instruction.children()))
-                        print("------------")
+                if isinstance(real_instruction, ast.Return):
+                    print("-- RETURN --")
+                    print("------------")
 
-                        rtn_instr = visitor.visit_and_return_path(real_instruction)
-
-                        # The Return instruction is the only one without
-                        #  successive instruction
-                        instruction.append_succ(instructions[index + 1])
-
-                        # We have to change the successive instruction of
-                        #  last instruction of Return to those function which
-                        #  execute the current function
-                        #instructions
-                else:
-                    # Is the last instruction -> successive instruction will
-                    #  be the function which invokes to the current function
-                    if isinstance(real_instruction, ast.Return):
-                        print("-- RETURN --")
-                        print(len(real_instruction.children()))
-                        print("------------")
+                    self.resolve_succs_return(function_name, instruction,
+                                              instructions, function_invoked_by)
             else:
                 # Normal instruction (not branching)
                 if index + 1 != len(instructions):
@@ -230,8 +322,7 @@ class ProcessCFG():
                 else:
                     # Is the last instruction -> successive instruction will
                     #  be the function which invokes to the current function
-                    for invoke in function_invoked_by:
-                        instruction.append_succ(self.basic_cfg.get_cfg(invoke)[0])
+                    pass
 
             index += 1
 

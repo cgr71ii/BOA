@@ -21,7 +21,7 @@ int B()
 
 float C()
 {
-    return (float)B();
+    return (float)B() + (float)B() + 1.1f;
 }
 
 double D()
