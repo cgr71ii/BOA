@@ -136,6 +136,7 @@ def main():
 
         if e.message:
             eprint(f"Error: BOA: {e.message}.")
+
         if e.error_code:
             return e.error_code
 

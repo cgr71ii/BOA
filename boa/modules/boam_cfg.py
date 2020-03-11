@@ -311,19 +311,21 @@ class ProcessCFG():
 
         for function_name, instructions in functions.items():
             types = list(map(lambda x: x.get_type(), instructions))
+            instructions_pyc = list(map(lambda x: x.get_instruction(),
+                                        instructions))
+
             # Resolve dependencies of functions that are not invoked
             if cfg.NotInvoked in types:
                 previous_instr = None
 
-                # TODO check if works and finish it
-
-                for instr in instructions:
+                for instr in instructions_pyc:
                     if (isinstance(instr, cfg.NotInvoked) and
                             isinstance(previous_instr, ast.Return)):
-                        index = list(map(lambda x: x.get_instruction(),
-                                         functions[function_name])).index(
-                                             previous_instr)
-                        print(f" **** index: {index}")
+                        # Structure found: [Return, NotInvoked]
+                        # Append dependencie from Return to NotInvoked
+                        index = instructions_pyc.index(previous_instr)
+                        instructions[index].append_succ(instructions[index + 1])
+
                     previous_instr = instr
 
                 continue
@@ -386,9 +388,6 @@ class ProcessCFG():
             print(f" -- Instruction: {instruction.get_type()}")
             if instruction.get_type() in self.branching_instr:
                 if isinstance(real_instruction, ast.Return):
-                    print("-- RETURN --")
-                    print("------------")
-
                     self.resolve_succs_return(function_name, instruction,
                                               instructions, function_invoked_by)
             else:

@@ -11,6 +11,7 @@ This file does not have a concrete goal.
 from __future__ import print_function
 import sys
 import os
+import re
 
 # Own libs
 from constants import Other
@@ -294,3 +295,25 @@ def is_graph_cyclic(graph, visited_nodes=None, current_connection=None):
                     return True
 
     return False
+
+def get_just_type(instance):
+    """It returns just the type of an instance.
+
+    Example:
+        type("foo") returns "<class 'str'>"
+        get_just_type("foo") returns "str"
+
+    Parameters:
+        instance (object): target variable.
+
+    Returns:
+        str: type of the instance. *None* if
+        the regular expression "<class '.+'>"
+        does not match
+    """
+    valid = re.compile("<class '(.+)'>")
+    str_type = str(type(instance))
+    match = valid.match(str_type)
+    if not match:
+        return None
+    return match.group(1)

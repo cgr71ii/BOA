@@ -11,9 +11,6 @@ from constants import Meta, Error
 from util import eprint, get_name_from_class_instance, is_key_in_dict
 from own_exceptions import BOAModuleException, BOALCException
 
-
-from reports.boar_abstract import BOAReportAbstract
-
 class BOALifeCycleManager:
     """BOALifeCycleManager class.
 
