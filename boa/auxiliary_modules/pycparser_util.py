@@ -169,3 +169,39 @@ class PycparserException(Exception):
                 the exception is raised.
         """
         super(PycparserException, self).__init__(f"pycparser: {message}")
+
+def append_element_to_function(element, compound=None, func_def=None):
+    """It attempts to append an element to a function.
+
+    Arguments:
+        element (pycparser.c_ast.Node): element to be appended.
+        compound (pycparser.c_ast.Compound): 'compound' element of
+            the function. If is *None*, *func_def* can not be *None*.
+        func_def (pycparser.c_ast.FuncDef): 'func_def' element of
+            the function. If is *None*, *compound* can not be *None*.
+
+    Returns:
+        bool: *True* if *element* could be appended. *False* otherwise
+    """
+    if (compound is None and
+            func_def is None):
+        return False
+    if not isinstance(element, ast.Node):
+        return False
+
+    if compound is None:
+        compound =\
+        get_instructions_of_instance(ast.Compound,
+                                     get_instruction_path(func_def))
+
+        if len(compound) == 0:
+            return False
+
+        compound = compound[0]
+
+    if compound.block_items is None:
+        compound.block_items = [element]
+    else:
+        compound.block_items.append(element)
+
+    return True

@@ -50,6 +50,11 @@ int K()
     return J();
 }
 
+void M()
+{
+    exit();
+}
+
 void W()
 {
     return;

@@ -22,6 +22,12 @@ class NotInvoked(ast.EmptyStatement):
     other function. This is useful to avoid other
     reference problems (e.g. expecting a reference
     when doing tail recursion optimization)
+
+    If you look for this node, it should be at the very
+    end of a function, and may appear linked or not
+    (e.g. it will not be linked if the previous node
+    was of type FinalNode and the reason is because of
+    the semantics of FinalNode node)
     """
 
 class CFGException(pycutil.PycparserException):
@@ -121,13 +127,17 @@ class CFG():
         self.function_invoked_by = {}
         self.instructions = {}
 
-    def append_instruction(self, function_name, instruction):
+    def append_instruction(self, function_name, instruction, position=None):
         """It appends an instruction from a function.
 
         Arguments:
             function_name (str): function from where the
                 instruction is going to be executed.
             instruction (pycparser.c_ast.Node): instruction.
+            position (int): position to be inserted. Default
+                behaviour is to append at the end. Default
+                value is *None*. If position is not a valid
+                value, default behaviour will be applied.
 
         Raises:
             CFGException: if the type of the arguments
@@ -141,6 +151,9 @@ class CFG():
 
         if not is_key_in_dict(self.instructions, function_name):
             self.instructions[function_name] = [instr]
+        elif (position is not None and
+              0 <= position < len(self.instructions)):
+            self.instructions[function_name].insert(position, instr)
         else:
             self.instructions[function_name].append(instr)
 

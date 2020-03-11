@@ -15,6 +15,12 @@ from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
 import auxiliary_modules.pycparser_cfg as cfg
 import auxiliary_modules.pycparser_util as pycutil
 
+class CFGConstants:
+    """Class which contains the necessary constants
+    for working with the CFG.
+    """
+    exit_functions = ["exit"]   # Append the ones you need
+
 class BOAModuleControlFlowGraph(BOAModuleAbstract):
     """It defines the necessary functions to create the CFG.
     """
@@ -75,7 +81,6 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
     def finish(self):
         """It resolves the succs of the instructions.
         """
-        function_calls = self.get_function_calls()
         function_invoked_by = self.process_cfg.get_function_invoked_by()
 
         # Resolve special nodes
@@ -90,10 +95,12 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
         for function_name, invoked in function_invoked_by.items():
             self.process_cfg.resolve_succs(function_name, invoked)
 
+        # Resolve those dependencies which could not be resolved before
+        #  for some reason
         self.process_cfg.resolve_broken_succs()
 
-        #graph = self.process_cfg.basic_cfg
-        #self.display_graph(graph)
+        graph = self.process_cfg.basic_cfg
+        self.display_graph(graph)
 
     def get_function_calls(self):
         """It returns a graph with the function calls
@@ -184,12 +191,10 @@ class ProcessCFG():
             # Create a list if no element was inserted before
             if not is_key_in_dict(self.funcion_calls, current_function_name):
                 self.funcion_calls[current_function_name] = []
-                #self.basic_cfg[current_function_name] = []
                 self.basic_cfg.append_function_call(current_function_name, None)
 
             # Insert element in list
             self.funcion_calls[current_function_name].append(node.name.name)
-            #self.basic_cfg[current_function_name].append(node)
             self.basic_cfg.append_function_call(current_function_name,
                                                 node.name.name)
 
@@ -279,6 +284,11 @@ class ProcessCFG():
         function_invoked_by = self.get_function_invoked_by()
 
         for function, invoked_by in function_invoked_by.items():
+
+            if function == "main":
+                # Main function is always invoked
+                continue
+
             if len(invoked_by) == 0:
                 # This function is not being invoked
                 instructions = list(map(lambda instr: instr.get_instruction(),
@@ -293,15 +303,69 @@ class ProcessCFG():
                         else:
                             instr.block_items.append(not_invoked_node)
 
-                        break
+                        # It appends the new node
+                        self.basic_cfg.append_instruction(function,
+                                                          not_invoked_node)
 
-                # It appends the new node
-                self.basic_cfg.append_instruction(function, not_invoked_node)
+                        break
 
     def resolve_end_of_graph_nodes(self):
         """It resolves those nodes which are the end of
         our CFG (e.g. last instruction of main, exit(), ...).
         """
+        functions = self.basic_cfg.get_cfg(None)
+
+        for function_name, instructions in functions.items():
+            types = list(map(lambda x: x.get_type(), instructions))
+            instructions_pyc = list(map(lambda x: x.get_instruction(),
+                                        instructions))
+
+            # Main function
+            if function_name == "main":
+                end_of_graph_node = cfg.FinalNode()
+
+                for instr in instructions_pyc:
+                    if isinstance(instr, ast.Compound):
+                        # It should be the body of the function
+                        if instr.block_items is None:
+                            instr.block_items = [end_of_graph_node]
+                        else:
+                            instr.block_items.append(end_of_graph_node)
+
+                        # It appends the new node
+                        self.basic_cfg.append_instruction(function_name,
+                                                          end_of_graph_node)
+
+                        break
+
+            last_compound = None
+
+            # Exit functions
+            for instr in instructions_pyc:
+                if isinstance(instr, ast.Compound):
+                    last_compound = instr
+                elif (isinstance(instr, ast.FuncCall) and
+                      instr.name.name in CFGConstants.exit_functions):
+                    if last_compound is None:
+                        eprint("Warning: trying to append a 'FinalNode', but"
+                               " no 'Compound' was found (exit function out"
+                               " of a function?).")
+
+                    end_of_graph_node = cfg.FinalNode()
+                    pycutil.append_element_to_function(end_of_graph_node,
+                                                       func_def=instructions_pyc[0])
+                    instr_position = -1
+                    func_call_instrs =\
+                        pycutil.get_real_next_instruction(instructions_pyc[0],
+                                                          instr)
+
+                    if func_call_instrs is not None:
+                        instr_position = instructions_pyc.index(func_call_instrs)
+
+                     # It appends the new node
+                    self.basic_cfg.append_instruction(function_name,
+                                                      end_of_graph_node,
+                                                      instr_position)
 
     def resolve_broken_succs(self):
         """It resolves those dependencies which could not
@@ -379,6 +443,10 @@ class ProcessCFG():
         print(f" -- Function: {function_name} --")
         print(f" -------------{'-' * len(function_name)}---")
 
+        if instructions is None:
+            print(" -- Not present (C library?)")
+            return
+
         index = 0
 
         while index < len(instructions):
@@ -392,12 +460,17 @@ class ProcessCFG():
                                               instructions, function_invoked_by)
             else:
                 # Normal instruction (not branching)
-                if index + 1 != len(instructions):
+                if isinstance(real_instruction, cfg.FinalNode):
+                    # The end of the graph must not have successive instructions
+                    index += 1
+                    continue
+                elif index + 1 != len(instructions):
                     # Is not the last instruction
                     instruction.append_succ(instructions[index + 1])
                 else:
                     # Is the last instruction -> successive instruction will
                     #  be the function which invokes to the current function
+                    # TODO does it work do nothing when there is not return?
                     pass
 
             index += 1
