@@ -296,7 +296,7 @@ def is_graph_cyclic(graph, visited_nodes=None, current_connection=None):
 
     return False
 
-def get_just_type(instance):
+def get_just_type(instance, instance_type=None):
     """It returns just the type of an instance.
 
     Example:
@@ -305,6 +305,10 @@ def get_just_type(instance):
 
     Parameters:
         instance (object): target variable.
+        instance_type (type): target variable type.
+            It is optional. The default value is
+            *None*. If is not *None*, this
+            value will be used instead of *instance*.
 
     Returns:
         str: type of the instance. *None* if
@@ -312,7 +316,10 @@ def get_just_type(instance):
         does not match
     """
     valid = re.compile("<class '(.+)'>")
-    str_type = str(type(instance))
+    if instance_type is not None:
+        str_type = str(instance_type)
+    else:
+        str_type = str(type(instance))
     match = valid.match(str_type)
     if not match:
         return None

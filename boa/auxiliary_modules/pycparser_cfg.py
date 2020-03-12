@@ -30,6 +30,13 @@ class NotInvoked(ast.EmptyStatement):
     the semantics of FinalNode node)
     """
 
+class EndOfFunc(ast.EmptyStatement):
+    """This element is intented to avoid problems with
+    recursion. It will be appended in every function at
+    the end (it could be before other special nodes
+    like *FinalNode*, ...)
+    """
+
 class CFGException(pycutil.PycparserException):
     """CFGException exception.
 
@@ -94,6 +101,12 @@ class Instruction():
 
         if not succ_instr in self.succs:
             self.succs.append(succ_instr)
+
+    def remove_all_succs(self):
+        """It removes all the successive instructions
+        from itself.
+        """
+        self.succs = []
 
     def get_instruction(self):
         """It returns the pycparser instruction.

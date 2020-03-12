@@ -47,16 +47,49 @@ int J()
 
 int K()
 {
+    // Not invoked
+
     return J();
 }
 
 void M()
 {
+    // Not invoked
+
     exit();
+}
+
+void O()
+{
+
+}
+
+void P()
+{
+    O();
+    Q() + O();
+}
+
+void Q()
+{
+    O();
+    O() + P();
+}
+
+void S()
+{
+    T();
+}
+
+void T()
+{
+    S();
 }
 
 void W()
 {
+    // Not invoked
+
     return;
 }
 

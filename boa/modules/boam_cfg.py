@@ -10,10 +10,11 @@ import pycparser.c_ast as ast
 # Own libs
 from boam_abstract import BOAModuleAbstract
 from constants import Meta
-from util import eprint, is_key_in_dict
+from util import eprint, is_key_in_dict, get_just_type
 from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
 import auxiliary_modules.pycparser_cfg as cfg
 import auxiliary_modules.pycparser_util as pycutil
+from own_exceptions import BOAModuleException
 
 class CFGConstants:
     """Class which contains the necessary constants
@@ -49,34 +50,62 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
         """It does nothing
         """
 
-    def display_graph(self, graph):
+    def display_graph(self, graph, show_only_return_and_end_rel=False):
         """It displays the graph iterating over it.
 
         Arguments:
             graph (CFG): graph.
+            show_only_return_and_end_rel (bool): if *True*, it
+                will show only the relations between different
+                functions, return statement and last statement.
+                This option can lead to false positives when
+                using recursion.
         """
-        print("****************************************")
-        print("****************************************")
-        print("****************************************")
-
         for function in graph.get_function_calls():
+            print()
             print(f"---{'-' * len(function)}---")
             print(f"-- {function} --")
             print(f"---{'-' * len(function)}---")
             print()
 
-            for instruction in graph.get_cfg(function):
-                print(f"-- {instruction.get_type()} --")
+            index = 0
+            instructions = graph.get_cfg(function)
+            is_return = False
+            return_instrs = []
+
+            for instruction in instructions:
+                if isinstance(instruction.get_instruction(), ast.Return):
+                    is_return = True
+                    return_instrs = pycutil.get_instruction_path(instruction.get_instruction())
+                    print("**** RETURN ****")
+                    print()
+                elif (is_return and instruction.get_instruction() not in return_instrs):
+                    is_return = False
+                    return_instrs = []
+                    print("****************")
+
+                print(f"-- {index} {get_just_type(None, instruction.get_type())} --")
+
                 for dependency in instruction.get_succs():
-                    print(f"** {dependency.get_type()} **")
+                    if not show_only_return_and_end_rel:
+                        print(f"** {get_just_type(None, dependency.get_type())} **")
                     for inner_function in graph.get_function_calls():
                         try:
-                            print(f"{graph.get_cfg(inner_function).index(dependency)}"
-                                  f" in '{inner_function}'.")
+                            if not show_only_return_and_end_rel:
+                                print(f"{graph.get_cfg(inner_function).index(dependency)}"
+                                      f" in '{inner_function}'.")
+                                print()
+                            elif (inner_function != function or
+                                  is_return or
+                                  index + 1 == len(instructions)):
+                                graph.get_cfg(inner_function).index(dependency)
+                                print(f"** {get_just_type(None, dependency.get_type())} **")
+                                print(f"** {graph.get_cfg(inner_function).index(dependency)}"
+                                      f" in '{inner_function}' **")
+                                print()
                         except:
                             pass
-
-                print()
+                index += 1
 
     def finish(self):
         """It resolves the succs of the instructions.
@@ -84,8 +113,12 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
         function_invoked_by = self.process_cfg.get_function_invoked_by()
 
         # Resolve special nodes
+
+        # Special node: end of function
+        self.process_cfg.append_end_of_function_nodes()
+
         # Special node: functions not invoked
-        self.process_cfg.resolve_functions_not_invoked()
+        #self.process_cfg.resolve_functions_not_invoked()
 
         # Special node: end of graph (e.g. last instruction in main,
         #  exit(), ...)
@@ -100,7 +133,7 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
         self.process_cfg.resolve_broken_succs()
 
         graph = self.process_cfg.basic_cfg
-        self.display_graph(graph)
+        self.display_graph(graph, False)
 
     def get_function_calls(self):
         """It returns a graph with the function calls
@@ -202,7 +235,8 @@ class ProcessCFG():
         self.basic_cfg.append_instruction(current_function_name, node)
 
     def resolve_succs_return_calls(self, from_function_name, to_function_name,
-                                   first_from_function_name, instruction):
+                                   first_from_function_name, instruction,
+                                   recursion_functions_list, force_next_real_instr=True):
         """It resolves the *FuncCall* to functions which have
         the Return statment recursevely. Also, it resolves
         the invocations from one method to another recursively.
@@ -220,6 +254,17 @@ class ProcessCFG():
             instruction (pycparser.c_ast.Node): instruction which
                 is going to be linked from *from_function_name*
                 to *to_function_name*.
+            recursion_functions_list (list): list of *tuple* which
+                contains (*from_function_name*, *to_function_name*,
+                *first_from_function_name*) in order to detect
+                infinite loops and stop them (e.g. f(){g();} g()
+                {f();})
+            force_next_real_instr (bool): if *True*, which is the
+                default value, it will take the next real instruction
+                of *instruction* to append the dependencie. If *False*,
+                the *instruction* itself will be used. This parameter
+                is used with *recursion_functions_list* to avoid infinite
+                loops.
         """
         to_function_instructions_cfg = self.basic_cfg.get_cfg(to_function_name)
         to_function_instructions = list(map(lambda instr: instr.get_instruction(),
@@ -227,16 +272,17 @@ class ProcessCFG():
         func_call_instructions = pycutil.get_instructions_of_instance(\
                                     ast.FuncCall, to_function_instructions)
 
-        #print("******************************")
-        #print(f" * from: {from_function_name}")
-        #print(f" * to: {to_function_name}")
-        #print(f" * func call instrs: {list(map(lambda x: type(x), func_call_instructions))}")
-
         for fc_instruction in func_call_instructions:
-            #print(f" ** {fc_instruction.name.name}")
+            # Find the instruction that is making the func call
+            #  to *from_function_name*
             if fc_instruction.name.name == from_function_name:
-                next_instruction = pycutil.get_real_next_instruction(\
-                    to_function_instructions[0], fc_instruction)
+                # FuncCall in *to_function_name* to *from_function_name* found
+
+                if force_next_real_instr:
+                    next_instruction = pycutil.get_real_next_instruction(\
+                        to_function_instructions[0], fc_instruction)
+                else:
+                    next_instruction = fc_instruction
 
                 if next_instruction is None:
                     # Tail recursion optimization -> instead of return to the
@@ -246,12 +292,52 @@ class ProcessCFG():
                     #  instruction
                     function_invoked_by = self.basic_cfg.get_function_invoked_by()
                     function_invoked_by = function_invoked_by[to_function_name]
+                    instructions = pycutil.get_instruction_path(fc_instruction)
+                    index = to_function_instructions.index(instructions[-1])
 
                     for invoke in function_invoked_by:
-                        self.resolve_succs_return_calls(to_function_name, invoke,
-                                                        first_from_function_name,
-                                                        instruction)
+                        if invoke == to_function_name:
+                            # Recursion detected. We have to avoid infinite loop
+                            to_function_instructions_cfg[index].remove_all_succs()
+
+                            # Get the body of the function
+                            compound =\
+                            pycutil.get_instructions_of_instance(ast.Compound,
+                                                                 to_function_instructions)
+
+                            if len(compound) != 0:
+                                # Try to get the first instruction of the function
+
+                                first_compound_element = compound[0].block_items
+                                if compound[0].block_items is not None:
+                                    first_compound_element = compound[0].block_items[0]
+
+                                # Append the first instruction or the 'Compound' element
+                                to_function_instructions_cfg[index].append_succ(
+                                    to_function_instructions_cfg
+                                    [to_function_instructions.index(first_compound_element)])
+                        else:
+                            # Resolve recursively the dependencies that are not recursion
+                            current_recursion_functions = [(to_function_name, invoke,
+                                                            first_from_function_name)]
+                            force_next_real_instr_aux = True
+
+                            if current_recursion_functions[0] in recursion_functions_list:
+                                # Avoiding infinite loop: stop taking the next instruction
+                                #  because it is in the same function itself or in a loop
+                                #  of functions
+                                force_next_real_instr_aux = False
+
+                            self.resolve_succs_return_calls(to_function_name, invoke,
+                                                            first_from_function_name,
+                                                            instruction,
+                                                            recursion_functions_list +
+                                                            current_recursion_functions,
+                                                            force_next_real_instr_aux
+                                                            )
                 else:
+                    # There is next instruction, so append it to 'instruction'
+                    # Get indexes to append
                     to_function_index = list(map(lambda instr:
                                                  instr.get_instruction(),
                                                  self.basic_cfg.get_cfg\
@@ -262,15 +348,34 @@ class ProcessCFG():
                                                    self.basic_cfg.get_cfg\
                                                        (first_from_function_name)))\
                                                        .index(instruction)
-                    #print(f" ** to_function_index: {to_function_index}")
-                    #print(f" ** from_function_index: {from_function_index}")
-                    #print(f" ** function: {to_function_name}")
-                    #print(f" ** instruction: {to_function_instructions_cfg[to_function_index].get_type()}")
-                    #print(f" ** function: {from_function_name}")
-                    #print(f" ** instruction: {from_function_instructions_cfg[from_function_index].get_type()}")
+
+                    # Get initial function where we have to append the jump
                     from_function_instructions_cfg = self.basic_cfg.get_cfg\
                                                          (first_from_function_name)
 
+                    if (from_function_instructions_cfg[from_function_index] ==\
+                        to_function_instructions_cfg[to_function_index] and
+                            to_function_name == from_function_name):
+                        # Recursion and attempt of insert a dependency of itself
+                        from_function_instructions = list(map(lambda x: x.get_instruction(),
+                                                              from_function_instructions_cfg))
+                        compound = pycutil.get_instructions_of_instance(
+                            ast.Compound,
+                            from_function_instructions)
+
+                        if len(compound) == 0:
+                            raise BOAModuleException("could not get the 'Compound' element"
+                                                     " when a dependency tried to be dependent"
+                                                     " of itself", self)
+
+                        if compound[0].block_items is None:
+                            to_function_index =\
+                                from_function_instructions.index(compound[0])
+                        else:
+                            to_function_index =\
+                                from_function_instructions.index(compound[0].block_items[0])
+
+                    # Append the jump
                     from_function_instructions_cfg[from_function_index]\
                         .append_succ(to_function_instructions_cfg\
                                         [to_function_index])
@@ -283,31 +388,56 @@ class ProcessCFG():
         """
         function_invoked_by = self.get_function_invoked_by()
 
-        for function, invoked_by in function_invoked_by.items():
+        for function_name, invoked_by in function_invoked_by.items():
 
-            if function == "main":
+            if function_name == "main":
                 # Main function is always invoked
                 continue
 
             if len(invoked_by) == 0:
                 # This function is not being invoked
                 instructions = list(map(lambda instr: instr.get_instruction(),
-                                        self.basic_cfg.get_cfg(function)))
+                                        self.basic_cfg.get_cfg(function_name)))
                 not_invoked_node = cfg.NotInvoked()
 
-                for instr in instructions:
-                    if isinstance(instr, ast.Compound):
-                        # It should be the body of the function
-                        if instr.block_items is None:
-                            instr.block_items = [not_invoked_node]
-                        else:
-                            instr.block_items.append(not_invoked_node)
+                if not pycutil.append_element_to_function(not_invoked_node,
+                                                          func_def=instructions[0]):
+                    eprint(f"Warning: could not insert 'NotInvoked' node in '{function_name}'.")
+                    continue
 
-                        # It appends the new node
-                        self.basic_cfg.append_instruction(function,
-                                                          not_invoked_node)
+                self.basic_cfg.append_instruction(function_name,
+                                                  not_invoked_node)
 
-                        break
+    def append_end_of_function_nodes(self):
+        """It appends the special node *EndOfFunc* to avoid
+        problems with recursion when resolving CFG.
+
+        Example:
+            The following code would cause an infinite loop
+            if the node *EndOfFunc* was not appended.
+
+            void foo()
+            {
+                bar();
+            }
+
+            void bar()
+            {
+                foo();
+            }
+        """
+        functions = self.get_function_calls()
+
+        for function_name in functions.keys():
+            function_cfg = self.basic_cfg.get_cfg(function_name)
+            function = list(map(lambda x: x.get_instruction(), function_cfg))
+            end_of_func = cfg.EndOfFunc()
+
+            if not pycutil.append_element_to_function(end_of_func, func_def=function[0]):
+                eprint(f"Warning: could not insert 'EndOfFunc' node in '{function_name}'.")
+                continue
+
+            self.basic_cfg.append_instruction(function_name, end_of_func)
 
     def resolve_end_of_graph_nodes(self):
         """It resolves those nodes which are the end of
@@ -316,7 +446,6 @@ class ProcessCFG():
         functions = self.basic_cfg.get_cfg(None)
 
         for function_name, instructions in functions.items():
-            types = list(map(lambda x: x.get_type(), instructions))
             instructions_pyc = list(map(lambda x: x.get_instruction(),
                                         instructions))
 
@@ -324,19 +453,12 @@ class ProcessCFG():
             if function_name == "main":
                 end_of_graph_node = cfg.FinalNode()
 
-                for instr in instructions_pyc:
-                    if isinstance(instr, ast.Compound):
-                        # It should be the body of the function
-                        if instr.block_items is None:
-                            instr.block_items = [end_of_graph_node]
-                        else:
-                            instr.block_items.append(end_of_graph_node)
+                if not pycutil.append_element_to_function(end_of_graph_node,
+                                                          func_def=instructions_pyc[0]):
+                    eprint(f"Warning: could not insert 'FinalNode' node in '{function_name}'.")
+                    continue
 
-                        # It appends the new node
-                        self.basic_cfg.append_instruction(function_name,
-                                                          end_of_graph_node)
-
-                        break
+                self.basic_cfg.append_instruction(function_name, end_of_graph_node)
 
             last_compound = None
 
@@ -424,9 +546,18 @@ class ProcessCFG():
 
         for invoke in function_invoked_by:
             self.resolve_succs_return_calls(function_name, invoke,
-                                            function_name, instr_to_functions)
+                                            function_name, instr_to_functions,
+                                            [(function_name, invoke, function_name)])
             #rtn_instrs[-1].append_succ(
             #    self.basic_cfg.get_cfg(invoke)[0])
+
+        if len(rtn_instruction.get_succs()) == 0:
+            # The return statement does not have dependencies yet
+            #  so append the next instruction if possible as dependency
+            index = function_instructions.index(rtn_instruction)
+
+            if index + 1 != len(function_instructions):
+                rtn_instruction.append_succ(function_instructions[index + 1])
 
     def resolve_succs(self, function_name, function_invoked_by):
         """It resolves the successives instructions of
@@ -439,12 +570,12 @@ class ProcessCFG():
         """
         instructions = self.basic_cfg.get_cfg(function_name)
 
-        print(f" -------------{'-' * len(function_name)}---")
-        print(f" -- Function: {function_name} --")
-        print(f" -------------{'-' * len(function_name)}---")
+        #print(f" -------------{'-' * len(function_name)}---")
+        #print(f" -- Function: {function_name} --")
+        #print(f" -------------{'-' * len(function_name)}---")
 
         if instructions is None:
-            print(" -- Not present (C library?)")
+            #print(" -- Not present (C library?)")
             return
 
         index = 0
@@ -453,7 +584,7 @@ class ProcessCFG():
             instruction = instructions[index]
             real_instruction = instruction.get_instruction()
 
-            print(f" -- Instruction: {instruction.get_type()}")
+            #print(f" -- Instruction: {instruction.get_type()}")
             if instruction.get_type() in self.branching_instr:
                 if isinstance(real_instruction, ast.Return):
                     self.resolve_succs_return(function_name, instruction,
@@ -464,14 +595,18 @@ class ProcessCFG():
                     # The end of the graph must not have successive instructions
                     index += 1
                     continue
-                elif index + 1 != len(instructions):
+
+                if index + 1 != len(instructions):
                     # Is not the last instruction
-                    instruction.append_succ(instructions[index + 1])
+                    if len(instruction.get_succs()) == 0:
+                        # If contains previous dependencies, this default
+                        #  appendinness should not happen
+                        instruction.append_succ(instructions[index + 1])
                 else:
                     # Is the last instruction -> successive instruction will
                     #  be the function which invokes to the current function
-                    # TODO does it work do nothing when there is not return?
-                    pass
+                    self.resolve_succs_return(function_name, instruction,
+                                              instructions, function_invoked_by)
 
             index += 1
 
