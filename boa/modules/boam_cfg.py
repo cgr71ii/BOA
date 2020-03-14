@@ -130,7 +130,7 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
 
         # Resolve those dependencies which could not be resolved before
         #  for some reason
-        self.process_cfg.resolve_broken_succs()
+        #self.process_cfg.resolve_broken_succs()
 
         graph = self.process_cfg.basic_cfg
         self.display_graph(graph, False)
@@ -559,6 +559,36 @@ class ProcessCFG():
             if index + 1 != len(function_instructions):
                 rtn_instruction.append_succ(function_instructions[index + 1])
 
+    def resolve_succs_goto(self, instruction, instructions):
+        """It resolves the Goto and Label statements.
+
+        Arguments:
+            instruction (pycparser_cfg.Instruction):
+                Goto statement.
+            instructions (list): list of instructions of
+                the function which contains the Goto
+                (and Label) statement(s). The type is
+                *pycparser_cfg.Instruction*.
+        """
+        real_instruction = instruction.get_instruction()
+        real_instructions = list(map(lambda x: x.get_instruction(), instructions))
+        index = real_instructions.index(real_instruction)
+        label_instruction = None
+        label_index = 0
+
+        for instr in real_instructions:
+            if (isinstance(instr, ast.Label) and
+                    instr.name == real_instruction.name):
+                label_instruction = instr
+                break
+            label_index += 1
+
+        if label_instruction is None:
+            eprint("Warning: found 'goto' statement without 'label' statement.")
+            return
+
+        instructions[index].append_succ(instructions[label_index])
+
     def resolve_succs(self, function_name, function_invoked_by):
         """It resolves the successives instructions of
         a concrete function.
@@ -589,6 +619,8 @@ class ProcessCFG():
                 if isinstance(real_instruction, ast.Return):
                     self.resolve_succs_return(function_name, instruction,
                                               instructions, function_invoked_by)
+                elif isinstance(real_instruction, ast.Goto):
+                    self.resolve_succs_goto(instruction, instructions)
             else:
                 # Normal instruction (not branching)
                 if isinstance(real_instruction, cfg.FinalNode):
