@@ -11,6 +11,24 @@ from util import get_just_type
 
 VISITOR_NC = PreorderVisitor()
 
+class PycparserException(Exception):
+    """PycparserException exception.
+
+    This exception is raised in methods which are intended
+    to be using the Pycparser parser. It is a general exception
+    used to explain a error when handling pycparser jobs.
+    """
+
+    def __init__(self, message):
+        """It redefined self.message with the goal of be more
+        verbose.
+
+        Arguments:
+            message (str): custom message to be displayed when
+                the exception is raised.
+        """
+        super(PycparserException, self).__init__(f"pycparser: {message}")
+
 def get_instruction_path(instruction):
     """It returns the path of a instruction.
 
@@ -152,24 +170,6 @@ def get_instructions_type(instructions, second_function_to_apply=None):
 
     return result
 
-class PycparserException(Exception):
-    """PycparserException exception.
-
-    This exception is raised in methods which are intended
-    to be using the Pycparser parser. It is a general exception
-    used to explain a error when handling pycparser jobs.
-    """
-
-    def __init__(self, message):
-        """It redefined self.message with the goal of be more
-        verbose.
-
-        Arguments:
-            message (str): custom message to be displayed when
-                the exception is raised.
-        """
-        super(PycparserException, self).__init__(f"pycparser: {message}")
-
 def append_element_to_function(element, compound=None, func_def=None):
     """It attempts to append an element to a function.
 
@@ -180,6 +180,10 @@ def append_element_to_function(element, compound=None, func_def=None):
         func_def (pycparser.c_ast.FuncDef): 'func_def' element of
             the function. If is *None*, *compound* can not be *None*.
 
+    Raises:
+        PycparserException: if the type of the arguments
+            are not the expected.
+
     Returns:
         bool: *True* if *element* could be appended. *False* otherwise
     """
@@ -187,7 +191,9 @@ def append_element_to_function(element, compound=None, func_def=None):
             func_def is None):
         return False
     if not isinstance(element, ast.Node):
-        return False
+        raise PycparserException("'element' was expected to be"
+                                 " 'pycparser.c_ast.Node' but"
+                                 f" is '{get_just_type(element)}'")
 
     if compound is None:
         compound =\
@@ -205,3 +211,32 @@ def append_element_to_function(element, compound=None, func_def=None):
         compound.block_items.append(element)
 
     return True
+
+def append_element_to_for(element, for_element):
+    """It attempts to append an element to a For statement.
+
+    Arguments:
+        element (pycparser.c_ast.Node): element to be appended.
+        for_element (pycparser.c_ast.For): 'for' element.
+    """
+    if not isinstance(element, ast.Node):
+        raise PycparserException("'element' was expected to be"
+                                 " 'pycparser.c_ast.Node' but"
+                                 f" is '{get_just_type(element)}'")
+    if not isinstance(for_element, ast.For):
+        raise PycparserException("'for_element' was expected to"
+                                 " be 'pycparser.c_ast.For' but"
+                                 f" is '{get_just_type(for_element)}'")
+
+    if for_element.stmt is None:
+        for_element.stmt = [element]
+    else:
+        if isinstance(for_element.stmt, ast.Compound):
+            # Append element to Compound like if was a function
+            append_element_to_function(element, for_element.stmt)
+        else:
+            # There is just an element (i.e. for (?;?;?)single_statement;), so
+            #  we create a Compound element and append the existant elements and
+            #  the new one
+            compound = ast.Compound([for_element.stmt, element], for_element.stmt.coord)
+            for_element.stmt = compound

@@ -589,6 +589,169 @@ class ProcessCFG():
 
         instructions[index].append_succ(instructions[label_index])
 
+    def resolve_succs_for(self, instruction, instructions):
+        """It resolves the For statement.
+
+        Arguments:
+            instruction (pycparser_cfg.Instruction):
+                For statement.
+            instructions (list): list of instructions of
+                the function which contains the For
+                statement. The type is
+                *pycparser_cfg.Instruction*.
+        """
+        real_instruction = instruction.get_instruction()
+        real_instructions = list(map(lambda x: x.get_instruction(), instructions))
+        index = real_instructions.index(real_instruction)
+        init = real_instruction.init
+        cond = real_instruction.cond
+        after_for_instruction = real_instruction.next
+        for_statement = real_instruction.stmt
+        for_statement_instructions = pycutil.get_instruction_path(for_statement)
+        for_last_instruction = None
+        next_instruction = pycutil.get_real_next_instruction(real_instructions[0],
+                                                             real_instruction)
+
+        if init is not None:
+            # Get the last instruction of init
+            last_instr_init = pycutil.get_instruction_path(init)[-1]
+        if cond is not None:
+            # Get the last instruction of cond
+            last_instr_cond = pycutil.get_instruction_path(cond)[-1]
+        if after_for_instruction is not None:
+            # Get the last instruction of after_for_instruction
+            last_instr_after_for_instruction = pycutil.get_instruction_path(after_for_instruction)[-1]
+        if for_statement is not None:
+            for_last_instruction = for_statement_instructions[-1]
+
+        append_succ = lambda container, to_be_appended: \
+            instructions[real_instructions.index(container)].append_succ\
+                (instructions[real_instructions.index(to_be_appended)])
+        remove_all_succs = lambda instr: instructions[real_instructions.index(instr)]\
+                                                        .remove_all_succs()
+
+        # Succ of For statement
+        remove_all_succs(real_instruction)
+        target = None
+
+        if init is not None:
+            target = init
+        elif cond is not None:
+            target = cond
+        elif for_statement is not None:
+            target = for_statement
+        elif after_for_instruction is not None:
+            target = after_for_instruction
+        else:
+            # Inifinite loop (code: "for (;;);")
+            target = real_instruction
+
+        append_succ(real_instruction, target)
+        # Is the condition the one that finishes the loop
+        #append_succ(real_instruction, next_instruction)
+
+        # Succ of init
+        if init is not None:
+            remove_all_succs(last_instr_init)
+            target = None
+
+            if cond is not None:
+                target = cond
+            elif for_statement is not None:
+                target = for_statement
+            elif after_for_instruction is not None:
+                target = after_for_instruction
+            else:
+                # Infinite loop (code: "for (init;;);")
+                target = real_instruction
+
+            append_succ(last_instr_init, target)
+
+        # Succ of condition
+        if cond is not None:
+            remove_all_succs(last_instr_cond)
+            target = None
+
+            if for_statement is not None:
+                target = for_statement
+            elif after_for_instruction is not None:
+                target = after_for_instruction
+            else:
+                # Infinite loop (code: "for (?;cond;);")
+                target = real_instruction
+
+            append_succ(last_instr_cond, target)
+            append_succ(last_instr_cond, next_instruction)
+
+        # Succ of instruction after looping
+        if after_for_instruction is not None:
+            remove_all_succs(last_instr_after_for_instruction)
+            target = None
+
+            if cond is not None:
+                target = cond
+            elif for_statement is not None:
+                target = for_statement
+            else:
+                # Infinite loop (code: "for (?;;after_for_instruction);")
+                target = real_instruction
+
+            append_succ(last_instr_after_for_instruction, target)
+
+        # Succ of last instruction of For statement
+        if (for_statement is not None and for_last_instruction is not None):
+            remove_all_succs(for_last_instruction)
+            target = None
+
+            if after_for_instruction is not None:
+                target = after_for_instruction
+            elif cond is not None:
+                target = cond
+            #elif for_statement is not None:
+            else:
+                target = for_statement
+            #else:
+                # It should be impossible
+                # Infinite loop (code: "for (?;;)?")
+                #target = real_instruction
+
+            append_succ(for_last_instruction, target)
+
+        if for_statement == for_last_instruction:
+            # TODO check
+            pass
+
+    def append_end_of_loop_for(self, function_name, instruction):
+        """It appends a node at the end of the For statements
+        to avoid problems when resolving dependencies.
+
+        Arguments:
+            function_name (str): name of the function that
+                contains the For statement.
+            instruction (pycparser.c_ast.For): For statement.
+        """
+        instructions = self.basic_cfg.get_cfg(function_name)
+        real_instructions = list(map(lambda x: x.get_instruction(), instructions))
+        index = real_instructions.index(instruction)
+        end_of_loop = cfg.EndOfLoop()
+        for_instructions_before = pycutil.get_instruction_path(real_instructions[index])
+
+        pycutil.append_element_to_for(end_of_loop, instruction)
+
+        for_instructions_after = pycutil.get_instruction_path(real_instructions[index])
+
+        if len(for_instructions_after) - len(for_instructions_before) == 2:
+            # Compound element inserted artificially in AST, so now
+            #  we need to insert it in CFG
+            compound = for_instructions_after[0]
+            compound_index = real_instructions.index(for_instructions_after[1])
+
+            self.basic_cfg.append_instruction(function_name, compound,
+                                              compound_index)
+
+        self.basic_cfg.append_instruction(function_name, end_of_loop,
+                                          index + len(for_instructions_after))
+
     def resolve_succs(self, function_name, function_invoked_by):
         """It resolves the successives instructions of
         a concrete function.
@@ -621,6 +784,10 @@ class ProcessCFG():
                                               instructions, function_invoked_by)
                 elif isinstance(real_instruction, ast.Goto):
                     self.resolve_succs_goto(instruction, instructions)
+                elif isinstance(real_instruction, ast.For):
+                    self.append_end_of_loop_for(function_name,
+                                                instruction.get_instruction())
+                    self.resolve_succs_for(instruction, instructions)
             else:
                 # Normal instruction (not branching)
                 if isinstance(real_instruction, cfg.FinalNode):

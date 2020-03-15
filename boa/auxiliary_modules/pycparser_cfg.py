@@ -37,6 +37,11 @@ class EndOfFunc(ast.EmptyStatement):
     like *FinalNode*, ...)
     """
 
+class EndOfLoop(ast.EmptyStatement):
+    """This element is intended to avoid problems with
+    loops while trying to get the next instruction.
+    """
+
 class CFGException(pycutil.PycparserException):
     """CFGException exception.
 
@@ -165,7 +170,7 @@ class CFG():
         if not is_key_in_dict(self.instructions, function_name):
             self.instructions[function_name] = [instr]
         elif (position is not None and
-              0 <= position < len(self.instructions)):
+              0 <= position < len(self.instructions[function_name])):
             self.instructions[function_name].insert(position, instr)
         else:
             self.instructions[function_name].append(instr)
