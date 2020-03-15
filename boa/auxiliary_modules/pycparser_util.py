@@ -212,31 +212,35 @@ def append_element_to_function(element, compound=None, func_def=None):
 
     return True
 
-def append_element_to_for(element, for_element):
-    """It attempts to append an element to a For statement.
+def append_element_to_loop_stmt(element, loop_element):
+    """It attempts to append an element to a For, While or
+    DoWhile statement.
 
     Arguments:
         element (pycparser.c_ast.Node): element to be appended.
-        for_element (pycparser.c_ast.For): 'for' element.
+        loop_element (pycparser.c_ast.Node): 'for', 'while'
+            of 'do_while' element.
     """
     if not isinstance(element, ast.Node):
         raise PycparserException("'element' was expected to be"
                                  " 'pycparser.c_ast.Node' but"
                                  f" is '{get_just_type(element)}'")
-    if not isinstance(for_element, ast.For):
-        raise PycparserException("'for_element' was expected to"
-                                 " be 'pycparser.c_ast.For' but"
-                                 f" is '{get_just_type(for_element)}'")
+    if not isinstance(loop_element, (ast.For, ast.While, ast.DoWhile)):
+        raise PycparserException("'loop_element' was expected to"
+                                 " be 'pycparser.c_ast.For', "
+                                 "'pycparser.c_ast.While' or "
+                                 "'pycparser.c_ast.DoWhile' but"
+                                 f" is '{get_just_type(loop_element)}'")
 
-    if for_element.stmt is None:
-        for_element.stmt = [element]
+    if loop_element.stmt is None:
+        loop_element.stmt = [element]
     else:
-        if isinstance(for_element.stmt, ast.Compound):
+        if isinstance(loop_element.stmt, ast.Compound):
             # Append element to Compound like if was a function
-            append_element_to_function(element, for_element.stmt)
+            append_element_to_function(element, loop_element.stmt)
         else:
             # There is just an element (i.e. for (?;?;?)single_statement;), so
             #  we create a Compound element and append the existant elements and
             #  the new one
-            compound = ast.Compound([for_element.stmt, element], for_element.stmt.coord)
-            for_element.stmt = compound
+            compound = ast.Compound([loop_element.stmt, element], loop_element.stmt.coord)
+            loop_element.stmt = compound

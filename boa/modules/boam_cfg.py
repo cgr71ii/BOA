@@ -717,18 +717,16 @@ class ProcessCFG():
 
             append_succ(for_last_instruction, target)
 
-        if for_statement == for_last_instruction:
-            # TODO check
-            pass
-
-    def append_end_of_loop_for(self, function_name, instruction):
-        """It appends a node at the end of the For statements
-        to avoid problems when resolving dependencies.
+    def append_end_of_loop_element(self, function_name, instruction):
+        """It appends a node at the end of the For, While and
+        DoWhile statements to avoid problems when resolving
+        dependencies.
 
         Arguments:
             function_name (str): name of the function that
                 contains the For statement.
-            instruction (pycparser.c_ast.For): For statement.
+            instruction (pycparser.c_ast.Node): For, While
+                or DoWhile statement.
         """
         instructions = self.basic_cfg.get_cfg(function_name)
         real_instructions = list(map(lambda x: x.get_instruction(), instructions))
@@ -736,15 +734,16 @@ class ProcessCFG():
         end_of_loop = cfg.EndOfLoop()
         for_instructions_before = pycutil.get_instruction_path(real_instructions[index])
 
-        pycutil.append_element_to_for(end_of_loop, instruction)
+        pycutil.append_element_to_loop_stmt(end_of_loop, instruction)
 
         for_instructions_after = pycutil.get_instruction_path(real_instructions[index])
 
         if len(for_instructions_after) - len(for_instructions_before) == 2:
             # Compound element inserted artificially in AST, so now
             #  we need to insert it in CFG
-            compound = for_instructions_after[0]
-            compound_index = real_instructions.index(for_instructions_after[1])
+            compound = pycutil.get_instructions_of_instance(ast.Compound, for_instructions_after)[0]
+            compound_index = real_instructions.index(for_instructions_after\
+                                                        [for_instructions_after.index(compound) + 1])
 
             self.basic_cfg.append_instruction(function_name, compound,
                                               compound_index)
@@ -785,9 +784,31 @@ class ProcessCFG():
                 elif isinstance(real_instruction, ast.Goto):
                     self.resolve_succs_goto(instruction, instructions)
                 elif isinstance(real_instruction, ast.For):
-                    self.append_end_of_loop_for(function_name,
-                                                instruction.get_instruction())
+                    self.append_end_of_loop_element(function_name,
+                                                    instruction.get_instruction())
                     self.resolve_succs_for(instruction, instructions)
+                elif isinstance(real_instruction, ast.While):
+                    self.append_end_of_loop_element(function_name,
+                                                    instruction.get_instruction())
+                    # TODO resolve succs
+                elif isinstance(real_instruction, ast.DoWhile):
+                    self.append_end_of_loop_element(function_name,
+                                                    instruction.get_instruction())
+                    # TODO resolve succs
+                elif isinstance(real_instruction, ast.FuncCall):
+                    pass
+                elif isinstance(real_instruction, ast.If):
+                    pass
+                elif isinstance(real_instruction, ast.Switch):
+                    pass
+                elif isinstance(real_instruction, ast.Continue):
+                    pass
+                elif isinstance(real_instruction, ast.Break):
+                    pass
+                else:
+                    raise BOAModuleException(f"found instruction of type {type(real_instruction)}"
+                                             " which is defined but not expected (update the"
+                                             " module programming in order to fix it)", self)
             else:
                 # Normal instruction (not branching)
                 if isinstance(real_instruction, cfg.FinalNode):

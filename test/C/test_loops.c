@@ -120,12 +120,54 @@ void D()
     }
 }
 
+void E()
+{
+    while (1)
+        break;
+
+    while (1)
+    {
+        break;
+    }
+
+    while (1)
+    {
+        
+    }
+
+    while (1);
+}
+
+void F()
+{
+    do
+        break;
+    while (1);
+
+    do
+    {
+        break;
+    }
+    while (1);
+
+    do
+    {
+
+    }
+    while (1);
+
+    do break;
+    while (1);
+}
+
 int main(int argc, char** argv)
 {
 	A();
 	B();
 	C();
 	D();
+    E();
+    F();
 
 	return 0;
 }
