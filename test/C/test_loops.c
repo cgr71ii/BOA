@@ -122,42 +122,42 @@ void D()
 
 void E()
 {
-    while (1)
+    while (1 + 2)
         break;
 
-    while (1)
+    while (1 * 2)
     {
         break;
     }
 
-    while (1)
+    while (1 * 2 * 3)
     {
         
     }
 
-    while (1);
+    while (1 * 2 * 4 * 3);
 }
 
 void F()
 {
     do
         break;
-    while (1);
+    while (1 + 2);
 
     do
     {
         break;
     }
-    while (1);
+    while (1 * 2);
 
     do
     {
 
     }
-    while (1);
+    while (1 * 2 * 3);
 
     do break;
-    while (1);
+    while (1 * 2 * 4 * 3);
 }
 
 int main(int argc, char** argv)

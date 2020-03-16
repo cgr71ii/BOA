@@ -19,7 +19,14 @@
             <class_name>BOAModuleControlFlowGraph</class_name>
             <lifecycle_handler>boalc_pycparser_ast.BOALCPycparserAST</lifecycle_handler>
             <args>
-                <!-- Empty -->
+                <dict>
+                    <!-- The default recursion limit is 1000, which
+                            means that a function will be able to call
+                            itself 1000 times. This module has a high
+                            use of recursion, so deppending of your code,
+                            it will be useful to modify this value -->
+                    <element name="recursion_limit" value="1000" />
+                </dict>
             </args>
         </module>
     </modules>

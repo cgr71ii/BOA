@@ -21,6 +21,7 @@ class CFGConstants:
     for working with the CFG.
     """
     exit_functions = ["exit"]   # Append the ones you need
+    default_recursion_limit = 1000
 
 class BOAModuleControlFlowGraph(BOAModuleAbstract):
     """It defines the necessary functions to create the CFG.
@@ -29,10 +30,28 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
     def initialize(self):
         """It initialices the class.
         """
-        #self.functions = {}
+        # Check if a recursion limit was specified
+        if is_key_in_dict(self.args, "recursion_limit"):
+            recursion_limit = CFGConstants.default_recursion_limit
+
+            try:
+                recursion_limit = int(self.args["recursion_limit"])
+            except ValueError:
+                raise BOAModuleException("the argument 'recursion_limit' has to"
+                                         " have a numeric value (check your rules"
+                                         " file)", self)
+
+            sys.setrecursionlimit(recursion_limit)
+
         self.process_cfg = ProcessCFG()
 
     def process(self, token):
+        """It process every FuncDef which is found.
+
+        Arguments:
+            token (pycparser.c_ast.Node): node from
+                the AST.
+        """
         if isinstance(token, ast.FuncDef):
             function = token
             function_name = function.decl.name
@@ -104,6 +123,7 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
                                       f" in '{inner_function}' **")
                                 print()
                         except:
+                            # Avoid the throwness of exceptions
                             pass
                 index += 1
 
@@ -155,8 +175,12 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
         return self.process_cfg.get_basic_cfg()
 
 class ProcessCFG():
+    """Class which builds the CFG.
+    """
 
     def __init__(self):
+        """It initializes the necessary variables.
+        """
         self.basic_cfg = cfg.CFG()
         self.funcion_calls = {}
         self.branching_instr = [ast.FuncCall, ast.If, ast.For, ast.While,
@@ -167,7 +191,7 @@ class ProcessCFG():
         """It process a concrete function for the CFG.
         It completes the CFG incrementally.
 
-        Parameters:
+        Arguments:
             function_name (str): function name.
             function (pycparser.c_ast.FuncDef): code of the function.
         """
@@ -241,7 +265,7 @@ class ProcessCFG():
         the Return statment recursevely. Also, it resolves
         the invocations from one method to another recursively.
 
-        Parameters:
+        Arguments:
             from_function_name (str): function which contains
                 the Return statement or, because of recursion,
                 other *FuncCall*.
@@ -521,7 +545,7 @@ class ProcessCFG():
         """It resolves the successive instructions of a
         return statement and all the dependencies.
 
-        Parameters:
+        Arguments:
             function_name (str): name of the function which contains
                 the Return statement.
             rtn_instruction (pycparser_cfg.Instruction): return instruction.
@@ -590,7 +614,7 @@ class ProcessCFG():
         instructions[index].append_succ(instructions[label_index])
 
     def resolve_succs_for(self, instruction, instructions):
-        """It resolves the For statement.
+        """It resolves the For statement dependencies.
 
         Arguments:
             instruction (pycparser_cfg.Instruction):
@@ -602,7 +626,6 @@ class ProcessCFG():
         """
         real_instruction = instruction.get_instruction()
         real_instructions = list(map(lambda x: x.get_instruction(), instructions))
-        index = real_instructions.index(real_instruction)
         init = real_instruction.init
         cond = real_instruction.cond
         after_for_instruction = real_instruction.next
@@ -620,7 +643,8 @@ class ProcessCFG():
             last_instr_cond = pycutil.get_instruction_path(cond)[-1]
         if after_for_instruction is not None:
             # Get the last instruction of after_for_instruction
-            last_instr_after_for_instruction = pycutil.get_instruction_path(after_for_instruction)[-1]
+            last_instr_after_for_instruction = pycutil.get_instruction_path\
+                                                (after_for_instruction)[-1]
         if for_statement is not None:
             for_last_instruction = for_statement_instructions[-1]
 
@@ -700,6 +724,10 @@ class ProcessCFG():
 
         # Succ of last instruction of For statement
         if (for_statement is not None and for_last_instruction is not None):
+            # for_last_instruction will be always EndOfLoop, so
+            #  no importants dependencies will be removed (e.g.
+            #  Return statement dependencies which may be from
+            #  other functions)
             remove_all_succs(for_last_instruction)
             target = None
 
@@ -751,6 +779,59 @@ class ProcessCFG():
         self.basic_cfg.append_instruction(function_name, end_of_loop,
                                           index + len(for_instructions_after))
 
+    def resolve_succs_while_and_do(self, instruction, instructions):
+        """It resolves the While and DoWhile statements
+        dependencies.
+
+        Arguments:
+            instruction (pycparser_cfg.Instruction):
+                While or DoWhile statement.
+            instructions (list): list of instructions of
+                the function which contains the For
+                statement. The type is
+                *pycparser_cfg.Instruction*.
+        """
+        real_instruction = instruction.get_instruction()
+        real_instructions = list(map(lambda x: x.get_instruction(), instructions))
+        index = real_instructions.index(real_instruction)
+        cond = real_instruction.cond # It will not be None because of C's semantics
+        cond_instructions = pycutil.get_instruction_path(cond)
+
+        if len(cond_instructions) == 0:
+            # It contains a single primitive instruction (e.g. a constant number)
+            cond_instructions = [cond]
+
+        first_cond_instruction_index = index + 1
+        last_cond_instruction_index = real_instructions.index(cond_instructions[-1])
+        stmt = real_instruction.stmt # It will not be None and will be Compound
+        while_instructions = stmt.block_items
+        first_instruction_index = real_instructions.index(stmt)
+        last_instruction_index = real_instructions.index(while_instructions[-1])
+        next_instruction = pycutil.get_real_next_instruction(real_instructions[0],
+                                                             real_instruction)
+        next_instruction_index = real_instructions.index(next_instruction)
+
+        # Append succ of While statement
+        if isinstance(real_instruction, ast.While):
+            instruction.append_succ(instructions[first_cond_instruction_index])
+        else:
+            instruction.append_succ(instructions[first_instruction_index])
+
+        # Append succ of last cond instruction
+        instructions[last_cond_instruction_index].append_succ(instructions[next_instruction_index])
+
+        if isinstance(real_instruction, ast.While):
+            instructions[last_cond_instruction_index].append_succ(
+                instructions[last_cond_instruction_index + 1])
+        else:
+            instructions[last_cond_instruction_index].append_succ(
+                instructions[first_instruction_index])
+
+        # Remove and append succ of last instruction
+        instructions[last_instruction_index].remove_all_succs()
+        instructions[last_instruction_index].append_succ(instructions\
+                                                            [first_cond_instruction_index])
+
     def resolve_succs(self, function_name, function_invoked_by):
         """It resolves the successives instructions of
         a concrete function.
@@ -790,11 +871,11 @@ class ProcessCFG():
                 elif isinstance(real_instruction, ast.While):
                     self.append_end_of_loop_element(function_name,
                                                     instruction.get_instruction())
-                    # TODO resolve succs
+                    self.resolve_succs_while_and_do(instruction, instructions)
                 elif isinstance(real_instruction, ast.DoWhile):
                     self.append_end_of_loop_element(function_name,
                                                     instruction.get_instruction())
-                    # TODO resolve succs
+                    self.resolve_succs_while_and_do(instruction, instructions)
                 elif isinstance(real_instruction, ast.FuncCall):
                     pass
                 elif isinstance(real_instruction, ast.If):

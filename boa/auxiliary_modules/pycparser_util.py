@@ -45,7 +45,8 @@ def get_instruction_path(instruction):
             type.
 
     Returns:
-        list: list of instructions starting in *instruction*
+        list: list of instructions starting in *instruction* if, at
+        least, contains other instruction besides of *instruction*
     """
     if not isinstance(instruction, ast.Node):
         raise PycparserException("'instruction' was expected to be"
@@ -97,7 +98,7 @@ def get_real_next_instruction(root, instruction):
     next Pycparser instruction which could be an inner definition
     of an instruction.
 
-    Parameters:
+    Arguments:
         root (pycparser.c_ast.Node): starting point to look for
             *instruction* and try to get the next. Usually will
             be a function.
@@ -140,7 +141,7 @@ def get_real_next_instruction(root, instruction):
 def get_instructions_type(instructions, second_function_to_apply=None):
     """It maps the instructions to their types.
 
-    Parameters:
+    Arguments:
         instructions (list): list of instructions.
         second_function_to_apply (lambda): optional second
             function to apply. Default value is *None*.
@@ -244,3 +245,26 @@ def append_element_to_loop_stmt(element, loop_element):
             #  the new one
             compound = ast.Compound([loop_element.stmt, element], loop_element.stmt.coord)
             loop_element.stmt = compound
+
+def is_primitive_instruction(instruction):
+    """It checks if *instruction* is primitive, which means
+    that is a leaf of the AST.
+
+    Arguments:
+        instruction (pycparser.c_ast.Node): instruction to check
+            if it is a leaf of the AST.
+
+    Raises:
+        PycparserException: if the type of the arguments are not
+            the expected.
+
+    Returns:
+        bool: *True* if *instruction* is a leaf of the AST. *False*
+        otherwise
+    """
+    if not isinstance(instruction, ast.Node):
+        raise PycparserException("'instruction' was expected to be"
+                                 " 'pycparser.c_ast.Node' but is"
+                                 f" '{get_just_type(instruction)}'")
+
+    return len(get_instruction_path(instruction)) == 0

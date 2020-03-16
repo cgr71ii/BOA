@@ -303,7 +303,7 @@ def get_just_type(instance, instance_type=None):
         type("foo") returns "<class 'str'>"
         get_just_type("foo") returns "str"
 
-    Parameters:
+    Arguments:
         instance (object): target variable.
         instance_type (type): target variable type.
             It is optional. The default value is
