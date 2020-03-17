@@ -37,7 +37,7 @@
                     <element name="plot_cfg" value="true" />
                     <!-- The default value is 'true'. If 'false', the
                             lines of the plot will always been drawn. If
-                            'true', the lines will be drawn is the line
+                            'true', the lines will be drawn if the line
                             is within the axes. It is applied only if
                             'plot_cfg' is 'true'  -->
                     <element name="lines_clip" value="false" />
