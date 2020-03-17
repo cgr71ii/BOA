@@ -55,6 +55,30 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
 
         self.process_cfg = ProcessCFG()
         self.is_matplotlib_loaded = __matplotlib_loaded__
+        self.display_cfg = False
+        self.plot_cfg = False
+        self.lines_clip = True
+
+        if is_key_in_dict(self.args, "display_cfg"):
+            if self.args["display_cfg"].lower() == "true":
+                self.display_cfg = True
+            elif self.args["display_cfg"].lower() != "false":
+                raise BOAModuleException("the argument 'display_cfg' only allows"
+                                         " the values 'true' or 'false'")
+
+        if is_key_in_dict(self.args, "plot_cfg"):
+            if self.args["plot_cfg"].lower() == "true":
+                self.plot_cfg = True
+            elif self.args["plot_cfg"].lower() != "false":
+                raise BOAModuleException("the argument 'plot_cfg' only allows"
+                                         " the values 'true' or 'false'")
+
+        if is_key_in_dict(self.args, "lines_clip"):
+            if self.args["lines_clip"].lower() == "false":
+                self.lines_clip = False
+            elif self.args["lines_clip"].lower() != "true":
+                raise BOAModuleException("the argument 'lines_clip' only allows"
+                                         " the values 'true' or 'false'")
 
     def process(self, token):
         """It process every FuncDef which is found.
@@ -213,9 +237,9 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
 
             index += 1
 
-        # Plot all the instructions
+        # Plot the verbose text for the instructions
         for i, _txt in enumerate(txt):
-            ax.annotate(_txt, (x[i], y[i]))
+            ax.annotate(_txt, (x[i] + 0.1, y[i] - 0.1), size=10.0)
 
         # Plot dependencies (lines)
         for _x_line, _y_line in zip(x_line, y_line):
@@ -225,7 +249,8 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
             while index < len(_x_line[1]):
                 plt.annotate(s="", xy=(_x_line[0], _y_line[0]), xytext=(_x_line[1][index],
                                                                         _y_line[1][index]),
-                             arrowprops=dict(arrowstyle='<-'))
+                             arrowprops=dict(arrowstyle='<-', color='darkblue', linewidth=2.0),
+                             annotation_clip=self.lines_clip)
                 index += 1
 
         # Plot the instructions (points)
@@ -317,10 +342,11 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
         #self.process_cfg.resolve_broken_succs()
 
         graph = self.process_cfg.basic_cfg
-        if self.is_matplotlib_loaded:
-            self.plot_graph(graph)
-        else:
+
+        if self.display_cfg:
             self.display_graph(graph, False)
+        if (self.is_matplotlib_loaded and self.plot_cfg):
+            self.plot_graph(graph)
 
     def get_function_calls(self):
         """It returns a graph with the function calls

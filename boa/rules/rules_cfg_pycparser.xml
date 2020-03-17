@@ -26,6 +26,21 @@
                             use of recursion, so deppending of your code,
                             it will be useful to modify this value -->
                     <element name="recursion_limit" value="1000" />
+                    <!-- The default value is 'false'. If 'true', the
+                            CFG will be displayed in the terminal -->
+                    <element name="display_cfg" value="false" />
+                    <!-- The default value is 'false'. If 'true', the
+                            CFG will be plotted through the library
+                            Matplotlib. If the library is not installed,
+                            the execution will continue but the CFG will
+                            not be plotted -->
+                    <element name="plot_cfg" value="true" />
+                    <!-- The default value is 'true'. If 'false', the
+                            lines of the plot will always been drawn. If
+                            'true', the lines will be drawn is the line
+                            is within the axes. It is applied only if
+                            'plot_cfg' is 'true'  -->
+                    <element name="lines_clip" value="false" />
                 </dict>
             </args>
         </module>
