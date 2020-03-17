@@ -7,7 +7,7 @@ import pycparser.c_ast as ast
 
 # Own imports
 from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
-from util import get_just_type
+from util import get_just_type, is_key_in_dict
 
 VISITOR_NC = PreorderVisitor()
 
@@ -268,3 +268,60 @@ def is_primitive_instruction(instruction):
                                  f" '{get_just_type(instruction)}'")
 
     return len(get_instruction_path(instruction)) == 0
+
+def get_parents(instructions):
+    """It gets the parents of *instructions*.
+
+    Arguments:
+        instructions (list): list of instructions of type
+            *pycparser.c_ast.Node*.
+
+    Raises:
+        PycparserException: if the type of the arguments
+            are not the expected.
+
+    Returns:
+        dict: contains each instruction and its found parent
+        (if could be found)
+    """
+    result = {}
+
+    for instr in instructions:
+        if not isinstance(instr, ast.Node):
+            raise PycparserException("'instructions' elements were expected"
+                                     " to be 'pycparser.c_ast.Node', but are"
+                                     " (some or all) "
+                                     f"'{get_just_type(instr)}'")
+
+        direct_children = VISITOR_NC.visit_and_return_first_path(instr)
+
+        for child in direct_children:
+            if not is_key_in_dict(result, child):
+                result[child] = instr
+            else:
+                print("asdasd")
+
+    return result
+
+def get_deepness_level(initial_instr, parents, rec_instr, top_reference):
+    """It returns the deepness level.
+
+    Arguments:
+        initial_instr (pycparser.c_ast.Node): instruction which we are
+            looking for its deepness level with *top_reference* as reference.
+        parents (dict): necessary parents of a list of instruction which are
+            needed for calculate the depness level (you can use
+            *get_parents(initial_instr)* for providing the parents).
+        rec_instr (pycparser.c_ast.Node): recursive instruction, which
+            initialy should be equal to *initial_instr*.
+        top_reference (pycparser.c_ast.Node): reference which will be looking
+            for in order to know when to stop the looking. Usually it is a node
+            of type *pycparser.c_ast.FuncDef* or *pycparser.c_ast.Compound*.
+
+    Returns:
+        int: deepness level
+    """
+    if rec_instr == top_reference:
+        return 0
+
+    return 1 + get_deepness_level(initial_instr, parents, parents[rec_instr], top_reference)

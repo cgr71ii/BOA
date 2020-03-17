@@ -71,6 +71,29 @@ class PreorderVisitor(NodeVisitor):
 
         return result
 
+    def visit_and_return_first_path(self, node):
+        """It makes the preorder path throught the AST.
+
+        Arguments:
+            node (pycparser.c_ast.Node): AST node which
+                is going to be visited in preorder
+                recursively.
+
+        Returns:
+            list: first path (direct children)
+        """
+        if node is None:
+            return []
+
+        result = []
+
+        for n in node:
+            if not isinstance(n, tuple):
+                self.callback(n)
+                result.append(n)
+
+        return result
+
     def _visit(self, node, recursion_deepness):
         """It makes the preorder path throught the AST.
         You can specify a recursion deepness.

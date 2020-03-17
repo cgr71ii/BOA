@@ -10,11 +10,21 @@ import pycparser.c_ast as ast
 # Own libs
 from boam_abstract import BOAModuleAbstract
 from constants import Meta
-from util import eprint, is_key_in_dict, get_just_type
+from util import eprint, is_key_in_dict, get_just_type, get_name_from_class_instance
 from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
 import auxiliary_modules.pycparser_cfg as cfg
 import auxiliary_modules.pycparser_util as pycutil
 from own_exceptions import BOAModuleException
+
+__matplotlib_loaded__ = False
+
+try:
+    import matplotlib.pyplot as plt
+    __matplotlib_loaded__ = True
+except ModuleNotFoundError as e:
+    print(f"Info: BOAModuleControlFlowGraph: {e}.")
+except ImportError as e:
+    print(f"Info: BOAModuleControlFlowGraph: {e}.")
 
 class CFGConstants:
     """Class which contains the necessary constants
@@ -44,6 +54,7 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
             sys.setrecursionlimit(recursion_limit)
 
         self.process_cfg = ProcessCFG()
+        self.is_matplotlib_loaded = __matplotlib_loaded__
 
     def process(self, token):
         """It process every FuncDef which is found.
@@ -68,6 +79,159 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
     def save(self, report):
         """It does nothing
         """
+
+    def plot_graph(self, graph):
+        """It plots the graph iterating over it.
+
+        Arguments:
+            graph (CFG): graph.
+        """
+        if not self.is_matplotlib_loaded:
+            eprint("Warning: 'matplotlib' could not be loaded. It will not"
+                   " be possible to plot the graph.")
+            return
+
+        # Variables for plotting
+        # Instructions
+        functions = []  # Function of the concrete instruction (x, y)
+        x = []          # x coordinate of the instruction
+        y = []          # y coordinate of the instruction
+        txt = []        # Descriptive information to visualizate per instruction
+        # Dependencies (its format is different throughout the process)
+        x_line = []     # x coordinate of dependencies
+                        #  final format: [x_origin, [x_dependency_1, ...]]
+        y_line = []     # y coordinate of dependencies
+                        #  final format: [y_origin, [y_dependency_1, ...]]
+
+        function_x = 1.0    # x coordinate of the current function
+
+        fig, ax = plt.subplots()
+
+        for function in graph.get_function_calls():
+            index = 0
+            instructions = graph.get_cfg(function)
+            is_func_def = False
+            func_instrs = []
+            func_instrs_parents = {}
+
+            # Offset variables to control the x and y coordinates
+            function_y = 1.0    # Height of the instruction which is modified
+                                #  as an offset itself throughout the process
+            max_deepness = 0    # Max reached deepness in the current function
+                                #  in order to know how much width we need to
+                                #  add
+            deepness = 0        # Current deepness of the instruction to modify
+                                #  the width of the instruction itself
+
+            for instruction in instructions:
+                if isinstance(instruction.get_instruction(), ast.FuncDef):
+                    # Initialize the necessary variables when a new function is reached
+                    is_func_def = True
+                    func_instrs = pycutil.get_instruction_path(instruction.get_instruction())
+                    func_instrs.insert(0, instruction.get_instruction())
+                    func_instrs_parents = pycutil.get_parents(func_instrs)
+                elif (is_func_def and instruction.get_instruction() not in func_instrs):
+                    # Reset the variables
+                    is_func_def = False
+                    func_instrs = []
+                    func_instrs_parents = {}
+                    deepness = 0
+                elif is_func_def:
+                    # Get the deepness in order to have a "good" visualization of the function
+                    deepness = pycutil.get_deepness_level(instruction.get_instruction(),
+                                                          func_instrs_parents,
+                                                          instruction.get_instruction(),
+                                                          func_instrs[0])
+                    max_deepness = max(deepness, max_deepness)
+
+                # Get the most verbose part of the instruction
+                instr_type = get_just_type(None, instruction.get_type()).split(".")[2]
+
+                # Store the necessary information for plot the instructions
+                functions.append(function)
+                x.append(function_x + deepness * 0.5)   # deepness is used in order to
+                                                        #  plot the instructions in a way
+                                                        #  that can be "easily" visualized
+                y.append(function_y)
+
+                # Store the origin of the instruction for, later, plot the dependencies (lines)
+                x_line_aux = [x[-1]]
+                y_line_aux = [y[-1]]
+
+                # Set the text which is going to be visualized in each instruction
+                txt.append(f"{function}.{instr_type}")
+
+                for dependency in instruction.get_succs():
+                    for inner_function in graph.get_function_calls():
+                        try:
+                            # Append the necessary information that will be necessary after
+                            #  all the process is done in order to calculate the dependencies
+                            #  and plot the lines. It is not done the calculus now because
+                            #  there are instructions that are dependencies that have not been
+                            #  reached yet. Once all those instructions are reached, which means
+                            #  have finished the process, it will be possible to process the
+                            #  dependencies and have the coordinates to plot the lines
+                            dependency_index = graph.get_cfg(inner_function).index(dependency)
+                            x_line_aux.append([inner_function, dependency_index])
+                            x_line.append(x_line_aux)
+                            y_line.append(y_line_aux)
+                        except:
+                            # Avoid the throwness of exceptions
+                            pass
+
+                function_y += 10.0
+                index += 1
+
+            # Where a new function starts the x coordinate
+            function_x += 1.0 + max_deepness * 0.5
+
+        index = 0
+
+        # Now that all the instructions have been processed, we have all
+        #  the necessary information for process the dependencies/lines
+        while index < len(x_line):
+            # x_lines = [origin_x, [target_function_1, index_1], [...], ...]
+            target_dest = []
+
+            # Get the coordinates of the dependencies
+            for target in x_line[index][1:]:
+                target_function = target[0]
+                target_function_index = target[1]
+                x_index = functions.index(target_function) + target_function_index
+
+                target_dest.append([x[x_index], y[x_index]])
+
+            # Redefine x_line and y_line: [origin, [dependencie_1, ...]]
+            x_line[index] = [x_line[index][0], []]
+            y_line[index] = [y_line[index][0], []]
+
+            # Store all the dependencies
+            for target in target_dest:
+                # [origin_x, [dest_x_1, dest_x_2, ...]]
+                x_line[index][1].append(target[0])
+                y_line[index][1].append(target[1])
+
+            index += 1
+
+        # Plot all the instructions
+        for i, _txt in enumerate(txt):
+            ax.annotate(_txt, (x[i], y[i]))
+
+        # Plot dependencies (lines)
+        for _x_line, _y_line in zip(x_line, y_line):
+            index = 0
+
+            # For the current instruction, plot all dependencies (lines)
+            while index < len(_x_line[1]):
+                plt.annotate(s="", xy=(_x_line[0], _y_line[0]), xytext=(_x_line[1][index],
+                                                                        _y_line[1][index]),
+                             arrowprops=dict(arrowstyle='<-'))
+                index += 1
+
+        # Plot the instructions (points)
+        plt.plot(x, y, 'ro')
+        # Show it
+        plt.show()
 
     def display_graph(self, graph, show_only_return_and_end_rel=False):
         """It displays the graph iterating over it.
@@ -153,7 +317,10 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
         #self.process_cfg.resolve_broken_succs()
 
         graph = self.process_cfg.basic_cfg
-        self.display_graph(graph, False)
+        if self.is_matplotlib_loaded:
+            self.plot_graph(graph)
+        else:
+            self.display_graph(graph, False)
 
     def get_function_calls(self):
         """It returns a graph with the function calls
