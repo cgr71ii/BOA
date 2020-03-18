@@ -1025,6 +1025,32 @@ class ProcessCFG():
         instructions[last_instruction_index].append_succ(instructions\
                                                             [first_cond_instruction_index])
 
+    def resolve_succs_func_call(self, instruction, instructions):
+        """It resolves the FuncCall statements dependencies.
+
+        Arguments:
+            instruction (pycparser_cfg.Instruction): FuncCall
+                statement.
+            instructions (list): list of instructions of
+                the function which contains the For
+                statement. The type is
+                *pycparser_cfg.Instruction*.
+        """
+        func_call_name = instruction.get_instruction().name.name
+        own_defined_functions = list(self.basic_cfg.get_function_calls().keys())
+
+        if func_call_name in own_defined_functions:
+            # Link the caller to the callee FuncDef
+            callee_instructions = self.basic_cfg.get_cfg(func_call_name)
+
+            instruction.append_succ(callee_instructions[0])
+        else:
+            # If the function is not one of the defined in the file, the default
+            #  behaviour will be to continue to the next instruction
+            index = instructions.index(instruction)
+
+            instruction.append_succ(instructions[index + 1])
+
     def resolve_succs(self, function_name, function_invoked_by):
         """It resolves the successives instructions of
         a concrete function.
@@ -1070,7 +1096,7 @@ class ProcessCFG():
                                                     instruction.get_instruction())
                     self.resolve_succs_while_and_do(instruction, instructions)
                 elif isinstance(real_instruction, ast.FuncCall):
-                    pass
+                    self.resolve_succs_func_call(instruction, instructions)
                 elif isinstance(real_instruction, ast.If):
                     pass
                 elif isinstance(real_instruction, ast.Switch):
