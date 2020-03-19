@@ -893,16 +893,34 @@ class ProcessCFG():
 
         if init is not None:
             # Get the last instruction of init
-            last_instr_init = pycutil.get_instruction_path(init)[-1]
+            last_instr_init = pycutil.get_instruction_path(init)
+
+            if len(last_instr_init) != 0:
+                last_instr_init = last_instr_init[-1]
+            else:
+                last_instr_init = init
         if cond is not None:
             # Get the last instruction of cond
-            last_instr_cond = pycutil.get_instruction_path(cond)[-1]
+            last_instr_cond = pycutil.get_instruction_path(cond)
+
+            if len(last_instr_cond) != 0:
+                last_instr_cond = last_instr_cond[-1]
+            else:
+                last_instr_cond = cond
         if after_for_instruction is not None:
             # Get the last instruction of after_for_instruction
             last_instr_after_for_instruction = pycutil.get_instruction_path\
-                                                (after_for_instruction)[-1]
+                                                (after_for_instruction)
+
+            if len(last_instr_after_for_instruction) != 0:
+                last_instr_after_for_instruction = last_instr_after_for_instruction[-1]
+            else:
+                last_instr_after_for_instruction = after_for_instruction
         if for_statement is not None:
-            for_last_instruction = for_statement_instructions[-1]
+            for_last_instruction = for_statement_instructions
+
+            if len(for_last_instruction) != 0:
+                for_last_instruction = for_last_instruction[-1]
 
         append_succ = lambda container, to_be_appended: \
             instructions[real_instructions.index(container)].append_succ\
@@ -1043,8 +1061,8 @@ class ProcessCFG():
             instruction (pycparser_cfg.Instruction):
                 While or DoWhile statement.
             instructions (list): list of instructions of
-                the function which contains the For
-                statement. The type is
+                the function which contains the While or
+                DoWhile statement. The type is
                 *pycparser_cfg.Instruction*.
         """
         real_instruction = instruction.get_instruction()
@@ -1095,7 +1113,7 @@ class ProcessCFG():
             instruction (pycparser_cfg.Instruction): FuncCall
                 statement.
             instructions (list): list of instructions of
-                the function which contains the For
+                the function which contains the FuncCall
                 statement. The type is
                 *pycparser_cfg.Instruction*.
         """
@@ -1121,7 +1139,7 @@ class ProcessCFG():
             instruction (pycparser_cfg.Instruction): If
                 statement.
             instructions (list): list of instructions of
-                the function which contains the For
+                the function which contains the If
                 statement. The type is
                 *pycparser_cfg.Instruction*.
         """
@@ -1283,7 +1301,7 @@ class ProcessCFG():
             instruction (pycparser_cfg.Instruction): Break
                 statement.
             instructions (list): list of instructions of
-                the function which contains the For
+                the function which contains the Break
                 statement. The type is
                 *pycparser_cfg.Instruction*.
         """
@@ -1321,6 +1339,70 @@ class ProcessCFG():
                 if index < default_index:
                     next_instruction = default[0]
                     next_instruction_index = default_index
+
+        # Append the dependency of the Break statement
+        instruction.append_succ(instructions[next_instruction_index])
+
+    def resolve_succs_continue(self, instruction, instructions):
+        """It resolves the Continue statements dependencies.
+
+        The important statement for the Continue statement
+        are For, While and DoWhile.
+
+        Raises:
+            BOAModuleException: when the Continue statement is not
+                inside a For, While or DoWhile statement.
+
+        Arguments:
+            instruction (pycparser_cfg.Instruction): Continue
+                statement.
+            instructions (list): list of instructions of
+                the function which contains the Continue
+                statement. The type is
+                *pycparser_cfg.Instruction*.
+        """
+        real_instruction = instruction.get_instruction()
+        real_instructions = cfg.Instruction.get_instructions(instructions)
+        index = real_instructions.index(real_instruction)
+
+        # Look for the statement which contains the Break statement
+        continue_target_instruction = real_instruction
+
+        while not isinstance(continue_target_instruction,
+                             (ast.For, ast.While, ast.DoWhile)):
+            try:
+                continue_target_instruction =\
+                    pycutil.get_parents(real_instructions)[continue_target_instruction]
+            except KeyError:
+                raise BOAModuleException("the Continue statement is expected to be inside"
+                                         " a For, While or DoWhile statement, but"
+                                         " has not been found either of those statements", self)
+
+        # The statements For, While and DoWhile has the "cond" property in Pycparser
+        next_instruction = continue_target_instruction.cond
+
+        if isinstance(continue_target_instruction, ast.For):
+            # The For statement condition may be None
+
+            if next_instruction is None:
+                # Look for the next step in the For statement when there is not condition
+                # We know that the Continue statement is inside the For, so we are executing
+                #  an instruction
+                if continue_target_instruction.next is not None:
+                    next_instruction = continue_target_instruction.next
+                else:
+                    # There exist instructions inside the For statement (at least, the
+                    #  Continue statement), and the For initialization was performed and
+                    #  there is not condition nor next instruction, so we have to go to
+                    #  the first instruction of the For statement. In the littlest version,
+                    #  the code "for(;;) continue;" would result in a Continue node with a
+                    #  dependency to itself
+                    next_instruction = continue_target_instruction.stmt
+        elif next_instruction is None:
+            raise BOAModuleException("unexpected non condition in a While or DoWhile statement",
+                                     self)
+
+        next_instruction_index = real_instructions.index(next_instruction)
 
         # Append the dependency of the Break statement
         instruction.append_succ(instructions[next_instruction_index])
@@ -1376,9 +1458,10 @@ class ProcessCFG():
                                                cfg.Instruction.get_instructions(instructions))
                     self.resolve_succs_if(instruction, instructions)
                 elif isinstance(real_instruction, ast.Switch):
+                    #self.resolve_succs_switch(instruction, instructions)
                     pass
                 elif isinstance(real_instruction, ast.Continue):
-                    pass
+                    self.resolve_succs_continue(instruction, instructions)
                 elif isinstance(real_instruction, ast.Break):
                     self.resolve_succs_break(instruction, instructions)
                 else:
