@@ -70,7 +70,9 @@ def get_instructions_of_instance(instance, instructions):
 
     Returns:
         list: list of instructions which are instances of
-        *pycparser.c_ast.Node* and *instance*.
+        *pycparser.c_ast.Node* and *instance*. If no instruction
+        is instance of *instance*, an empty list will be
+        returned
     """
     result = []
 

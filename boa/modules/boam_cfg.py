@@ -1269,6 +1269,62 @@ class ProcessCFG():
         self.basic_cfg.append_instruction(function_name, end_of_if_else_else,
                                           index + end_of_if_else_else_index + 1)
 
+    def resolve_succs_break(self, instruction, instructions):
+        """It resolves the Break statements dependencies.
+
+        The important statement for the Break statement
+        are For, While, DoWhile and Switch.
+
+        Raises:
+            BOAModuleException: when the Break statement is not
+                inside a For, While, DoWhile or Switch statement.
+
+        Arguments:
+            instruction (pycparser_cfg.Instruction): Break
+                statement.
+            instructions (list): list of instructions of
+                the function which contains the For
+                statement. The type is
+                *pycparser_cfg.Instruction*.
+        """
+        real_instruction = instruction.get_instruction()
+        real_instructions = cfg.Instruction.get_instructions(instructions)
+        index = real_instructions.index(real_instruction)
+
+        # Look for the statement which contains the Break statement
+        break_target_instruction = real_instruction
+
+        while not isinstance(break_target_instruction,
+                             (ast.For, ast.While, ast.DoWhile, ast.Switch)):
+            try:
+                break_target_instruction =\
+                    pycutil.get_parents(real_instructions)[break_target_instruction]
+            except KeyError:
+                raise BOAModuleException("the Break statement is expected to be inside a"
+                                         " For, While, DoWhile or Switch statement, but"
+                                         " has not been found either of those statements", self)
+
+        next_instruction = pycutil.get_real_next_instruction(real_instructions[0],
+                                                             break_target_instruction)
+        next_instruction_index = real_instructions.index(next_instruction)
+
+        if isinstance(break_target_instruction, ast.Switch):
+            # If is a Switch statement the one that contains the Break statement,
+            #  the dependency instruction target might be the "default" statement
+            #  of the Switch instead of the next instruction
+            switch_instructions = pycutil.get_instruction_path(break_target_instruction)
+            default = pycutil.get_instructions_of_instance(ast.Default, switch_instructions)
+
+            if len(default) != 0:
+                default_index = real_instructions.index(default[0])
+
+                if index < default_index:
+                    next_instruction = default[0]
+                    next_instruction_index = default_index
+
+        # Append the dependency of the Break statement
+        instruction.append_succ(instructions[next_instruction_index])
+
     def resolve_succs(self, function_name, function_invoked_by):
         """It resolves the successives instructions of
         a concrete function.
@@ -1324,7 +1380,7 @@ class ProcessCFG():
                 elif isinstance(real_instruction, ast.Continue):
                     pass
                 elif isinstance(real_instruction, ast.Break):
-                    pass
+                    self.resolve_succs_break(instruction, instructions)
                 else:
                     raise BOAModuleException(f"found instruction of type {type(real_instruction)}"
                                              " which is defined but not expected (update the"
