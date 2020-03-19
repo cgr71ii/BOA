@@ -3,6 +3,7 @@
 
 # Std libs
 import sys
+from copy import deepcopy
 
 # Pycparser libs
 import pycparser.c_ast as ast
@@ -1051,6 +1052,168 @@ class ProcessCFG():
 
             instruction.append_succ(instructions[index + 1])
 
+    def resolve_succs_if(self, instruction, instructions):
+        """It resolves the If statements dependencies.
+
+        Arguments:
+            instruction (pycparser_cfg.Instruction): If
+                statement.
+            instructions (list): list of instructions of
+                the function which contains the For
+                statement. The type is
+                *pycparser_cfg.Instruction*.
+        """
+        real_instruction = instruction.get_instruction()
+        real_instructions = cfg.Instruction.get_instructions(instructions)
+        cond = pycutil.get_instruction_path(real_instruction.cond)          # Never None
+        if_true = pycutil.get_instruction_path(real_instruction.iftrue)     # Never None
+        if_false = real_instruction.iffalse                                 # It may be None
+
+        if if_false is not None:
+            if_false = pycutil.get_instruction_path(real_instruction.iffalse)
+            if_false.insert(0, real_instruction.iffalse)
+
+        cond.insert(0, real_instruction.cond)
+        if_true.insert(0, real_instruction.iftrue)
+
+        if_true_first_instr = if_true
+        last_cond_instr = cond
+        last_if_true_instr = if_true
+        next_instruction = pycutil.get_real_next_instruction(real_instructions[0],
+                                                             real_instruction)
+        next_instruction_index = real_instructions.index(next_instruction)
+
+        # Append dependency of If statement
+        if isinstance(cond, list):
+            instruction.append_succ(instructions[real_instructions.index(cond[0])])
+
+            last_cond_instr = cond[-1]
+        else:
+            instruction.append_succ(instructions[real_instructions.index(cond)])
+
+        # Append dependencies to the true and false branch from cond
+
+        if isinstance(if_true, list):
+            if_true_first_instr = if_true[0]
+            last_if_true_instr = if_true[-1]
+
+        if_true_first_instr_index = real_instructions.index(if_true_first_instr)
+        last_cond_instr_index = real_instructions.index(last_cond_instr)
+
+        # Append dependency from the condition to the true branch
+        instructions[last_cond_instr_index].append_succ(
+            instructions[if_true_first_instr_index])
+
+        # Append dependency from the condition to the false branch
+        if if_false is not None:
+            # There is an else statement, so we have to append a dependency to the
+            #  last instruction of the if statemenet to jump over the else statement
+            last_if_true_instr_index = real_instructions.index(last_if_true_instr)
+
+            instructions[last_if_true_instr_index].append_succ(
+                instructions[next_instruction_index])
+
+            if_false_first_instr = if_false
+
+            # Now, append dependency from the condition to the false branch
+            if isinstance(if_false, list):
+                if_false_first_instr = if_false[0]
+
+            if_false_first_instr_index = real_instructions.index(if_false_first_instr)
+
+            instructions[last_cond_instr_index].append_succ(
+                instructions[if_false_first_instr_index])
+        else:
+            # If there is not else statement, the condition might not even execute
+            #  the if statement
+            instructions[last_cond_instr_index].append_succ(
+                instructions[next_instruction_index])
+
+    def append_end_of_if_else(self, instruction, instructions):
+        """It appends a node at the end of the If statements to
+        avoid problems when resolving dependencies.
+
+        Arguments:
+            instruction (pycparser.c_ast.If): If statement.
+            instructions (list): list of instructions of type
+                *pycparser.c_ast.Node* which are the instructions
+                of the function which contains *instructions*.
+        """
+        function_name = instructions[0].decl.name
+        index = instructions.index(instruction)
+        end_of_if_else_if = cfg.EndOfIfElse()   # Two objects are created in order to avoid
+                                                #  references problems after
+        end_of_if_else_else = cfg.EndOfIfElse() # Two objects are created in order to avoid
+                                                #  references problems after
+        if_else_instructions_before = pycutil.get_instruction_path(instructions[index])
+        original_instruction = deepcopy(instruction)
+
+        pycutil.append_element_to_if_else_stmt(end_of_if_else_if, end_of_if_else_else, instruction)
+
+        if_else_instructions_after = pycutil.get_instruction_path(instructions[index])
+        len_diff = len(if_else_instructions_after) - len(if_else_instructions_before)
+
+        if len_diff in [3, 4]:
+            # Compound element inserted artificially in AST, so now
+            #  we need to insert it in CFG
+            if len_diff == 4:
+                # Compound element was inserted in if and else statements
+
+                if_true_compound = instruction.iftrue
+                if_false_compound = instruction.iffalse
+                if_true_compound_target_index = instructions.index(
+                    if_else_instructions_after[if_else_instructions_after.index(
+                        if_true_compound) + 1])
+                if_false_compound_target_index = instructions.index(
+                    if_else_instructions_after[if_else_instructions_after.index(
+                        if_false_compound) + 1])
+
+                self.basic_cfg.append_instruction(function_name, if_true_compound,
+                                                  if_true_compound_target_index)
+                self.basic_cfg.append_instruction(function_name, if_false_compound,
+                                                  if_false_compound_target_index)
+            else:
+                # Compound element was inserter in if or else statements, which
+                #  does not mean that the other has not a Compound statement
+                if (isinstance(instruction.iftrue, ast.Compound) and
+                        not isinstance(original_instruction.iftrue, ast.Compound)):
+                    # The Compound element has been inserted in the if statement
+                    if_true_compound = instruction.iftrue
+                    if_true_compound_target_index = instructions.index(
+                        if_else_instructions_after[if_else_instructions_after.index(
+                            if_true_compound) + 1])
+
+                    self.basic_cfg.append_instruction(function_name, if_true_compound,
+                                                      if_true_compound_target_index)
+                else:
+                    # The Compound element has been inserted in the else statement
+                    if_false_compound = instruction.iffalse
+                    if_false_compound_target_index = instructions.index(
+                        if_else_instructions_after[if_else_instructions_after.index(
+                            if_false_compound) + 1])
+
+                    self.basic_cfg.append_instruction(function_name, if_false_compound,
+                                                      if_false_compound_target_index)
+
+        # Append the instruction in the CFG
+        end_of_if_else_if_index = if_else_instructions_after.index(end_of_if_else_if)
+        end_of_if_else_else_index = if_else_instructions_after.index(end_of_if_else_else)
+
+        # TODO check if works properly!!!!!!!!
+        if_offset = 1
+        else_offset = 1
+
+        if not isinstance(original_instruction.iftrue, ast.Compound):
+            if_offset = 0
+        #if (original_instruction.iffalse is not None and
+        #        not isinstance(original_instruction.iffalse, ast.Compound)):
+        #    else_offset = 0
+
+        self.basic_cfg.append_instruction(function_name, end_of_if_else_if,
+                                          index + end_of_if_else_if_index + if_offset)
+        self.basic_cfg.append_instruction(function_name, end_of_if_else_else,
+                                          index + end_of_if_else_else_index + else_offset)
+
     def resolve_succs(self, function_name, function_invoked_by):
         """It resolves the successives instructions of
         a concrete function.
@@ -1098,7 +1261,9 @@ class ProcessCFG():
                 elif isinstance(real_instruction, ast.FuncCall):
                     self.resolve_succs_func_call(instruction, instructions)
                 elif isinstance(real_instruction, ast.If):
-                    pass
+                    self.append_end_of_if_else(instruction.get_instruction(),
+                                               cfg.Instruction.get_instructions(instructions))
+                    self.resolve_succs_if(instruction, instructions)
                 elif isinstance(real_instruction, ast.Switch):
                     pass
                 elif isinstance(real_instruction, ast.Continue):

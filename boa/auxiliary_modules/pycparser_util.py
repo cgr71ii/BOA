@@ -246,6 +246,83 @@ def append_element_to_loop_stmt(element, loop_element):
             compound = ast.Compound([loop_element.stmt, element], loop_element.stmt.coord)
             loop_element.stmt = compound
 
+def append_element_to_if_else_stmt(element_if, element_else, if_element):
+    """It attempts to append an element to a If statement.
+
+    Arguments:
+        element_if (pycparser.c_ast.Node): element to be appended.
+            in the else statement. If *None*, no element will be
+            appended.
+        element_else (pycparser.c_ast.Node): element to be appended
+            in the else statement. If *None*, no element will be
+            appended.
+        if_element (pycparser.c_ast.If): If node.
+    """
+    if (not isinstance(element_if, (ast.Node, type(None))) or
+            not isinstance(element_else, (ast.Node, type(None)))):
+        raise PycparserException("'element_if' and 'element_else'"
+                                 " were expected to be"
+                                 " 'pycparser.c_ast.Node' but"
+                                 f" are '{get_just_type(element_if)}'"
+                                 f" and '{get_just_type(element_else)}'"
+                                 " respectively")
+    if not isinstance(if_element, ast.If):
+        raise PycparserException("'if_element' was expected to"
+                                 " be 'pycparser.c_ast.If' but"
+                                 f" is '{get_just_type(if_element)}'")
+
+    cond = if_element.cond
+    if_true = if_element.iftrue
+    if_false = if_element.iffalse
+    if_true_compound = if_true
+    if_false_compound = if_false
+
+    # Handle if statement
+    if element_if is not None:
+        if not isinstance(if_true, ast.Compound):
+            # Create a virtual compound and insert the elements
+            compound = ast.Compound([if_true, element_if], if_true.coord)  # if_true cannot be None
+            if_element.iftrue = compound
+        else:
+            # Append the element to the existing Compound
+
+            block = if_true.block_items
+
+            if isinstance(block, list):
+                # Append the element to the bunch of existing elements
+                block.append(element_if)
+            else:
+                # The Compound contains only one or none elements.
+                if if_true.block_items is None:
+                    if_true.block_items = [element_if]
+                else:
+                    if_true.block_items = [block, element_if]
+
+    # Handle else statement
+    if element_else is not None:
+        if if_false is None:
+            # Just set the element
+            if_element.iffalse = element_else
+        else:
+            if not isinstance(if_false, ast.Compound):
+                # Create a virtual compound and insert the elements
+                compound = ast.Compound([if_false, element_else], if_false.coord)  # if_false is not None
+                if_element.iffalse = compound
+            else:
+                # Append the element to the existing Compound
+
+                block = if_false.block_items
+
+                if isinstance(block, list):
+                    # Append the element to the bunch of existing elements
+                    block.append(element_else)
+                else:
+                    # The Compound contains only one or none elements.
+                    if if_false.block_items is None:
+                        if_false.block_items = [element_else]
+                    else:
+                        if_false.block_items = [block, element_else]
+
 def is_primitive_instruction(instruction):
     """It checks if *instruction* is primitive, which means
     that is a leaf of the AST.

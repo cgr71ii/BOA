@@ -42,6 +42,15 @@ class EndOfLoop(ast.EmptyStatement):
     loops while trying to get the next instruction.
     """
 
+class EndOfIfElse(ast.EmptyStatement):
+    """This element is intended to avoid problems with
+    If statement while trying to get the next instruction
+    because if there are an if statement inside of another,
+    the inner if statement will get as next instruction
+    the else statement of the outer. This node will be found
+    at the end of if block and else block (both of them).
+    """
+
 class CFGException(pycutil.PycparserException):
     """CFGException exception.
 
@@ -137,6 +146,16 @@ class Instruction():
             list: successive instructions
         """
         return self.succs
+
+    @classmethod
+    def get_instructions(cls, instructions):
+        """It returns the pycparser instructions.
+
+        Returns:
+            list: instructions of type
+            *pycparser.c_ast.Node*
+        """
+        return list(map(lambda instr: instr.get_instruction(), instructions))
 
 class CFG():
 
