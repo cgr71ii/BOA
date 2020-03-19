@@ -4,6 +4,7 @@
 # Std libs
 import sys
 from copy import deepcopy
+import random
 
 # Pycparser libs
 import pycparser.c_ast as ast
@@ -34,6 +35,19 @@ class CFGConstants:
     exit_functions = ["exit"]   # Append the ones you need
     default_recursion_limit = 1000
 
+    # Plot constants
+    x_initial = 1.0         # Where the first function is plotted in x coordinate
+    y_initial = 1.0         # Where the first instruction is plotted in y coordinate
+    x_increment = 0.5       # Distance between functions
+    y_increment = 10.0      # Distance between instructions
+    funcs_distance = 1.0    # Distance between functions
+    max_plot_x_offset = 0.5 # Max x coordinate offset if applied
+                            #  It should be lesser than x_increment in order to avoid
+                            #  problems with visualization, but it will work anyways
+    max_plot_y_offset = 5.0 # Max y coordinate offset if applied.
+                            #  It should be lesser than y_increment in order to avoid
+                            #  problems with visualization, but it will work anyways
+
 class BOAModuleControlFlowGraph(BOAModuleAbstract):
     """It defines the necessary functions to create the CFG.
     """
@@ -59,6 +73,8 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
         self.display_cfg = False
         self.plot_cfg = False
         self.lines_clip = True
+        self.random_x_offset = False
+        self.random_y_offset = False
 
         if is_key_in_dict(self.args, "display_cfg"):
             if self.args["display_cfg"].lower() == "true":
@@ -79,6 +95,20 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
                 self.lines_clip = False
             elif self.args["lines_clip"].lower() != "true":
                 raise BOAModuleException("the argument 'lines_clip' only allows"
+                                         " the values 'true' or 'false'")
+
+        if is_key_in_dict(self.args, "random_x_offset"):
+            if self.args["random_x_offset"].lower() == "true":
+                self.random_x_offset = True
+            elif self.args["random_x_offset"].lower() != "false":
+                raise BOAModuleException("the argument 'random_x_offset' only allows"
+                                         " the values 'true' or 'false'")
+
+        if is_key_in_dict(self.args, "random_y_offset"):
+            if self.args["random_y_offset"].lower() == "true":
+                self.random_y_offset = True
+            elif self.args["random_y_offset"].lower() != "false":
+                raise BOAModuleException("the argument 'random_y_offset' only allows"
                                          " the values 'true' or 'false'")
 
     def process(self, token):
@@ -128,7 +158,7 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
         y_line = []     # y coordinate of dependencies
                         #  final format: [y_origin, [y_dependency_1, ...]]
 
-        function_x = 1.0    # x coordinate of the current function
+        function_x = CFGConstants.x_initial    # x coordinate of the current function
 
         fig, ax = plt.subplots()
 
@@ -140,13 +170,13 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
             func_instrs_parents = {}
 
             # Offset variables to control the x and y coordinates
-            function_y = 1.0    # Height of the instruction which is modified
-                                #  as an offset itself throughout the process
-            max_deepness = 0    # Max reached deepness in the current function
-                                #  in order to know how much width we need to
-                                #  add
-            deepness = 0        # Current deepness of the instruction to modify
-                                #  the width of the instruction itself
+            function_y = CFGConstants.y_initial # Height of the instruction which is modified
+                                                #  as an offset itself throughout the process
+            max_deepness = 0                    # Max reached deepness in the current function
+                                                #  in order to know how much width we need to
+                                                #  add
+            deepness = 0                        # Current deepness of the instruction to modify
+                                                #  the width of the instruction itself
 
             for instruction in instructions:
                 if isinstance(instruction.get_instruction(), ast.FuncDef):
@@ -174,10 +204,39 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
 
                 # Store the necessary information for plot the instructions
                 functions.append(function)
-                x.append(function_x + deepness * 0.5)   # deepness is used in order to
-                                                        #  plot the instructions in a way
-                                                        #  that can be "easily" visualized
-                y.append(function_y)
+                x_offset = 0.0
+                y_offset = 0.0
+
+                # Check if the offset will be applied
+                if self.random_x_offset:
+                    sign = random.random()
+                    x_offset = random.random() * CFGConstants.max_plot_x_offset
+
+                    if sign < 0.5:
+                        sign = 1
+                    else:
+                        sign = -1
+
+                    x_offset *= sign
+                if self.random_y_offset:
+                    sign = random.random()
+                    y_offset = random.random() * CFGConstants.max_plot_y_offset
+
+                    if sign < 0.5:
+                        sign = 1
+                    else:
+                        sign = -1
+
+                    y_offset *= sign
+
+                # Store the coordinates
+                x.append(function_x +
+                         deepness * CFGConstants.x_increment +
+                         x_offset)  # deepness is used in order
+                                    #  to plot the instructions
+                                    #  in a way that can be
+                                    #  "easily" visualized
+                y.append(function_y + y_offset)
 
                 # Store the origin of the instruction for, later, plot the dependencies (lines)
                 x_line_aux = [x[-1]]
@@ -204,11 +263,11 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
                             # Avoid the throwness of exceptions
                             pass
 
-                function_y += 10.0
+                function_y += CFGConstants.y_increment
                 index += 1
 
             # Where a new function starts the x coordinate
-            function_x += 1.0 + max_deepness * 0.5
+            function_x += CFGConstants.funcs_distance + max_deepness * CFGConstants.x_increment
 
         index = 0
 
@@ -234,6 +293,7 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
             for target in target_dest:
                 # [origin_x, [dest_x_1, dest_x_2, ...]]
                 x_line[index][1].append(target[0])
+                # [origin_y, [dest_y_1, dest_y_2, ...]]
                 y_line[index][1].append(target[1])
 
             index += 1

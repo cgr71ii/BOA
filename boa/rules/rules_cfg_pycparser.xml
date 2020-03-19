@@ -41,6 +41,16 @@
                             is within the axes. It is applied only if
                             'plot_cfg' is 'true'  -->
                     <element name="lines_clip" value="false" />
+                    <!-- The default value is 'false'. If 'true', the
+                            lines of the plot will have a little random
+                            offset in order to avoid the coincident ones
+                            in the x coordinate -->
+                    <element name="random_x_offset" value="false" />
+                    <!-- The default value is 'false'. If 'true', the
+                            lines of the plot will have a little random
+                            offset in order to avoid the coincident ones
+                            in the y coordinate -->
+                    <element name="random_y_offset" value="true" />
                 </dict>
             </args>
         </module>

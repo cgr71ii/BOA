@@ -116,6 +116,72 @@ void cond()
     }
 
     if (1 * 0 * 2)
+    {
+        printf("");
+    }
+
+    if (1 + 2 + 3)
+        printf("");
+    else
+        printf("");
+
+    if (1 * 0 * 2)
+        printf("");
+
+    if (1 + 2 + 3)
+    {
+        printf("");
+    }
+    else
+        printf("");
+
+    if (1 * 0 * 2)
+        printf("");
+
+    if (1 + 2 + 3)
+        printf("");
+    else
+    {
+        printf("");
+    }
+
+    if (1 * 0 * 2)
+    {
+        printf("");
+    }
+
+    if (1 + 2 + 3)
+    {
+        printf("");
+    }
+    else
+        printf("");
+
+    if (1 * 0 * 2)
+    {
+        printf("");
+    }
+
+    if (1 + 2 + 3)
+        printf("");
+    else
+    {
+        printf("");
+    }
+
+    if (1 * 0 * 2)
+        printf("");
+
+    if (1 + 2 + 3)
+    {
+        printf("");
+    }
+    else
+    {
+        printf("");
+    }
+
+    if (1 * 0 * 2)
         printf("");
 
     if (1 + 2 + 3)
