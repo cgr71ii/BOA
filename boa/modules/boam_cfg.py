@@ -36,17 +36,17 @@ class CFGConstants:
     default_recursion_limit = 1000
 
     # Plot constants
-    x_initial = 1.0         # Where the first function is plotted in x coordinate
-    y_initial = 1.0         # Where the first instruction is plotted in y coordinate
-    x_increment = 0.5       # Distance between functions
-    y_increment = 10.0      # Distance between instructions
-    funcs_distance = 1.0    # Distance between functions
-    max_plot_x_offset = 0.5 # Max x coordinate offset if applied
-                            #  It should be lesser than x_increment in order to avoid
-                            #  problems with visualization, but it will work anyways
-    max_plot_y_offset = 5.0 # Max y coordinate offset if applied.
-                            #  It should be lesser than y_increment in order to avoid
-                            #  problems with visualization, but it will work anyways
+    x_initial = 1.0             # Where the first function is plotted in x coordinate
+    y_initial = 1.0             # Where the first instruction is plotted in y coordinate
+    x_increment = 0.5           # Distance between instructions in x coordinate
+    y_increment = 10.0          # Distance between instructions in y coordinate
+    funcs_distance = 1.0        # Distance between functions
+    max_plot_x_offset = 0.05    # Max x coordinate offset if applied
+                                #  It should be lesser than x_increment in order to avoid
+                                #  problems with visualization, but it will work anyways
+    max_plot_y_offset = 5.0     # Max y coordinate offset if applied.
+                                #  It should be lesser than y_increment in order to avoid
+                                #  problems with visualization, but it will work anyways
 
 class BOAModuleControlFlowGraph(BOAModuleAbstract):
     """It defines the necessary functions to create the CFG.
@@ -70,6 +70,8 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
 
         self.process_cfg = ProcessCFG()
         self.is_matplotlib_loaded = __matplotlib_loaded__
+
+        # Arguments from rules file
         self.display_cfg = False
         self.plot_cfg = False
         self.lines_clip = True
@@ -1226,7 +1228,10 @@ class ProcessCFG():
                         if_true_compound) + 1])
                 if_false_compound_target_index = instructions.index(
                     if_else_instructions_after[if_else_instructions_after.index(
-                        if_false_compound) + 1])
+                        if_false_compound) + 1]) + 1    # We add 1 because we are calculating
+                                                        #  the indexes before append, and when
+                                                        #  the values will be append, it will be
+                                                        #  1 off of the target position
 
                 self.basic_cfg.append_instruction(function_name, if_true_compound,
                                                   if_true_compound_target_index)
@@ -1259,20 +1264,10 @@ class ProcessCFG():
         end_of_if_else_if_index = if_else_instructions_after.index(end_of_if_else_if)
         end_of_if_else_else_index = if_else_instructions_after.index(end_of_if_else_else)
 
-        # TODO check if works properly!!!!!!!!
-        if_offset = 1
-        else_offset = 1
-
-        if not isinstance(original_instruction.iftrue, ast.Compound):
-            if_offset = 0
-        #if (original_instruction.iffalse is not None and
-        #        not isinstance(original_instruction.iffalse, ast.Compound)):
-        #    else_offset = 0
-
         self.basic_cfg.append_instruction(function_name, end_of_if_else_if,
-                                          index + end_of_if_else_if_index + if_offset)
+                                          index + end_of_if_else_if_index + 1)
         self.basic_cfg.append_instruction(function_name, end_of_if_else_else,
-                                          index + end_of_if_else_else_index + else_offset)
+                                          index + end_of_if_else_else_index + 1)
 
     def resolve_succs(self, function_name, function_invoked_by):
         """It resolves the successives instructions of

@@ -1,6 +1,50 @@
 
 #include <stdlib.h>
 
+void cond_debug()
+{
+    if (1)
+        1;
+
+    if (1)
+    {
+
+    }
+
+    if (1)
+    {
+        1;
+    }
+
+    if (1)
+        1;
+    else
+        1;
+
+    if (1)
+    {
+        1;
+    }
+    else
+        1;
+
+    if (1)
+        1;
+    else
+    {
+        1;
+    }
+
+    if (1)
+    {
+        1;
+    }
+    else
+    {
+        1;
+    }
+}
+
 void cond()
 {
     if (1 * 0 * 2)
@@ -416,10 +460,35 @@ void cond_cond()
     }
 }
 
+void ccc()
+{
+    if (1 + 2)
+        if (2 + 3)
+        {
+            1 + 1;
+            if (3 + 4)
+                1 + 1;
+            else
+                1 + 1;
+            1 + 2;
+            2 + 3;
+        }
+        else
+            1 + 1;
+    else
+    {
+        1 + 1;
+        1 + 2;
+        2 + 3;
+    }
+}
+
 int main(int argc, char** argv)
 {
+    cond_debug();
     cond();
     cond_cond();
+    ccc();
 
     return 0;
 }

@@ -44,12 +44,14 @@
                     <!-- The default value is 'false'. If 'true', the
                             lines of the plot will have a little random
                             offset in order to avoid the coincident ones
-                            in the x coordinate -->
-                    <element name="random_x_offset" value="false" />
+                            in the x coordinate. It is applied only if
+                            'plot_cfg' is 'true' -->
+                    <element name="random_x_offset" value="true" />
                     <!-- The default value is 'false'. If 'true', the
                             lines of the plot will have a little random
                             offset in order to avoid the coincident ones
-                            in the y coordinate -->
+                            in the y coordinate. It is applied only if
+                            'plot_cfg' is 'true' -->
                     <element name="random_y_offset" value="true" />
                 </dict>
             </args>
