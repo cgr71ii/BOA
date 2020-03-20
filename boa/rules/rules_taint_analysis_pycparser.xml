@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<boa_rules>
+    <parser>
+        <name>pycparser</name>
+        <lang_objective>C</lang_objective>
+        <module_name>boapm_pycparser</module_name>
+        <class_name>BOAPMPycparser</class_name>
+        <callback>
+            <method name="ast" callback="get_ast" />
+        </callback>
+        <env_vars>
+            <env_var>PYCPARSER_FAKE_LIBC_INCLUDE_PATH</env_var>
+        </env_vars>
+    </parser>
+    <modules>
+        <module>
+            <module_name>boam_cfg</module_name>
+            <class_name>BOAModuleControlFlowGraph</class_name>
+            <lifecycle_handler>boalc_pycparser_ast.BOALCPycparserAST</lifecycle_handler>
+            <args>
+                <dict>
+                    <!-- The default recursion limit is 1000, which
+                            means that a function will be able to call
+                            itself 1000 times. This module has a high
+                            use of recursion, so deppending of your code,
+                            it will be useful to modify this value -->
+                    <element name="recursion_limit" value="1000" />
+                    <!-- The default value is 'false'. If 'true', the
+                            CFG will be displayed in the terminal -->
+                    <element name="display_cfg" value="false" />
+                    <!-- The default value is 'false'. If 'true', the
+                            CFG will be plotted through the library
+                            Matplotlib. If the library is not installed,
+                            the execution will continue but the CFG will
+                            not be plotted -->
+                    <element name="plot_cfg" value="false" />
+                    <!-- The default value is 'true'. If 'false', the
+                            lines of the plot will always been drawn. If
+                            'true', the lines will be drawn if the line
+                            is within the axes. It is applied only if
+                            'plot_cfg' is 'true'  -->
+                    <element name="lines_clip" value="false" />
+                    <!-- The default value is 'false'. If 'true', the
+                            lines of the plot will have a little random
+                            offset in order to avoid the coincident ones
+                            in the x coordinate. It is applied only if
+                            'plot_cfg' is 'true' -->
+                    <element name="random_x_offset" value="true" />
+                    <!-- The default value is 'false'. If 'true', the
+                            lines of the plot will have a little random
+                            offset in order to avoid the coincident ones
+                            in the y coordinate. It is applied only if
+                            'plot_cfg' is 'true' -->
+                    <element name="random_y_offset" value="true" />
+                </dict>
+            </args>
+        </module>
+        <module>
+            <module_name>boam_taint_analysis</module_name>
+            <class_name>BOAModuleTaintAnalysis</class_name>
+            <!--<lifecycle_handler>boalc_pycparser_ast.BOALCPycparserAST</lifecycle_handler>-->
+            <args>
+            </args>
+            <dependencies>
+                <dependency>
+                    <module_name>boam_cfg</module_name> 
+                    <class_name>BOAModuleControlFlowGraph</class_name>
+                    <callback> 
+                        <method name="cfg" callback="get_basic_cfg" />
+                    </callback>
+                </dependency>
+            </dependencies>
+        </module>
+    </modules>
+    <report>
+        <args>
+            <!-- Empty -->
+        </args>
+    </report>
+</boa_rules>
