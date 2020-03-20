@@ -1308,6 +1308,7 @@ class ProcessCFG():
         real_instruction = instruction.get_instruction()
         real_instructions = cfg.Instruction.get_instructions(instructions)
         index = real_instructions.index(real_instruction)
+        parents = pycutil.get_parents(real_instructions)
 
         # Look for the statement which contains the Break statement
         break_target_instruction = real_instruction
@@ -1315,8 +1316,7 @@ class ProcessCFG():
         while not isinstance(break_target_instruction,
                              (ast.For, ast.While, ast.DoWhile, ast.Switch)):
             try:
-                break_target_instruction =\
-                    pycutil.get_parents(real_instructions)[break_target_instruction]
+                break_target_instruction = parents[break_target_instruction]
             except KeyError:
                 raise BOAModuleException("the Break statement is expected to be inside a"
                                          " For, While, DoWhile or Switch statement, but"
@@ -1325,22 +1325,6 @@ class ProcessCFG():
         next_instruction = pycutil.get_real_next_instruction(real_instructions[0],
                                                              break_target_instruction)
         next_instruction_index = real_instructions.index(next_instruction)
-
-        if isinstance(break_target_instruction, ast.Switch):
-            # If is a Switch statement the one that contains the Break statement,
-            #  the dependency instruction target might be the "default" statement
-            #  of the Switch instead of the next instruction
-            # TODO FIX! switch(1){switch(1)default:1;default:2;} would return
-            #  the first default (1, not 2)!!!
-            switch_instructions = pycutil.get_instruction_path(break_target_instruction)
-            default = pycutil.get_instructions_of_instance(ast.Default, switch_instructions)
-
-            if len(default) != 0:
-                default_index = real_instructions.index(default[0])
-
-                if index < default_index:
-                    next_instruction = default[0]
-                    next_instruction_index = default_index
 
         # Append the dependency of the Break statement
         instruction.append_succ(instructions[next_instruction_index])
@@ -1457,16 +1441,6 @@ class ProcessCFG():
             #  to the Case and Default statements
             cond_last_instruction_index += 1
             inner_compound += 1
-        """
-        if isinstance(real_instructions[cond_last_instruction_index + 1], ast.Compound):
-            # We append the dependency of the Compound to the condition
-            instructions[cond_last_instruction_index].append_succ(
-                instructions[cond_last_instruction_index + 1])
-
-            # The Compound will be the statement who will have the dependencies
-            #  to the Case and Default statements
-            cond_last_instruction_index += 1
-        """
 
         real_default_stmt = None
 

@@ -50,6 +50,17 @@ void B()
             break;
 }
 
+void B_2()
+{
+    for (;;)
+    {
+        break;
+        for (;;)
+            break;
+        break;
+    }
+}
+
 void C()
 {
     switch (1)
@@ -75,6 +86,43 @@ void C()
             for (;;)
                 break;
         case 4:
+            break;
+    }
+}
+
+void D()
+{
+    switch (1 + 2)
+    {
+        switch (1)
+            default:
+                2 + 3;
+                break;
+        case 3:
+            break;
+        default:
+            3 + 4;
+    }
+}
+
+void E()
+{
+    switch (1)
+    {
+        default:
+            break;
+        case 1:
+            break;
+    }
+}
+
+void F()
+{
+    switch (1)
+    {
+        default:
+            1;
+        case 1:
             break;
     }
 }

@@ -26,7 +26,7 @@ void C()
 {
     switch(1 + 2)
     {
-        // This Switch will not be executed, but is showed in the CFG!
+        // This Switch will not be executed, but is shown in the CFG!
         switch (2 + 3)
             default:
                 3 + 4;
