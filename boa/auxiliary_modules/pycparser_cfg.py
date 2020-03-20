@@ -91,6 +91,8 @@ class Instruction():
         self.instruction = instruction
         self.type = type(instruction)
         self.succs = []
+        self.not_append_succs = False
+        self.not_append_next_succ = False
 
     def append_succ(self, succ_instr):
         """It appends a successive instruction for
@@ -112,6 +114,13 @@ class Instruction():
             raise CFGException("'succ_instr' was expected to be"
                                " 'Instruction', but is "
                                f"{get_just_type(succ_instr)}")
+
+        if self.not_append_succs:
+            return
+
+        if self.not_append_next_succ:
+            self.not_append_next_succ = False
+            return
 
         if not succ_instr in self.succs:
             self.succs.append(succ_instr)

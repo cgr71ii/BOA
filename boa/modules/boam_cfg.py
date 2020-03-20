@@ -1330,6 +1330,8 @@ class ProcessCFG():
             # If is a Switch statement the one that contains the Break statement,
             #  the dependency instruction target might be the "default" statement
             #  of the Switch instead of the next instruction
+            # TODO FIX! switch(1){switch(1)default:1;default:2;} would return
+            #  the first default (1, not 2)!!!
             switch_instructions = pycutil.get_instruction_path(break_target_instruction)
             default = pycutil.get_instructions_of_instance(ast.Default, switch_instructions)
 
@@ -1407,6 +1409,108 @@ class ProcessCFG():
         # Append the dependency of the Break statement
         instruction.append_succ(instructions[next_instruction_index])
 
+    def resolve_succs_switch(self, instruction, instructions):
+        """It resolves the Switch statements dependencies.
+
+        The important statement for the Switch statement
+        are Case and Default.
+
+        Arguments:
+            instruction (pycparser_cfg.Instruction): Switch
+                statement.
+            instructions (list): list of instructions of
+                the function which contains the Switch
+                statement. The type is
+                *pycparser_cfg.Instruction*.
+        """
+        real_instruction = instruction.get_instruction()
+        real_instructions = cfg.Instruction.get_instructions(instructions)
+        stmt = real_instruction.stmt
+        cond = real_instruction.cond
+        cond_instructions = [cond] + pycutil.get_instruction_path(cond)
+        cond_first_instruction = cond_instructions[0]
+        cond_first_instruction_index = real_instructions.index(cond_first_instruction)
+        cond_last_instruction = cond_instructions[-1]
+        cond_last_instruction_index = real_instructions.index(cond_last_instruction)
+        next_instruction = pycutil.get_real_next_instruction(real_instructions[0],
+                                                             real_instruction)
+        next_instruction_index = real_instructions.index(next_instruction)
+        switch_instructions = [stmt] + pycutil.get_instruction_path(stmt)
+        parents = pycutil.get_parents(real_instructions)
+        case_instructions = pycutil.get_instructions_of_instance(
+            ast.Case, switch_instructions)  # Maybe not all the Case are valid
+                                            #  (i.e. Switch inside other Switch)
+        default_instructions = pycutil.get_instructions_of_instance(
+            ast.Default, switch_instructions)   # Maybe not all the Default are valid
+                                                #  (e.g. multiple Default)
+        inner_compound = 0  # To count the inner Compound (e.g. switch (4){{{{case 4:break;}}}})
+
+        # Append dependency for the Switch statement
+        instruction.append_succ(instructions[cond_first_instruction_index])
+
+        while isinstance(real_instructions[cond_last_instruction_index + 1], ast.Compound):
+            # We append the dependency of the Compound to the condition
+            instructions[cond_last_instruction_index].append_succ(
+                instructions[cond_last_instruction_index + 1])
+
+            # The Compound will be the statement who will have the dependencies
+            #  to the Case and Default statements
+            cond_last_instruction_index += 1
+            inner_compound += 1
+        """
+        if isinstance(real_instructions[cond_last_instruction_index + 1], ast.Compound):
+            # We append the dependency of the Compound to the condition
+            instructions[cond_last_instruction_index].append_succ(
+                instructions[cond_last_instruction_index + 1])
+
+            # The Compound will be the statement who will have the dependencies
+            #  to the Case and Default statements
+            cond_last_instruction_index += 1
+        """
+
+        real_default_stmt = None
+
+        # Look for Case and Default statements in our Switch target
+        for instructions_target in [case_instructions, default_instructions]:
+            for switch_instr in instructions_target:
+                own_instr = False
+                parent = parents[switch_instr]
+
+                # Look for the Switch statement we are targeting
+                while not own_instr:
+                    if isinstance(parent, ast.Compound):
+                        parent = parents[parent]
+                    elif parent == real_instruction:
+                        own_instr = True
+                    else:
+                        # No Compound or Switch (our Switch, not other)
+                        break
+
+                # Append dependency to the Case or Default statement if is
+                #  inside the Switch we are targeting
+                if own_instr:
+                    if isinstance(switch_instr, ast.Default):
+                        # Once we find the first Default statement, we stop
+                        real_default_stmt = switch_instr
+
+                        break
+
+                    switch_instr_index = real_instructions.index(switch_instr)
+                    instructions[cond_last_instruction_index].append_succ(
+                        instructions[switch_instr_index])
+
+        if real_default_stmt is None:
+            # There is not Default statement
+            # Append to the condition the dependency of the next instruction
+            instructions[cond_last_instruction_index - inner_compound].append_succ(
+                instructions[next_instruction_index])
+        else:
+            # Append to the condition the dependency of the next instruction
+            default_index = real_instructions.index(real_default_stmt)
+
+            instructions[cond_last_instruction_index - inner_compound].append_succ(
+                instructions[default_index])
+
     def resolve_succs(self, function_name, function_invoked_by):
         """It resolves the successives instructions of
         a concrete function.
@@ -1458,8 +1562,7 @@ class ProcessCFG():
                                                cfg.Instruction.get_instructions(instructions))
                     self.resolve_succs_if(instruction, instructions)
                 elif isinstance(real_instruction, ast.Switch):
-                    #self.resolve_succs_switch(instruction, instructions)
-                    pass
+                    self.resolve_succs_switch(instruction, instructions)
                 elif isinstance(real_instruction, ast.Continue):
                     self.resolve_succs_continue(instruction, instructions)
                 elif isinstance(real_instruction, ast.Break):

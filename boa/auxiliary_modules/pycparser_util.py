@@ -377,10 +377,30 @@ def get_parents(instructions):
         for child in direct_children:
             if not is_key_in_dict(result, child):
                 result[child] = instr
-            else:
-                print("asdasd")
 
     return result
+
+def get_direct_children(instruction):
+    """It gets the direct children of *instruction*.
+
+    Arguments:
+        instruction (pycparser.c_ast.Node): instruction of type
+            *pycparser.c_ast.Node*.
+
+    Raises:
+        PycparserException: if the type of the arguments
+            are not the expected.
+
+    Returns:
+        list: contains the direct children of *instruction*.
+        If none child was found, an empty list will be returned
+    """
+    if not isinstance(instruction, ast.Node):
+        raise PycparserException("'instruction' was expected to be"
+                                    " 'pycparser.c_ast.Node', but is"
+                                    f" '{get_just_type(instruction)}'")
+
+    return VISITOR_NC.visit_and_return_first_path(instruction)
 
 def get_deepness_level(initial_instr, parents, rec_instr, top_reference):
     """It returns the deepness level.
