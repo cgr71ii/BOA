@@ -1117,20 +1117,24 @@ class ProcessCFG():
                 statement. The type is
                 *pycparser_cfg.Instruction*.
         """
+        real_instruction = instruction.get_instruction()
+        real_instructions = cfg.Instruction.get_instructions(instructions)
+        index = instructions.index(instruction)
+        func_call_instrs = [real_instruction] + pycutil.get_instruction_path(
+            real_instructions[index])
         func_call_name = instruction.get_instruction().name.name
         own_defined_functions = list(self.basic_cfg.get_function_calls().keys())
+        last_instruction_index = real_instructions.index(func_call_instrs[-1])
+
+        # Append the dependency of the FuncCall instruction, which at least
+        #  will have other statement
+        instruction.append_succ(instructions[index + 1])
 
         if func_call_name in own_defined_functions:
             # Link the caller to the callee FuncDef
             callee_instructions = self.basic_cfg.get_cfg(func_call_name)
 
-            instruction.append_succ(callee_instructions[0])
-        else:
-            # If the function is not one of the defined in the file, the default
-            #  behaviour will be to continue to the next instruction
-            index = instructions.index(instruction)
-
-            instruction.append_succ(instructions[index + 1])
+            instructions[last_instruction_index].append_succ(callee_instructions[0])
 
     def resolve_succs_if(self, instruction, instructions):
         """It resolves the If statements dependencies.
