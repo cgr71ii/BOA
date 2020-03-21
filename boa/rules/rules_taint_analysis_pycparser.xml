@@ -19,41 +19,7 @@
             <class_name>BOAModuleControlFlowGraph</class_name>
             <lifecycle_handler>boalc_pycparser_ast.BOALCPycparserAST</lifecycle_handler>
             <args>
-                <dict>
-                    <!-- The default recursion limit is 1000, which
-                            means that a function will be able to call
-                            itself 1000 times. This module has a high
-                            use of recursion, so deppending of your code,
-                            it will be useful to modify this value -->
-                    <element name="recursion_limit" value="1000" />
-                    <!-- The default value is 'false'. If 'true', the
-                            CFG will be displayed in the terminal -->
-                    <element name="display_cfg" value="false" />
-                    <!-- The default value is 'false'. If 'true', the
-                            CFG will be plotted through the library
-                            Matplotlib. If the library is not installed,
-                            the execution will continue but the CFG will
-                            not be plotted -->
-                    <element name="plot_cfg" value="false" />
-                    <!-- The default value is 'true'. If 'false', the
-                            lines of the plot will always been drawn. If
-                            'true', the lines will be drawn if the line
-                            is within the axes. It is applied only if
-                            'plot_cfg' is 'true'  -->
-                    <element name="lines_clip" value="false" />
-                    <!-- The default value is 'false'. If 'true', the
-                            lines of the plot will have a little random
-                            offset in order to avoid the coincident ones
-                            in the x coordinate. It is applied only if
-                            'plot_cfg' is 'true' -->
-                    <element name="random_x_offset" value="true" />
-                    <!-- The default value is 'false'. If 'true', the
-                            lines of the plot will have a little random
-                            offset in order to avoid the coincident ones
-                            in the y coordinate. It is applied only if
-                            'plot_cfg' is 'true' -->
-                    <element name="random_y_offset" value="true" />
-                </dict>
+                <!-- Check the CFG rules file in order to know which args accepts -->
             </args>
         </module>
         <module>
@@ -61,9 +27,39 @@
             <class_name>BOAModuleTaintAnalysis</class_name>
             <!--<lifecycle_handler>boalc_pycparser_ast.BOALCPycparserAST</lifecycle_handler>-->
             <args>
+                <dict>
+                    <list name="sources">
+                        <!-- Check the Source class documentation in order to know what a Source
+                             means in Taint Analysis terminology -->
+                        <!--
+                            format: name@type@function
+                            **************************
+                            name: name of the object which is a Source
+                            type: type of the Source (check for allowed types in the TA module)
+                            function (optional): function which contains the Source
+                        -->
+                        <element value="argc@variable@main" />
+                        <element value="argv@variable@main" />
+                    </list>
+                    <list name="sinks">
+                        <!-- Check the Sink class documentation in order to know what a Sink
+                             means in Taint Analysis terminology -->
+                        <!--
+                            format: function_name@dangerous_parameter
+                            *****************************************
+                            function_name: name of the function which is a Sink
+                            dangerous_parameter: position of the dangerous parameter
+                                of the Sink (0 for all parameters or None if has no
+                                parameters). The value '1' means first parameter.
+                        -->
+                        <element value="gets@0" />
+                    </list>
+                </dict>
             </args>
             <dependencies>
                 <dependency>
+                    <!-- We need the CFG in order to execute the Taint Analysis module -->
+
                     <module_name>boam_cfg</module_name> 
                     <class_name>BOAModuleControlFlowGraph</class_name>
                     <callback> 
