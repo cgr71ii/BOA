@@ -424,3 +424,76 @@ def get_deepness_level(initial_instr, parents, rec_instr, top_reference):
         return 0
 
     return 1 + get_deepness_level(initial_instr, parents, parents[rec_instr], top_reference)
+
+def get_function_decl_parameters(func_def):
+    """It returns the Decl statements of the parameters of a function.
+
+    Parameters:
+        func_def (pycparser.c_ast.FuncDef): definition of the function.
+
+    Returns:
+        list: list of Decl statements of the function parameters. If there
+        are not parameters, an empty list will be returned.
+
+    Raises:
+        PycparserException: if the type of the arguments are not the
+            expected.
+    """
+    if not isinstance(func_def, ast.FuncDef):
+        raise PycparserException("'func_def' was expected to be"
+                                 " 'pycparser.c_ast.FuncDef' but is"
+                                 f" '{get_just_type(func_def)}'")
+
+    func_param_list = func_def.decl.type.args
+
+    # Check if there are parameters
+    if func_param_list is None:
+        # There are not parameters
+        return []
+
+    # Thare are function parameters
+    param_list_instructions = get_instruction_path(func_param_list)
+    function_parameters =\
+        get_instructions_of_instance(ast.Decl, param_list_instructions)
+
+    return function_parameters
+
+def get_function_decl_variables(func_def):
+    """It returns the Decl statements of the variables of a function.
+
+    Parameters:
+        func_def (pycparser.c_ast.FuncDef): definition of the function.
+
+    Returns:
+        list: list of Decl statements of the function variables. If there
+        are not variables, an empty list will be returned.
+
+    Raises:
+        PycparserException: if the type of the arguments are not the
+            expected.
+    """
+    if not isinstance(func_def, ast.FuncDef):
+        raise PycparserException("'func_def' was expected to be"
+                                 " 'pycparser.c_ast.FuncDef' but is"
+                                 f" '{get_just_type(func_def)}'")
+    result = []
+    func_body = func_def.body
+    func_body_instructions = get_instruction_path(func_body)
+
+    function_variables =\
+            get_instructions_of_instance(ast.Decl, func_body_instructions)
+
+    for function_variable in function_variables:
+        function_variable_instructions = get_instruction_path(function_variable)
+
+        function_type_decl = get_instructions_of_instance(
+            ast.TypeDecl,
+            function_variable_instructions)
+        function_id_type = get_instructions_of_instance(
+            ast.IdentifierType,
+            function_variable_instructions)
+
+        if (len(function_type_decl) == 1 and len(function_id_type) == 1):
+            result.append(function_variable)
+
+    return result

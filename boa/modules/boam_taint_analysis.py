@@ -317,6 +317,7 @@ class TaintAnalysis:
         self.sinks = sinks
         self.taints = []
 
+        # TODO temporal (it will be removed)
         self.kildall("main")
 
     def kildall(self, function_name):
@@ -339,7 +340,6 @@ class TaintAnalysis:
             return result
 
         real_instructions = pycfg.Instruction.get_instructions(instructions)
-        func_param_list = real_instructions[0].decl.type.args
         func_body = real_instructions[0].body
         func_body_instructions = pycutil.get_instruction_path(func_body)
 
@@ -348,30 +348,14 @@ class TaintAnalysis:
             self.get_sources("variable", function_name) + self.get_sources("variable", None)
         variables_decl = []                 # All the found variables in the current function
 
-        # Check if there are function parameters
-        if func_param_list is not None:
-            # Thare are function parameters
-            param_list_instructions = pycutil.get_instruction_path(func_param_list)
-            function_parameters =\
-                pycutil.get_instructions_of_instance(ast.Decl, param_list_instructions)
+        # Get the function parameters (if any)
+        function_parameters = pycutil.get_function_decl_parameters(real_instructions[0])
+        # Get the function variables (if any)
+        function_variables = pycutil.get_function_decl_variables(real_instructions[0])
 
-            # Store the fuction parameters
-            variables_decl.extend(function_parameters)
-
-        function_variables =\
-            pycutil.get_instructions_of_instance(ast.Decl, func_body_instructions)
-
-        for function_variable in function_variables:
-            function_variable_instructions = pycutil.get_instruction_path(function_variable)
-            function_type_decl = pycutil.get_instructions_of_instance(
-                ast.TypeDecl,
-                function_variable_instructions)
-            function_id_type = pycutil.get_instructions_of_instance(
-                ast.IdentifierType,
-                function_variable_instructions)
-
-            if (len(function_type_decl) == 1 and len(function_id_type) == 1):
-                variables_decl.append(function_variable)
+        # Store the fuction parameters and variables
+        variables_decl.extend(function_parameters)
+        variables_decl.extend(function_variables)
 
         # Initialize all the Taint instances with the variables of the function
         #  (initializes the algorithm)
@@ -381,23 +365,26 @@ class TaintAnalysis:
 
         for variable_decl in variables_decl:
             variable_decl_name = variable_decl.name
-            taint_status = "UNK"
+            taint_status = "NT"
             taint_instruction = None
 
             # Initialize the inputs
-            for func_body_instruction in func_body_instructions:
-                if not is_key_in_dict(input_dict, func_body_instruction):
-                    input_dict[func_body_instruction] = {}
-
-                input_dict[func_body_instruction][variable_decl_name] = taint_status
+            #for func_body_instruction in func_body_instructions:
+            #    if not is_key_in_dict(input_dict, func_body_instruction):
+            #        input_dict[func_body_instruction] = {}
+            #    input_dict[func_body_instruction][variable_decl_name] = taint_status
 
             if variable_decl_name in tainted_variables_names:
                 # The variable is tainted
                 taint_status = "T"
                 taint_instruction = variable_decl
 
-                # Initial information
-                input_dict[func_body_instructions[0]][variable_decl_name] = taint_status
+            # Initialize the inputs with a dictionary
+            if not is_key_in_dict(input_dict, func_body_instructions[0]):
+                input_dict[func_body_instructions[0]] = {}
+
+            # Initial information
+            input_dict[func_body_instructions[0]][variable_decl_name] = taint_status
 
             source = Source(variable_decl_name, "variable", function_name)
             taint = Taint(source, variable_decl, taint_instruction, taint_status)
