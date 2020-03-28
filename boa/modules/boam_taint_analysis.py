@@ -12,7 +12,7 @@ from copy import deepcopy
 
 # Own libs
 from boam_abstract import BOAModuleAbstract
-from util import is_key_in_dict, eprint
+from util import is_key_in_dict, eprint, get_just_type
 from own_exceptions import BOAModuleException
 import auxiliary_modules.pycparser_util as pycutil
 import auxiliary_modules.pycparser_cfg as pycfg
@@ -25,6 +25,8 @@ class TAConstants:
     cfg_dependency_key = "cfg"
     split_char = "@"    # Character that will be used in order to split the values
                         #  of the rules file for the Sources and Sinks
+
+    elements_with_compound = []
 
 class BOAModuleTaintAnalysis(BOAModuleAbstract):
     """BOAModuleTaintAnalysis class.
@@ -331,6 +333,9 @@ class TaintAnalysis:
         Returns:
             list: list of *Taint* which will have information about the
             variables of the function
+
+        Raises:
+            BOAModuleException: when something unexpected happens.
         """
         result = []
         instructions = self.cfg.get_cfg(function_name)
@@ -341,7 +346,14 @@ class TaintAnalysis:
 
         real_instructions = pycfg.Instruction.get_instructions(instructions)
         func_body = real_instructions[0].body
+
+        if not isinstance(func_body, ast.Compound):
+            raise BOAModuleException("the first instruction of the function was expected"
+                                     " to be 'pycparser.c_ast.Compound', but is"
+                                     f" '{get_just_type(func_body)}'", self)
+
         func_body_instructions = pycutil.get_instruction_path(func_body)
+        func_body = func_body_instructions[0]   # First instruction will be the next of Compound
 
         # Get all the known Sources (initialization), which can be or not declared in the function
         known_tainted =\
@@ -397,6 +409,8 @@ class TaintAnalysis:
             first_instruction = worklist[0]
             # Take off the first instruction of the worklist
             worklist.remove(worklist[0])
+
+            aux = pycutil.get_full_instruction_function(real_instructions)
 
             output = "NT"
 

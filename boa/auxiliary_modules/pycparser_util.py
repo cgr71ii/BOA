@@ -9,8 +9,6 @@ import pycparser.c_ast as ast
 from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
 from util import get_just_type, is_key_in_dict
 
-VISITOR_NC = PreorderVisitor()
-
 class PycparserException(Exception):
     """PycparserException exception.
 
@@ -29,6 +27,14 @@ class PycparserException(Exception):
         """
         super(PycparserException, self).__init__(f"pycparser: {message}")
 
+class PycparserUtilConstants:
+    """Useful constants to use by the methods in this file.
+    """
+    visitor_nc = PreorderVisitor()
+    compound_instr = [ast.Compound, ast.DoWhile, ast.For,
+                      ast.If, ast.Switch, ast.While]
+
+
 def get_instruction_path(instruction):
     """It returns the path of a instruction.
 
@@ -46,14 +52,16 @@ def get_instruction_path(instruction):
 
     Returns:
         list: list of instructions starting in *instruction* if, at
-        least, contains other instruction besides of *instruction*
+        least, contains other instruction besides of *instruction*.
+        If there is not instructions besides of *instructions*, an
+        empty list will be returned
     """
     if not isinstance(instruction, ast.Node):
         raise PycparserException("'instruction' was expected to be"
                                  " 'pycparser.c_ast.Node', but is"
                                  f" {get_just_type(instruction)}")
 
-    return VISITOR_NC.visit_and_return_path(instruction)
+    return PycparserUtilConstants.visitor_nc.visit_and_return_path(instruction)
 
 def get_instructions_of_instance(instance, instructions):
     """It returns all the instructions of a concrete instance.
@@ -372,7 +380,7 @@ def get_parents(instructions):
                                      " (some or all) "
                                      f"'{get_just_type(instr)}'")
 
-        direct_children = VISITOR_NC.visit_and_return_first_path(instr)
+        direct_children = PycparserUtilConstants.visitor_nc.visit_and_return_first_path(instr)
 
         for child in direct_children:
             if not is_key_in_dict(result, child):
@@ -397,10 +405,10 @@ def get_direct_children(instruction):
     """
     if not isinstance(instruction, ast.Node):
         raise PycparserException("'instruction' was expected to be"
-                                    " 'pycparser.c_ast.Node', but is"
-                                    f" '{get_just_type(instruction)}'")
+                                 " 'pycparser.c_ast.Node', but is"
+                                 f" '{get_just_type(instruction)}'")
 
-    return VISITOR_NC.visit_and_return_first_path(instruction)
+    return PycparserUtilConstants.visitor_nc.visit_and_return_first_path(instruction)
 
 def get_deepness_level(initial_instr, parents, rec_instr, top_reference):
     """It returns the deepness level.
@@ -492,8 +500,148 @@ def get_function_decl_variables(func_def):
         function_id_type = get_instructions_of_instance(
             ast.IdentifierType,
             function_variable_instructions)
+        function_struct_type = get_instructions_of_instance(
+            ast.Struct,
+            function_variable_instructions)
+        function_enum_type = get_instructions_of_instance(
+            ast.Enum,
+            function_variable_instructions)
 
-        if (len(function_type_decl) == 1 and len(function_id_type) == 1):
+        if (len(function_type_decl) == 1 and
+                (len(function_id_type) == 1 +\
+                 len(function_struct_type) +\
+                 len(function_enum_type) == 1)):
             result.append(function_variable)
+
+    return result
+
+def get_full_instruction(instruction, instructions):
+    """It returns all the instructions which are part of
+    a concrete statement. In case of elements which may
+    have a Compound element will only return the necessary
+    part of the element according to its semantics.
+
+    Arguments:
+        instruction (pycparser.c_ast.Node): first instruction
+            from where it will start the searching. It will be
+            the root of the result.
+        instructions (list): list of instructions of the whole
+            function. The type of the elemens have to be
+            *pycparser.c_ast.Node*.
+
+    Returns:
+        list: elements of type list of type *pycparser.c_ast.Node* wich are
+        part of the statement considered as a whole. The instructions
+        considered as a whole will be that list inside the main list
+    """
+    index = instructions.index(instruction)
+    next_instruction = get_real_next_instruction(instructions[0], instruction)
+    next_instruction_index = instructions.index(next_instruction)
+    result = []
+
+    # ast.Compound, ast.DoWhile, ast.For,
+    # ast.If, ast.Switch, ast.While
+
+    if type(instruction) in PycparserUtilConstants.compound_instr:
+        if isinstance(instruction, ast.Compound):
+            result = [[instruction]]  # Compound as an instruction itself
+        elif isinstance(instruction, (ast.While, ast.DoWhile, ast.If, ast.Switch)):
+            cond = instruction.cond
+            cond_instrs = get_instruction_path(cond)
+
+            if cond is None:
+                cond = []
+            elif not isinstance(cond, list):
+                cond = [cond]
+
+            cond = cond + cond_instrs
+
+            # The statement is an instruction itself and the condition another
+            result = [[instruction], cond]
+        elif isinstance(instruction, ast.For):
+            init = instruction.init
+            init_instrs = get_instruction_path(init)
+            cond = instruction.cond
+            cond_instrs = get_instruction_path(cond)
+            for_next = instruction.next
+            for_next_instrs = get_instruction_path(for_next)
+
+            if init is None:
+                init = []
+            elif not isinstance(init, list):
+                init = [init]
+            if cond is None:
+                cond = []
+            elif not isinstance(cond, list):
+                cond = [cond]
+            if for_next is None:
+                for_next = []
+            elif not isinstance(for_next, list):
+                for_next = [for_next]
+
+            init = init + init_instrs
+            cond = cond + cond_instrs
+            for_next = for_next + for_next_instrs
+
+            # Every part is an instruction itself
+            result = [[instruction], cond, init, for_next]
+        else:
+            raise PycparserException("found instruction of type"
+                                     f" {get_just_type(instruction)}"
+                                     " which is defined but not expected (update the"
+                                     " function in order to fix it)")
+    else:
+        while index < next_instruction_index:
+            # Append all the instructions which are considered to be part of the same statement
+            result.append(instructions[index])
+            index += 1
+
+        result = [result]
+
+    return result
+
+def get_full_instruction_function(instructions):
+    """It returns the whole statements of a function.
+
+    Arguments:
+        instructions (list): list of instructions of the whole
+            function. The type of the elemens have to be
+            *pycparser.c_ast.Node*.
+
+    Returns:
+        list: list of list of *pycparser.c_ast.Node*. It will contain
+        all the instructions considered as atomic.
+    """
+    if not isinstance(instructions[0], ast.FuncDef):
+        raise PycparserException("first instruction was expected to be"
+                                 " 'pycparser.c_ast.FuncDef' but is"
+                                 f" '{get_just_type(instructions[0])}'")
+
+    instruction = instructions[0].body
+    all_instructions = get_instruction_path(instruction)
+    instruction = all_instructions[0]   # Avoid the Compound element
+    result = []
+
+    # Get all the full instructions
+    while instruction is not None:
+        full_instructions = get_full_instruction(instruction, instructions)
+
+        # It might not be next instruction
+        if len(full_instructions) == 0:
+            instruction = None
+        else:
+            index = instructions.index(instruction)
+
+            for full_instruction in full_instructions:
+                result.append(full_instruction)
+                index += len(full_instruction)
+
+            # Is there next instruction?
+            if index < len(instructions):
+                # Yes
+                instruction = all_instructions[index]
+            else:
+                # No
+                instruction = None
 
     return result

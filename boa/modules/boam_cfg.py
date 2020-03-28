@@ -32,6 +32,10 @@ class CFGConstants:
     """Class which contains the necessary constants
     for working with the CFG.
     """
+    branching_instr = [ast.FuncCall, ast.If, ast.For, ast.While,
+                       ast.DoWhile, ast.Goto, ast.Switch, ast.Break,
+                       ast.Continue, ast.Return]
+
     exit_functions = ["exit"]   # Append the ones you need
     default_recursion_limit = 1000
 
@@ -439,9 +443,6 @@ class ProcessCFG():
         """
         self.basic_cfg = cfg.CFG()
         self.funcion_calls = {}
-        self.branching_instr = [ast.FuncCall, ast.If, ast.For, ast.While,
-                                ast.DoWhile, ast.Goto, ast.Switch, ast.Break,
-                                ast.Continue, ast.Return]
 
     def process(self, function_name, function):
         """It process a concrete function for the CFG.
@@ -1515,7 +1516,7 @@ class ProcessCFG():
             real_instruction = instruction.get_instruction()
 
             #print(f" -- Instruction: {instruction.get_type()}")
-            if instruction.get_type() in self.branching_instr:
+            if instruction.get_type() in CFGConstants.branching_instr:
                 if isinstance(real_instruction, ast.Return):
                     self.resolve_succs_return(function_name, instruction,
                                               instructions, function_invoked_by)
@@ -1546,7 +1547,8 @@ class ProcessCFG():
                 elif isinstance(real_instruction, ast.Break):
                     self.resolve_succs_break(instruction, instructions)
                 else:
-                    raise BOAModuleException(f"found instruction of type {type(real_instruction)}"
+                    raise BOAModuleException("found instruction of type"
+                                             f" {get_just_type(real_instruction)}"
                                              " which is defined but not expected (update the"
                                              " module programming in order to fix it)", self)
             else:
