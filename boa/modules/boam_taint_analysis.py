@@ -26,8 +26,6 @@ class TAConstants:
     split_char = "@"    # Character that will be used in order to split the values
                         #  of the rules file for the Sources and Sinks
 
-    elements_with_compound = []
-
 class BOAModuleTaintAnalysis(BOAModuleAbstract):
     """BOAModuleTaintAnalysis class.
 
@@ -375,42 +373,19 @@ class TaintAnalysis:
         input_dict = {}
         worklist = [func_body]
 
-        for variable_decl in variables_decl:
-            variable_decl_name = variable_decl.name
-            taint_status = "NT"
-            taint_instruction = None
-
-            # Initialize the inputs
-            #for func_body_instruction in func_body_instructions:
-            #    if not is_key_in_dict(input_dict, func_body_instruction):
-            #        input_dict[func_body_instruction] = {}
-            #    input_dict[func_body_instruction][variable_decl_name] = taint_status
-
-            if variable_decl_name in tainted_variables_names:
-                # The variable is tainted
-                taint_status = "T"
-                taint_instruction = variable_decl
-
-            # Initialize the inputs with a dictionary
-            if not is_key_in_dict(input_dict, func_body_instructions[0]):
-                input_dict[func_body_instructions[0]] = {}
-
-            # Initial information
-            input_dict[func_body_instructions[0]][variable_decl_name] = taint_status
-
-            source = Source(variable_decl_name, "variable", function_name)
-            taint = Taint(source, variable_decl, taint_instruction, taint_status)
-
-            result.append(taint)
+        # Initialization of the first instruction
+        self.initialize_input_dict(input_dict, variables_decl, function_name,
+                                   tainted_variables_names, result, func_body_instructions[0],
+                                   None)
 
         # Work with the worklist and the CFG
         while len(worklist) != 0:
-            # Take the first instruction
+            # Take the first instruction of the worklist
             first_instruction = worklist[0]
             # Take off the first instruction of the worklist
             worklist.remove(worklist[0])
 
-            aux = pycutil.get_full_instruction_function(real_instructions)
+            #aux = pycutil.get_full_instruction_function(real_instructions, True)
 
             output = "NT"
 
@@ -418,16 +393,21 @@ class TaintAnalysis:
 
             index = real_instructions.index(first_instruction)
             instruction = instructions[index]
+            real_instruction = instruction.get_instruction()
             succs = instruction.get_succs()
             succ_real_instructions = pycfg.Instruction.get_instructions(succs)
 
             for succ_instruction in succ_real_instructions:
-                if not is_key_in_dict(input_dict, succ_instruction):
+                if succ_instruction not in real_instructions:
                     eprint("Warning: the CFG has taken to a instruction of other function"
                            " and 'kildall' function has been designed to have all the"
                            " instructions in the same function.")
                     continue
 
+                if not is_key_in_dict(input_dict, succ_instruction):
+                    self.initialize_input_dict(input_dict, variables_decl, function_name,
+                                               tainted_variables_names, result, succ_instruction,
+                                               real_instruction)
                 input_value = input_dict[succ_instruction]
                 append_succ = False
 
@@ -456,6 +436,67 @@ class TaintAnalysis:
         result = list(filter(lambda x: x.status == "T" or x.status != "MT", result))
 
         return result
+
+    def initialize_input_dict(self, input_dict, variables_decl, function_name,
+                              tainted_variables_names, result, instruction,
+                              instruction_reference):
+        """It initializes an entry in the input dictionary for a concrete variable
+        for all the variables.
+
+        Arguments:
+            input_dict (dict): where the initialization is done.
+            variables_decl (list): list of *pycparser.c_ast.Decl* which contains
+                all the variables of the function *function_name*.
+            function_name (str): function name of the function.
+            tainted_variables_names (list): list of *str* which contains all the
+                known taints.
+            result (list) list of *Taint* which contains all the found *Taint*'s.
+            instruction (pycparser.c_ast.Node): instruction which is going to
+                be initialized in *input_dict*.
+            instruction_reference (pycparser.c_ast.Node): instruction which,
+                if different of *None*, will have the initial values for the
+                initialization. If *None*, initialization will be done with
+                *tainted_variables_names*.
+
+        Raises:
+            BOAModuleException: if *instruction_reference* is not *None* and is not
+                in *input_dict*.
+        """
+        for variable_decl in variables_decl:
+            variable_decl_name = variable_decl.name
+            # Initially, all variables will be "UNK", but when declaration is found, it will change
+            taint_status = "UNK"
+            taint_instruction = None
+
+            # Initialize the inputs
+            #for func_body_instruction in func_body_instructions:
+            #    if not is_key_in_dict(input_dict, func_body_instruction):
+            #        input_dict[func_body_instruction] = {}
+            #    input_dict[func_body_instruction][variable_decl_name] = taint_status
+
+            # Initialize the inputs with a dictionary
+            if not is_key_in_dict(input_dict, instruction):
+                input_dict[instruction] = {}
+
+            if instruction_reference is not None:
+                if not is_key_in_dict(input_dict, instruction_reference):
+                    raise BOAModuleException("was expected to find an instruction reference"
+                                             " in input dictionary, but was not found", self)
+                # The taint value will be taken from the instruction reference
+                taint_status = input_dict[instruction_reference][variable_decl_name]
+            elif variable_decl_name in tainted_variables_names:
+                # The variable is tainted due to the known taints
+                taint_status = "T"
+                taint_instruction = variable_decl
+
+            # Initial information
+            input_dict[instruction][variable_decl_name] = taint_status
+
+            source = Source(variable_decl_name, "variable", function_name)
+            taint = Taint(source, variable_decl, taint_instruction, taint_status)
+
+            # We append all the taint information of the variables and later it will be cleaned
+            result.append(taint)
 
     def get_sources(self, stype=None, function_name_container=None):
         if (stype is None and function_name_container is None):

@@ -32,7 +32,8 @@ class PycparserUtilConstants:
     """
     visitor_nc = PreorderVisitor()
     compound_instr = [ast.Compound, ast.DoWhile, ast.For,
-                      ast.If, ast.Switch, ast.While]
+                      ast.If, ast.Switch, ast.While, ast.Case,
+                      ast.Default]
 
 
 def get_instruction_path(instruction):
@@ -515,11 +516,23 @@ def get_function_decl_variables(func_def):
 
     return result
 
-def get_full_instruction(instruction, instructions):
+def get_full_instruction(instruction, instructions, display_coord=False):
     """It returns all the instructions which are part of
     a concrete statement. In case of elements which may
-    have a Compound element will only return the necessary
-    part of the element according to its semantics.
+    have a Compound element, literal or semanticaly, will
+    only return the necessary part of the element according
+    to its semantics.
+
+    It might be returned elements with empty lists because
+    there are elements that, in order to avoid semantics leakage,
+    it will be explicitly set. An example of it is the For
+    statemenet, which might has empty statements, but they will
+    be defined: for(;;); -> [[For], [] (init), [] (cond),
+    [] (next), [Compound], [EmptyStatement], [EndOfLoop]]. If you
+    wonder why there is a Compound element, check the CFG
+    implementation. Short answer: CFG uses auxiliary nodes in order
+    to know semantic information which helps to build the CFG.
+    The long answer has relation with recursion, dependencies, etz.
 
     Arguments:
         instruction (pycparser.c_ast.Node): first instruction
@@ -528,6 +541,9 @@ def get_full_instruction(instruction, instructions):
         instructions (list): list of instructions of the whole
             function. The type of the elemens have to be
             *pycparser.c_ast.Node*.
+        display_coord (bool): If *True*, the *coord* attribute
+            of the whole found instructions will be displayed
+            in order to debug. The default value is *False*.
 
     Returns:
         list: elements of type list of type *pycparser.c_ast.Node* wich are
@@ -536,6 +552,10 @@ def get_full_instruction(instruction, instructions):
     """
     index = instructions.index(instruction)
     next_instruction = get_real_next_instruction(instructions[0], instruction)
+
+    if next_instruction is None:
+        return [[instruction]]
+
     next_instruction_index = instructions.index(next_instruction)
     result = []
 
@@ -545,9 +565,30 @@ def get_full_instruction(instruction, instructions):
     if type(instruction) in PycparserUtilConstants.compound_instr:
         if isinstance(instruction, ast.Compound):
             result = [[instruction]]  # Compound as an instruction itself
+        elif isinstance(instruction, ast.Default):
+            result = [[instruction]]  # Default as an instruction itself
+        elif isinstance(instruction, ast.Case):
+            expr = instruction.expr
+            expr_instrs = []
+
+            if expr is not None:
+                expr_instrs = get_instruction_path(expr)
+
+            if expr is None:
+                expr = []
+            elif not isinstance(expr, list):
+                expr = [expr]
+
+            expr = expr + expr_instrs
+
+            # The statement is an instruction itself and the expr another
+            result = [[instruction], expr]
         elif isinstance(instruction, (ast.While, ast.DoWhile, ast.If, ast.Switch)):
             cond = instruction.cond
-            cond_instrs = get_instruction_path(cond)
+            cond_instrs = []
+
+            if cond is not None:
+                cond_instrs = get_instruction_path(cond)
 
             if cond is None:
                 cond = []
@@ -560,11 +601,18 @@ def get_full_instruction(instruction, instructions):
             result = [[instruction], cond]
         elif isinstance(instruction, ast.For):
             init = instruction.init
-            init_instrs = get_instruction_path(init)
+            init_instrs = []
             cond = instruction.cond
-            cond_instrs = get_instruction_path(cond)
+            cond_instrs = []
             for_next = instruction.next
-            for_next_instrs = get_instruction_path(for_next)
+            for_next_instrs = []
+
+            if init is not None:
+                init_instrs = get_instruction_path(init)
+            if cond is not None:
+                cond_instrs = get_instruction_path(cond)
+            if for_next is not None:
+                for_next_instrs = get_instruction_path(for_next)
 
             if init is None:
                 init = []
@@ -587,7 +635,7 @@ def get_full_instruction(instruction, instructions):
             result = [[instruction], cond, init, for_next]
         else:
             raise PycparserException("found instruction of type"
-                                     f" {get_just_type(instruction)}"
+                                     f" '{get_just_type(instruction)}'"
                                      " which is defined but not expected (update the"
                                      " function in order to fix it)")
     else:
@@ -598,19 +646,44 @@ def get_full_instruction(instruction, instructions):
 
         result = [result]
 
+    if display_coord:
+        if (len(result) == 0 or len(result[0]) == 0):
+            print("Whole instruction: there is NO instruction")
+        else:
+            coord = result[0][0].coord
+            instr_type = get_just_type(result[0][0])
+
+            instr_type = instr_type.split(".")[2]
+
+            if coord is None:
+                coord = "-1:-1"
+            else:
+                coord = str(coord)
+                coord = coord.split(":")
+                coord = f"{coord[1]}:{coord[2]}"
+
+            print(f"Whole instruction: {coord} - {instr_type}")
+
     return result
 
-def get_full_instruction_function(instructions):
-    """It returns the whole statements of a function.
+def get_full_instruction_function(instructions, display_coord=False):
+    """It returns the whole statements of a function. This function
+    is a wrapper of *get_full_instruction* which applies it but for
+    a whole function.
 
     Arguments:
         instructions (list): list of instructions of the whole
             function. The type of the elemens have to be
             *pycparser.c_ast.Node*.
+        display_coord (bool): If *True*, the *coord* attribute
+            of the whole found instructions will be displayed
+            in order to debug. The default value is *False*.
 
     Returns:
         list: list of list of *pycparser.c_ast.Node*. It will contain
-        all the instructions considered as atomic.
+        all the instructions considered as atomic. Check
+        *get_full_instruction* in order to have a more detailed
+        explanation
     """
     if not isinstance(instructions[0], ast.FuncDef):
         raise PycparserException("first instruction was expected to be"
@@ -624,7 +697,7 @@ def get_full_instruction_function(instructions):
 
     # Get all the full instructions
     while instruction is not None:
-        full_instructions = get_full_instruction(instruction, instructions)
+        full_instructions = get_full_instruction(instruction, instructions, display_coord)
 
         # It might not be next instruction
         if len(full_instructions) == 0:
@@ -639,7 +712,7 @@ def get_full_instruction_function(instructions):
             # Is there next instruction?
             if index < len(instructions):
                 # Yes
-                instruction = all_instructions[index]
+                instruction = instructions[index]
             else:
                 # No
                 instruction = None
