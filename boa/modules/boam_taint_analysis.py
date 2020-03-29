@@ -371,11 +371,14 @@ class TaintAnalysis:
         #  (initializes the algorithm)
         tainted_variables_names = list(map(lambda x: x.name, known_tainted))
         input_dict = {}
-        worklist = [func_body]
+        whole_instructions = pycutil.get_full_instruction_function(real_instructions)
+        #worklist = [func_body]
+        worklist = [whole_instructions[0]]
 
         # Initialization of the first instruction
         self.initialize_input_dict(input_dict, variables_decl, function_name,
-                                   tainted_variables_names, result, func_body_instructions[0],
+                                   #tainted_variables_names, result, func_body_instructions[0],
+                                   tainted_variables_names, result, whole_instructions[0],
                                    None)
 
         # Work with the worklist and the CFG
@@ -385,30 +388,77 @@ class TaintAnalysis:
             # Take off the first instruction of the worklist
             worklist.remove(worklist[0])
 
-            #aux = pycutil.get_full_instruction_function(real_instructions, True)
-
             output = "NT"
 
             # TODO get the real value of output
 
-            index = real_instructions.index(first_instruction)
-            instruction = instructions[index]
-            real_instruction = instruction.get_instruction()
-            succs = instruction.get_succs()
-            succ_real_instructions = pycfg.Instruction.get_instructions(succs)
+            #index = real_instructions.index(first_instruction)
+            index = whole_instructions.index(first_instruction)
+            whole_instruction = whole_instructions[index]
 
-            for succ_instruction in succ_real_instructions:
-                if succ_instruction not in real_instructions:
+            if len(whole_instruction) == 0:
+                continue
+
+            succs = []
+
+            # Look for the succesive whole instructions. The first instruction with
+            #  succesive instruction out of the current whole instruction will be
+            #  the one used to get all the succesive whole instructions (it makes
+            #  easier the searching)
+            for instruction in whole_instruction:
+                instruction_index = real_instructions.index(instruction)
+                instr = instructions[instruction_index]
+                instr_succs = instr.get_succs()
+                found = False
+
+                # Check if the succ instructions are from other whole instruction
+                for instr_succ in instr_succs:
+                    real_instr_succ = instr_succ.get_instruction()
+
+                    if real_instr_succ not in whole_instruction:
+                        # The current instruction's sucessive instructions does not
+                        #  belong to the current whole instruction, so look for the
+                        #  whole instruction where belongs
+                        found = True
+
+                        for whole in whole_instructions:
+                            # Look for the whole instruction which contains the succesive
+                            #  instruction which is not the current whole instruction
+                            if real_instr_succ in whole:
+                                # Whole instruction which contains the succesive instruction
+                                #  found. Append the whole current instruction as succesive
+                                succs.append(whole)
+                                break
+                
+                # When any succesive instructions of the current whole instruction contain
+                #  a succesive instruction out of the current whole instruction, the searching
+                #  will stop in order to optimize the difficulty of look for the succesive
+                #  instruction with the "whole instruction" context
+                if found:
+                    break
+
+            #instruction = instructions[index]
+            #real_instruction = instruction.get_instruction()
+            #succs = instruction.get_succs()
+            #succ_real_instructions = pycfg.Instruction.get_instructions(succs)
+
+            #for succ_instruction in succ_real_instructions:
+            for succ_instruction in succs:
+                #if succ_instruction not in real_instructions:
+                if succ_instruction[0] not in real_instructions:
                     eprint("Warning: the CFG has taken to a instruction of other function"
                            " and 'kildall' function has been designed to have all the"
                            " instructions in the same function.")
                     continue
 
-                if not is_key_in_dict(input_dict, succ_instruction):
+                #if not is_key_in_dict(input_dict, succ_instruction):
+                if not is_key_in_dict(input_dict, id(succ_instruction)):
                     self.initialize_input_dict(input_dict, variables_decl, function_name,
                                                tainted_variables_names, result, succ_instruction,
-                                               real_instruction)
-                input_value = input_dict[succ_instruction]
+                                               #real_instruction)
+                                               whole_instruction)
+                #input_value = input_dict[succ_instruction]
+                input_value = input_dict[id(succ_instruction)]
                 append_succ = False
 
                 for var in input_value:
@@ -417,12 +467,14 @@ class TaintAnalysis:
                     if output != taint_status:
                         if taint_status == "UNK":
                             # New taint status will be output, which is "T" or "NT"
-                            input_dict[succ_instruction][var] = output
+                            #input_dict[succ_instruction][var] = output
+                            input_dict[id(succ_instruction)][var] = output
                             append_succ = True
                         elif taint_status != "MT":
                             # New taint status will be "MT" because output is "T" or "NT" and
                             #  taint_status the other, so we have the set {"T", "NT"} = "MT"
-                            input_dict[succ_instruction][var] = "MT"
+                            #input_dict[succ_instruction][var] = "MT"
+                            input_dict[id(succ_instruction)][var] = "MT"
                             append_succ = True
 
                 if append_succ:
@@ -451,12 +503,14 @@ class TaintAnalysis:
             tainted_variables_names (list): list of *str* which contains all the
                 known taints.
             result (list) list of *Taint* which contains all the found *Taint*'s.
-            instruction (pycparser.c_ast.Node): instruction which is going to
-                be initialized in *input_dict*.
-            instruction_reference (pycparser.c_ast.Node): instruction which,
-                if different of *None*, will have the initial values for the
-                initialization. If *None*, initialization will be done with
-                *tainted_variables_names*.
+            instruction (list): list of instructions of *pycparser.c_ast.Node*
+                which is going to be initialized in *input_dict*. It represents
+                a whole instruction.
+            instruction_reference (list): list of instructions of
+                *pycparser.c_ast.Node* which, if different of *None*, will
+                have the initial values for the initialization. If *None*,
+                initialization will be done with *tainted_variables_names*.
+                It represents a whole instruction.
 
         Raises:
             BOAModuleException: if *instruction_reference* is not *None* and is not
@@ -475,22 +529,22 @@ class TaintAnalysis:
             #    input_dict[func_body_instruction][variable_decl_name] = taint_status
 
             # Initialize the inputs with a dictionary
-            if not is_key_in_dict(input_dict, instruction):
-                input_dict[instruction] = {}
+            if not is_key_in_dict(input_dict, id(instruction)):
+                input_dict[id(instruction)] = {}
 
             if instruction_reference is not None:
-                if not is_key_in_dict(input_dict, instruction_reference):
+                if not is_key_in_dict(input_dict, id(instruction_reference)):
                     raise BOAModuleException("was expected to find an instruction reference"
                                              " in input dictionary, but was not found", self)
                 # The taint value will be taken from the instruction reference
-                taint_status = input_dict[instruction_reference][variable_decl_name]
+                taint_status = input_dict[id(instruction_reference)][variable_decl_name]
             elif variable_decl_name in tainted_variables_names:
                 # The variable is tainted due to the known taints
                 taint_status = "T"
                 taint_instruction = variable_decl
 
             # Initial information
-            input_dict[instruction][variable_decl_name] = taint_status
+            input_dict[id(instruction)][variable_decl_name] = taint_status
 
             source = Source(variable_decl_name, "variable", function_name)
             taint = Taint(source, variable_decl, taint_instruction, taint_status)
