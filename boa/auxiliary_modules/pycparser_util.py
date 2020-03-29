@@ -467,6 +467,65 @@ def get_function_decl_parameters(func_def):
 
     return function_parameters
 
+def is_variable_decl(instruction):
+    """It checks if an instruction is a declaration of a variable.
+    It checks the normal declarations, enums and structs. Only
+    checks for the declaration, not assignments.
+
+    Arguments:
+        instruction (pycparser.c_ast.Node): instruction to check if
+            is a variable declaration.
+
+    Returns:
+        bool: *True* if *instruction* is a variable declaration. Otherwise,
+        *False*
+
+    Raises:
+        PycparserException: if the type of the arguments are not the
+            expected.
+    """
+    if not isinstance(instruction, ast.Node):
+        raise PycparserException("'instruction' was expected to be"
+                                 " 'pycparser.c_ast.Node' but is"
+                                 f" '{get_just_type(instruction)}'")
+
+    # The first instruction of a declaration is of type Decl
+    if not isinstance(instruction, ast.Decl):
+        return False
+
+    instructions = [instruction] + get_instruction_path(instruction)
+
+    # Used in variables declarations (checked empirically)
+    function_type_decl = get_instructions_of_instance(
+        ast.TypeDecl,
+        instructions)
+
+    # Check if is a normal declaration
+    function_id_type = get_instructions_of_instance(
+        ast.IdentifierType,
+        instructions)
+    # Check if is a Struct declaration
+    function_struct_type = get_instructions_of_instance(
+        ast.Struct,
+        instructions)
+    # Check if is an Enum declaration
+    function_enum_type = get_instructions_of_instance(
+        ast.Enum,
+        instructions)
+    # Check if is an Union declaration
+    function_union_type = get_instructions_of_instance(
+        ast.Union,
+        instructions)
+
+    if (len(function_type_decl) == 1 and
+            (len(function_id_type) == 1 +\
+             len(function_struct_type) +\
+             len(function_enum_type) +\
+             len(function_union_type) == 1)):
+        return True
+
+    return False
+
 def get_function_decl_variables(func_def):
     """It returns the Decl statements of the variables of a function.
 
@@ -493,25 +552,7 @@ def get_function_decl_variables(func_def):
             get_instructions_of_instance(ast.Decl, func_body_instructions)
 
     for function_variable in function_variables:
-        function_variable_instructions = get_instruction_path(function_variable)
-
-        function_type_decl = get_instructions_of_instance(
-            ast.TypeDecl,
-            function_variable_instructions)
-        function_id_type = get_instructions_of_instance(
-            ast.IdentifierType,
-            function_variable_instructions)
-        function_struct_type = get_instructions_of_instance(
-            ast.Struct,
-            function_variable_instructions)
-        function_enum_type = get_instructions_of_instance(
-            ast.Enum,
-            function_variable_instructions)
-
-        if (len(function_type_decl) == 1 and
-                (len(function_id_type) == 1 +\
-                 len(function_struct_type) +\
-                 len(function_enum_type) == 1)):
+        if is_variable_decl(function_variable):
             result.append(function_variable)
 
     return result
