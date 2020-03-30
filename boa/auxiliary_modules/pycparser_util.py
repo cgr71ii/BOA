@@ -518,7 +518,7 @@ def is_variable_decl(instruction):
         instructions)
 
     if (len(function_type_decl) == 1 and
-            (len(function_id_type) == 1 +\
+            (len(function_id_type) +\
              len(function_struct_type) +\
              len(function_enum_type) +\
              len(function_union_type) == 1)):
@@ -693,6 +693,10 @@ def get_full_instruction(instruction, instructions, display_coord=False):
         else:
             coord = result[0][0].coord
             instr_type = get_just_type(result[0][0])
+            name = None
+
+            if is_variable_decl(result[0][0]):
+                name = result[0][0].name
 
             instr_type = instr_type.split(".")[2]
 
@@ -703,7 +707,10 @@ def get_full_instruction(instruction, instructions, display_coord=False):
                 coord = coord.split(":")
                 coord = f"{coord[1]}:{coord[2]}"
 
-            print(f"Whole instruction: {coord} - {instr_type}")
+            if name:
+                print(f"Whole instruction: {coord} - {instr_type} - {name}")
+            else:
+                print(f"Whole instruction: {coord} - {instr_type}")
 
     return result
 
