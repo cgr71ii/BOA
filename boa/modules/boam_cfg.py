@@ -508,9 +508,15 @@ class ProcessCFG():
                 self.basic_cfg.append_function_call(current_function_name, None)
 
             # Insert element in list
-            self.funcion_calls[current_function_name].append(node.name.name)
+            name = node
+
+            # Get iteratively the name
+            while not isinstance(name, str):
+                name = name.name
+
+            self.funcion_calls[current_function_name].append(name)
             self.basic_cfg.append_function_call(current_function_name,
-                                                node.name.name)
+                                                name)
 
         # Append instruction
         self.basic_cfg.append_instruction(current_function_name, node)
@@ -556,7 +562,13 @@ class ProcessCFG():
         for fc_instruction in func_call_instructions:
             # Find the instruction that is making the func call
             #  to *from_function_name*
-            if fc_instruction.name.name == from_function_name:
+            name = fc_instruction.name
+
+            # Get iteratively the name
+            while not isinstance(name, str):
+                name = name.name
+
+            if name == from_function_name:
                 # FuncCall in *to_function_name* to *from_function_name* found
 
                 if force_next_real_instr:
@@ -747,28 +759,34 @@ class ProcessCFG():
             for instr in instructions_pyc:
                 if isinstance(instr, ast.Compound):
                     last_compound = instr
-                elif (isinstance(instr, ast.FuncCall) and
-                      instr.name.name in CFGConstants.exit_functions):
-                    if last_compound is None:
-                        eprint("Warning: trying to append a 'FinalNode', but"
-                               " no 'Compound' was found (exit function out"
-                               " of a function?).")
+                elif isinstance(instr, ast.FuncCall):
+                    name = instr
 
-                    end_of_graph_node = cfg.FinalNode()
-                    pycutil.append_element_to_function(end_of_graph_node,
-                                                       func_def=instructions_pyc[0])
-                    instr_position = -1
-                    func_call_instrs =\
-                        pycutil.get_real_next_instruction(instructions_pyc[0],
-                                                          instr)
+                    # Get iteratively the name
+                    while not isinstance(name, str):
+                        name = name.name
+                    
+                    if name in CFGConstants.exit_functions:
+                        if last_compound is None:
+                            eprint("Warning: trying to append a 'FinalNode', but"
+                                " no 'Compound' was found (exit function out"
+                                " of a function?).")
 
-                    if func_call_instrs is not None:
-                        instr_position = instructions_pyc.index(func_call_instrs)
+                        end_of_graph_node = cfg.FinalNode()
+                        pycutil.append_element_to_function(end_of_graph_node,
+                                                        func_def=instructions_pyc[0])
+                        instr_position = -1
+                        func_call_instrs =\
+                            pycutil.get_real_next_instruction(instructions_pyc[0],
+                                                            instr)
 
-                     # It appends the new node
-                    self.basic_cfg.append_instruction(function_name,
-                                                      end_of_graph_node,
-                                                      instr_position)
+                        if func_call_instrs is not None:
+                            instr_position = instructions_pyc.index(func_call_instrs)
+
+                        # It appends the new node
+                        self.basic_cfg.append_instruction(function_name,
+                                                        end_of_graph_node,
+                                                        instr_position)
 
     def resolve_broken_succs(self):
         """It resolves those dependencies which could not
@@ -858,10 +876,21 @@ class ProcessCFG():
         label_index = 0
 
         for instr in real_instructions:
-            if (isinstance(instr, ast.Label) and
-                    instr.name == real_instruction.name):
-                label_instruction = instr
-                break
+            if isinstance(instr, ast.Label):
+                instr_name = instr
+                real_instruction_name = real_instruction
+
+                # Get iteratively the name
+                while not isinstance(instr_name, str):
+                    instr_name = instr_name.name
+
+                # Get iteratively the name
+                while not isinstance(real_instruction_name, str):
+                    real_instruction_name = real_instruction_name.name
+
+                if instr_name == real_instruction_name:
+                    label_instruction = instr
+                    break
             label_index += 1
 
         if label_instruction is None:
@@ -1123,7 +1152,12 @@ class ProcessCFG():
         index = instructions.index(instruction)
         func_call_instrs = [real_instruction] + pycutil.get_instruction_path(
             real_instructions[index])
-        func_call_name = instruction.get_instruction().name.name
+        func_call_name = instruction.get_instruction()
+
+        # Get iteratively the name
+        while not isinstance(func_call_name, str):
+            func_call_name = func_call_name.name
+
         own_defined_functions = list(self.basic_cfg.get_function_calls().keys())
         last_instruction_index = real_instructions.index(func_call_instrs[-1])
 

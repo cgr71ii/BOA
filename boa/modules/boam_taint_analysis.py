@@ -8,7 +8,7 @@ execute kildall's algorithm.
 """
 
 # Std libs
-from copy import deepcopy
+from collections import OrderedDict as odict
 
 # Own libs
 from boam_abstract import BOAModuleAbstract
@@ -25,6 +25,11 @@ class TAConstants:
     cfg_dependency_key = "cfg"
     split_char = "@"    # Character that will be used in order to split the values
                         #  of the rules file for the Sources and Sinks
+
+    id_instr = [#ast.Goto, ast.Label,
+                ast.ArrayRef, ast.Decl, ast.Enum, ast.Enumerator,
+                ast.FuncCall, ast.ID, ast.NamedInitializer, ast.Struct,
+                ast.StructRef, ast.Typedef, ast.Typename, ast.Union]
 
 class BOAModuleTaintAnalysis(BOAModuleAbstract):
     """BOAModuleTaintAnalysis class.
@@ -370,10 +375,15 @@ class TaintAnalysis:
         # Initialize all the Taint instances with the variables of the function
         #  (initializes the algorithm)
         tainted_variables_names = list(map(lambda x: x.name, known_tainted))
-        input_dict = {}
+        #input_dict = {}
+        input_dict = odict()
         whole_instructions = pycutil.get_full_instruction_function(real_instructions)
         #worklist = [func_body]
-        worklist = [whole_instructions[0]]
+
+        worklist = []
+
+        if len(whole_instructions) != 0:
+            worklist = [whole_instructions[0]]
 
         # Initialization of the first instruction
         self.initialize_input_dict(input_dict, variables_decl, function_name,
@@ -388,54 +398,32 @@ class TaintAnalysis:
             # Take off the first instruction of the worklist
             worklist.remove(worklist[0])
 
-            output = "NT"
+            #output = "NT"
+            output = "UNK"
+
+            #index = real_instructions.index(first_instruction)
+
+            #index = whole_instructions.index(first_instruction)
+            #whole_instruction = whole_instructions[index]
+            whole_instruction = first_instruction
+
+            if len(whole_instruction) == 0:
+                # TODO check if this is correct or append the next whole instruction to
+                #  worklist before continue
+                continue
 
             # TODO get the real value of output
 
-            #index = real_instructions.index(first_instruction)
-            index = whole_instructions.index(first_instruction)
-            whole_instruction = whole_instructions[index]
+            # TODO test get_all_id_names
+            #ids = self.get_all_id_names(whole_instruction)
 
-            if len(whole_instruction) == 0:
-                continue
+            # Check if is a variable
+            if pycutil.is_variable_decl(whole_instruction[0]):
+                name = whole_instruction[0].name
 
-            succs = []
-
-            # Look for the succesive whole instructions. The first instruction with
-            #  succesive instruction out of the current whole instruction will be
-            #  the one used to get all the succesive whole instructions (it makes
-            #  easier the searching)
-            for instruction in whole_instruction:
-                instruction_index = real_instructions.index(instruction)
-                instr = instructions[instruction_index]
-                instr_succs = instr.get_succs()
-                found = False
-
-                # Check if the succ instructions are from other whole instruction
-                for instr_succ in instr_succs:
-                    real_instr_succ = instr_succ.get_instruction()
-
-                    if real_instr_succ not in whole_instruction:
-                        # The current instruction's sucessive instructions does not
-                        #  belong to the current whole instruction, so look for the
-                        #  whole instruction where belongs
-                        found = True
-
-                        for whole in whole_instructions:
-                            # Look for the whole instruction which contains the succesive
-                            #  instruction which is not the current whole instruction
-                            if real_instr_succ in whole:
-                                # Whole instruction which contains the succesive instruction
-                                #  found. Append the whole current instruction as succesive
-                                succs.append(whole)
-                                break
-                
-                # When any succesive instructions of the current whole instruction contain
-                #  a succesive instruction out of the current whole instruction, the searching
-                #  will stop in order to optimize the difficulty of look for the succesive
-                #  instruction with the "whole instruction" context
-                if found:
-                    break
+            # Get succ whole instructions from current whole instruction
+            succs = self.get_succs_from_whole_instruction(whole_instruction, whole_instructions,
+                                                          instructions, real_instructions)
 
             #instruction = instructions[index]
             #real_instruction = instruction.get_instruction()
@@ -489,6 +477,167 @@ class TaintAnalysis:
 
         return result
 
+    def get_all_id_names(self, whole_instruction, struct_only_first_id=True):
+        """It looks for the ID which are being used in a whole instruction.
+
+        Arguments:
+            whole_instruction (list): list of *pycparser.c_ast.Node* which represents
+                a whole instruction.
+            struct_only_first_id (bool): if *True*, when an instruction is instance of
+                StructRef, only the first ID will be retrieved and the rest will be ignored.
+                If *False*, the format will be "id1.id2.id3 ...". The default value is
+                *True*.
+
+        Returns:
+            list: list of *str* which are the names of the found ID (e.g. variable names,
+            function calls, ...)
+        """
+        result = []
+        index = 0
+
+        while index < len(whole_instruction):
+            instruction = whole_instruction[index]
+
+            if type(instruction) in TAConstants.id_instr:
+                if isinstance(instruction, ast.StructRef):
+                    struct_instructions = pycutil.get_instruction_path(instruction)
+                    ids = pycutil.get_instructions_of_instance(ast.ID, struct_instructions)
+
+                    if len(ids) == 0:
+                        continue
+
+                    # Get the names
+                    for _index, _ids in enumerate(ids, 0):
+                        while not isinstance(_ids, str):
+                            _ids = _ids.name
+
+                        ids[_index] = _ids
+
+                    count = 0
+                    _index = index
+
+                    while (_index + 1 < len(whole_instruction) and
+                               isinstance(whole_instruction[_index + 1], ast.ID)):
+                        _index += 1
+                        count += 1
+
+                    if struct_only_first_id:
+                        result.append(ids[0])
+
+                        # Avoid to get all the accesses to the struct
+                        #  (e.g. myStruct.a.b = c will skip "a" and "b" but not "c",
+                        #   myStruct.a.d(z.q, g.s) will skip "a", "d", "q" and "s") 
+                        #index += count
+
+                    else:
+                        result += ids[0:count]
+
+                    index += count
+                elif isinstance(instruction, (ast.ArrayRef, ast.Decl, ast.Enum, ast.Enumerator,
+                                              ast.FuncCall, ast.ID, ast.NamedInitializer,
+                                              ast.Struct, ast.Typedef, ast.Typename, ast.Union)):
+                    name = instruction.name
+
+                    if (isinstance(instruction, ast.FuncCall) and
+                            isinstance(name, ast.StructRef)):
+                        struct_instructions = pycutil.get_instruction_path(instruction)
+                        _index = 0
+
+                        for _index, struct_instruction in enumerate(struct_instructions[1:], 0):
+                            if not isinstance(struct_instruction, ast.ID):
+                                break
+
+                        while len(struct_instructions) != _index + 1:
+                            struct_instructions.remove(struct_instructions[-1])
+
+                        # Function being called from a struct
+                        func_call_name = ""
+                        aux = self.get_all_id_names(struct_instructions, False)
+
+                        for func_call in aux:
+                            func_call_name += f"{func_call}."
+
+                        if len(func_call_name) != 0:
+                            func_call_name = func_call_name[0:-1]
+
+                        result.append(func_call_name)
+
+                        index += len(aux) + 1
+                    else:
+                        while not isinstance(name, str):
+                            name = name.name
+
+                        result.append(name)
+                else:
+                    raise BOAModuleException("found instruction of type"
+                                             f" '{get_just_type(instruction)}'"
+                                             " which is defined but not expected (update the"
+                                             " function in order to fix it)", self)
+
+            index += 1
+
+        return result
+
+    def get_succs_from_whole_instruction(self, whole_instruction, whole_instructions,
+                                         instructions, real_instructions):
+        """It returns the whole instructions which are succs of a concrete whole instruction.
+
+        Arguments:
+            whole_instruction (list): list of *pycparser.c_ast.Node* which represents a whole
+                instruction and is the whole instruction from where we want to know its succs.
+            whole_instructions (list): list of lists of *pycparser.c_ast.Node* which represents
+                the whole instructions of a function.
+            instructions (list): list of *pycparser_cfg.Instruction* which are all the
+                instructions of the function.
+            real_instructions (list): list of *pycparser.c_ast.Node* which are all the real
+                instructions of the function.
+
+        Returns:
+            list: list of lists of *pycparser.c_ast.Node* which represents the succs whole
+            instructions of *whole_instruction*
+        """
+        succs = []
+
+        # Look for the succesive whole instructions. The first instruction with
+        #  succesive instruction out of the current whole instruction will be
+        #  the one used to get all the succesive whole instructions (it makes
+        #  easier the searching)
+        for instruction in whole_instruction:
+            instruction_index = real_instructions.index(instruction)
+            instr = instructions[instruction_index]
+            instr_succs = instr.get_succs()
+            found = False
+
+            # Check if the succ instructions are from other whole instruction
+            for instr_succ in instr_succs:
+                real_instr_succ = instr_succ.get_instruction()
+
+                if real_instr_succ not in whole_instruction:
+                    # The current instruction's sucessive instructions does not
+                    #  belong to the current whole instruction, so look for the
+                    #  whole instruction where belongs
+                    found = True
+
+                    for whole in whole_instructions:
+                        # Look for the whole instruction which contains the succesive
+                        #  instruction which is not the current whole instruction
+                        if real_instr_succ in whole:
+                            # Whole instruction which contains the succesive instruction
+                            #  found. Append the whole current instruction as succesive
+                            succs.append(whole)
+                            break
+
+            # When any succesive instructions of the current whole instruction contain
+            #  a succesive instruction out of the current whole instruction, the searching
+            #  will stop in order to optimize the difficulty of look for the succesive
+            #  instruction with the "whole instruction" context
+            # TODO check if is better idea to get all the succ of the whole instruction
+            #  which means to remove the 2 following lines
+            if found:
+                break
+
+        return succs
+
     def initialize_input_dict(self, input_dict, variables_decl, function_name,
                               tainted_variables_names, result, instruction,
                               instruction_reference):
@@ -521,12 +670,6 @@ class TaintAnalysis:
             # Initially, all variables will be "UNK", but when declaration is found, it will change
             taint_status = "UNK"
             taint_instruction = None
-
-            # Initialize the inputs
-            #for func_body_instruction in func_body_instructions:
-            #    if not is_key_in_dict(input_dict, func_body_instruction):
-            #        input_dict[func_body_instruction] = {}
-            #    input_dict[func_body_instruction][variable_decl_name] = taint_status
 
             # Initialize the inputs with a dictionary
             if not is_key_in_dict(input_dict, id(instruction)):
