@@ -413,7 +413,8 @@ class TaintAnalysis:
         #  (initializes the algorithm)
         tainted_variables_names = list(map(lambda x: x.name, known_tainted))
         input_dict = odict()
-        whole_instructions = pycutil.get_full_instruction_function(real_instructions)
+        # TODO remove last parameter or set to False
+        whole_instructions = pycutil.get_full_instruction_function(real_instructions, True)
 
         worklist = []
 
@@ -426,6 +427,10 @@ class TaintAnalysis:
                                    None)
 
         visited = []
+        # Store the temporal taints of control structures
+        # It will be removed when the end of the control structure is reached
+        # TODO
+        temporal_taints_of_control_structures = []
 
         # Work with the worklist and the CFG
         while len(worklist) != 0:
@@ -469,6 +474,9 @@ class TaintAnalysis:
             # Get succ whole instructions from current whole instruction
             succs = self.get_succs_from_whole_instruction(whole_instruction, whole_instructions,
                                                           instructions, real_instructions)
+
+            # Sort reversely because the instructions are appended in the front of the worklist
+            succs.sort(reverse=True, key=whole_instructions.index)
 
             for succ_instruction in succs:
                 visiting[-1] = id(succ_instruction)
@@ -525,7 +533,7 @@ class TaintAnalysis:
                     visited.append(deepcopy(visiting))
 
             # TODO remove next line used for debugging
-            print(f"worklist: {list(map(lambda x: whole_instructions.index(x), worklist))}")
+            print(f"worklist: {list(map(whole_instructions.index, worklist))}")
 
         # Get only those Taint instantes which are tainted (T and MT status)
         result = list(filter(lambda x: x[1].status == "T" or x[1].status == "MT", result))

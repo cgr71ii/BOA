@@ -20,6 +20,11 @@
             <lifecycle_handler>boalc_pycparser_ast.BOALCPycparserAST</lifecycle_handler>
             <args>
                 <!-- Check the CFG rules file in order to know which args accepts -->
+                <dict>
+                    <!-- It makes easier to apply Taint Analysis to a single function
+                            if there are not references to other functions -->
+                    <element name="propagate_func_call" value="false" />
+                </dict>
             </args>
         </module>
         <module>

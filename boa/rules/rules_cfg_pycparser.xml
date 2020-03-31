@@ -53,6 +53,14 @@
                             in the y coordinate. It is applied only if
                             'plot_cfg' is 'true' -->
                     <element name="random_y_offset" value="true" />
+                    <!-- The default value is 'true'. If 'false', the
+                            function call elements which are found, will
+                            not be linked to the function that is calling
+                            even though it is in the same file defined.
+                            If 'true', the function call elements will be
+                            linked to those functions which are defined in
+                            the same file -->
+                    <element name="propagate_func_call" value="true" />
                 </dict>
             </args>
         </module>

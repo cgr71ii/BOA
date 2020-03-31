@@ -72,16 +72,27 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
 
             sys.setrecursionlimit(recursion_limit)
 
-        self.process_cfg = ProcessCFG()
-        self.is_matplotlib_loaded = __matplotlib_loaded__
-
         # Arguments from rules file
+        # Plot
         self.display_cfg = False
         self.plot_cfg = False
         self.lines_clip = True
         self.random_x_offset = False
         self.random_y_offset = False
+        # Other
+        self.propagate_func_call = True
 
+        # Check and set the rules from the rules file
+        self.check_and_set_args()
+
+        self.process_cfg = ProcessCFG(self.propagate_func_call)
+        self.is_matplotlib_loaded = __matplotlib_loaded__
+
+    def check_and_set_args(self):
+        """It checks if the arguments from the rules file are correct and, if
+        any of the allowed rules are defined, it sets the value which is set
+        in the rules file.
+        """
         if is_key_in_dict(self.args, "display_cfg"):
             if self.args["display_cfg"].lower() == "true":
                 self.display_cfg = True
@@ -115,6 +126,13 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
                 self.random_y_offset = True
             elif self.args["random_y_offset"].lower() != "false":
                 raise BOAModuleException("the argument 'random_y_offset' only allows"
+                                         " the values 'true' or 'false'")
+
+        if is_key_in_dict(self.args, "propagate_func_call"):
+            if self.args["propagate_func_call"].lower() == "false":
+                self.propagate_func_call = False
+            elif self.args["propagate_func_call"].lower() != "true":
+                raise BOAModuleException("the argument 'propagate_func_call' only allows"
                                          " the values 'true' or 'false'")
 
     def process(self, token):
@@ -438,11 +456,18 @@ class ProcessCFG():
     """Class which builds the CFG.
     """
 
-    def __init__(self):
+    def __init__(self, propagate_func_call):
         """It initializes the necessary variables.
+
+        Arguments:
+            propagate_func_call (bool): if *True*, the function calls, if call to
+                a function which is defined in the same file, will be linked with
+                that function. Otherwise, the function call will be linked with the
+                following instruction.
         """
         self.basic_cfg = cfg.CFG()
         self.funcion_calls = {}
+        self.propagate_func_call = propagate_func_call
 
     def process(self, function_name, function):
         """It process a concrete function for the CFG.
@@ -765,28 +790,28 @@ class ProcessCFG():
                     # Get iteratively the name
                     while not isinstance(name, str):
                         name = name.name
-                    
+
                     if name in CFGConstants.exit_functions:
                         if last_compound is None:
                             eprint("Warning: trying to append a 'FinalNode', but"
-                                " no 'Compound' was found (exit function out"
-                                " of a function?).")
+                                   " no 'Compound' was found (exit function out"
+                                   " of a function?).")
 
                         end_of_graph_node = cfg.FinalNode()
                         pycutil.append_element_to_function(end_of_graph_node,
-                                                        func_def=instructions_pyc[0])
+                                                           func_def=instructions_pyc[0])
                         instr_position = -1
                         func_call_instrs =\
                             pycutil.get_real_next_instruction(instructions_pyc[0],
-                                                            instr)
+                                                              instr)
 
                         if func_call_instrs is not None:
                             instr_position = instructions_pyc.index(func_call_instrs)
 
                         # It appends the new node
                         self.basic_cfg.append_instruction(function_name,
-                                                        end_of_graph_node,
-                                                        instr_position)
+                                                          end_of_graph_node,
+                                                          instr_position)
 
     def resolve_broken_succs(self):
         """It resolves those dependencies which could not
@@ -1165,7 +1190,7 @@ class ProcessCFG():
         #  will have other statement
         instruction.append_succ(instructions[index + 1])
 
-        if func_call_name in own_defined_functions:
+        if (self.propagate_func_call and func_call_name in own_defined_functions):
             # Link the caller to the callee FuncDef
             callee_instructions = self.basic_cfg.get_cfg(func_call_name)
 

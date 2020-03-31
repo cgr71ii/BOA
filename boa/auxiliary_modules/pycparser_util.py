@@ -185,7 +185,7 @@ def get_instructions_type(instructions, second_function_to_apply=None):
                                  f" '{get_just_type(second_function_to_apply)}'"
                                  " respectively")
 
-    result = list(map(lambda instr: type(instr), instructions))
+    result = list(map(type, instructions))
 
     if second_function_to_apply is not None:
         result = list(map(second_function_to_apply, result))
