@@ -442,6 +442,7 @@ class TaintAnalysis:
             outputs = []
 
             whole_instruction = first_instruction
+            whole_instruction_index = whole_instructions.index(whole_instruction)
 
             if len(whole_instruction) == 0:
                 # TODO check if this is correct or append the next whole instruction to
@@ -452,6 +453,29 @@ class TaintAnalysis:
 
             ids = self.get_all_id_names(whole_instruction)
 
+            if isinstance(whole_instruction[0],
+                          pycutil.PycparserUtilConstants.strict_compound_instr):
+                compound_element_identifier =\
+                    self.get_taint_information_from_compound_element(whole_instruction,
+                                                                     whole_instructions,
+                                                                     input_dict, ids)
+
+                already_inserted = len(list(filter(lambda x:
+                                                   x[3] == compound_element_identifier[3],
+                                                   temporal_taints_of_control_structures))) > 0
+
+                if not already_inserted:
+                    temporal_taints_of_control_structures.append(compound_element_identifier)
+
+
+
+            if len(pycutil.get_instructions_of_instance(ast.FuncCall, whole_instruction)) != 0:
+                # There are func call elements in the current whole instruction
+                # TODO Check if assignment
+                # TODO Store which arguments passed to the func call are T or NT
+                #  and from which function is being called from which other
+                pass
+
             # Check if is a variable declaration or assignment
             if (pycutil.is_variable_decl(whole_instruction[0]) or
                     isinstance(whole_instruction[0], ast.Assignment)):
@@ -459,6 +483,30 @@ class TaintAnalysis:
                                                        input_dict,
                                                        tainted_variables_names,
                                                        ids, result)
+
+            # Once reached this point, outputs is already calculated
+
+            # Check if the current whole instruction is inside a control flow structure
+            #  and if the control structure is tainted
+            for control_structure in temporal_taints_of_control_structures:
+                if (control_structure[3] <= whole_instruction_index < control_structure[4] and
+                        control_structure[1]):
+                    # The current whole instruction is inside a control flow structure tainted
+                    control_structure_status = control_structure[2]
+                    output_index = 0
+
+                    # Update the tainted values of all the variables because are inside
+                    #  a control flow structure tainted
+                    for var, output in outputs:
+                        if output == "NT":
+                            # The variable was not tainted, and now it is
+                            outputs[output_index][1] = control_structure_status
+                        elif (output == "T" and control_structure_status == "MT"):
+                            # The variable was tainted, but now also contains the value "NT"
+                            #  "T" + "NT" -> "MT"
+                            outputs[output_index][1] = control_structure_status
+
+                        output_index += 1
 
             # [instruction index, current result, new output values, current result, succ]
             # If we visit the same values again, it means we have reached a loop
@@ -540,6 +588,89 @@ class TaintAnalysis:
 
         return result
 
+    def get_taint_information_from_compound_element(self, whole_instruction, whole_instructions,
+                                                    input_dict, ids):
+        """It analyzes a compound element and gets taint information and
+        useful information for the taint analysis.
+
+        Arguments:
+            whole_instruction (list): list of *pycparser.c_ast.Node* instructions
+                which represents a whole instruction.
+            whole_instructions (list): list of lists of *pycparser.c_ast.Node* which
+                represents all the full instructions of the current function, like
+                *whole_instruction*.
+            input_dict (dict): dict of dicts of *str* which represents the tainted
+                variables of the current analysis.
+            ids (list): list of *str* which contains all the ID's of the current
+                statement.
+
+        Returns:
+            list: list which contains the following information:\n
+            1. pycparser.c_ast.Node: *whole_instruction[0]* (for debugging purposes).
+            2. bool: *True* if the statement is tainted.
+            3. str: taint status
+            4. int: index where the statement starts (from all the whole instructions)
+            5. int: index where the statement finishes (from all the whole instructions).
+               It does not include the instruction which targets!
+        """
+        # The instruction might have a Compound element strictly
+        compound_element_identifier = []
+
+        # Append which type of compound instruction is (debbug purposes)
+        compound_element_identifier.append(whole_instruction[0])
+        # Append if the statement is tainted (T or MT in any of the variables used
+        #  in the statement (e.g. if (tainted){indirectly tainted}))
+        # Retrieve the tainted variables from the last result
+        not_tainted_vars_last_result = list(filter(lambda item: item[1] == "NT",
+                                                   input_dict[list(input_dict)[-1]]\
+                                                       .items()))
+        tainted_vars_last_result = list(filter(lambda item: item[1] in ["T", "MT"],
+                                               input_dict[list(input_dict)[-1]].items()))
+        tainted_vars_last_result_names = list(map(lambda var_taint: var_taint[0],
+                                                  tainted_vars_last_result))
+        # Check if the tainted variables from the last result match with the
+        #  found ID's in the current whole instruction
+        compound_element_identifier.append(len(list(filter(
+            lambda x: x in tainted_vars_last_result_names,
+            ids))) != 0)
+
+        # Append output value according to the tainted value of last result
+        if not compound_element_identifier[-1]:
+            # There are not tainted variables
+            compound_element_identifier.append("NT")
+        elif (len(not_tainted_vars_last_result) != 0 and
+                len(tainted_vars_last_result) != 0):
+            # There are tainted and not tainted variables
+            compound_element_identifier.append("MT")
+        else:
+            # There are tainted variables
+            compound_element_identifier.append("T")
+
+        # Append the index in which this compound element starts
+        compound_element_identifier.append(whole_instructions.index(whole_instruction))
+
+        # Append the index in which this compound element finishes
+        compound_instructions = [whole_instruction[0]] +\
+            pycutil.get_instruction_path(whole_instruction[0])
+        index = compound_element_identifier[-1]
+
+        while index < len(whole_instructions):
+            if (len(whole_instructions[index]) != 0 and
+                    whole_instructions[index][0] not in compound_instructions):
+                # We have found the first instruction which does not belongs to
+                #  the compound element. Now, index contain the position where
+                #  the compound element finishes (not including that element!)
+                break
+
+            index += 1
+
+        # Append index because contains the position where the compund elmenet finishes
+        # The instruction which has the position targetted by index does not belong to
+        #  the compound element!
+        compound_element_identifier.append(index)
+
+        return compound_element_identifier
+
     def process_output_from_decl_or_asign(self, outputs, whole_instruction,
                                           input_dict, tainted_variables_names,
                                           ids, result):
@@ -588,7 +719,7 @@ class TaintAnalysis:
 
         if init is None:
             # The variable is not initialized, so is not tainted
-            outputs.append((name, "NT"))
+            outputs.append([name, "NT"])
         else:
             # The variable is initialized, so we have to check if is tainted
 
@@ -610,14 +741,14 @@ class TaintAnalysis:
                 # Check if there are any tainted variables in the
                 #  initialization
                 if len(tainted) != 0:
-                    outputs.append((name, "T"))
+                    outputs.append([name, "T"])
 
                     if index is not None:
                         result[index][1].instruction = whole_instruction
                 else:
                     # There are not tainted variables (or unknown),
                     #  so, by the moment, NT
-                    outputs.append((name, "NT"))
+                    outputs.append([name, "NT"])
 
         # Set the declaration if not set
         if (index is not None and result[index][1].decl is None):

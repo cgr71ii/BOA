@@ -41,9 +41,9 @@ class PycparserUtilConstants:
     """Useful constants to use by the methods in this file.
     """
     visitor_nc = PreorderVisitor()
-    compound_instr = (ast.Compound, ast.DoWhile, ast.For,
-                      ast.If, ast.Switch, ast.While, ast.Case,
-                      ast.Default)
+    strict_compound_instr = (ast.Compound, ast.DoWhile, ast.For,
+                             ast.If, ast.Switch, ast.While)
+    compound_instr = strict_compound_instr + (ast.Case, ast.Default)
     fake_instr = (Separator,)
 
 def get_instruction_path(instruction):
