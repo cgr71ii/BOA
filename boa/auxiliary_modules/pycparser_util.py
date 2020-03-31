@@ -27,14 +27,24 @@ class PycparserException(Exception):
         """
         super(PycparserException, self).__init__(f"pycparser: {message}")
 
+class Separator(ast.EmptyStatement):
+    """This element is intented to separate statements when
+    creating whole instructions in a list. For example, it
+    might be used to separate the differents statements used
+    in a For statement.
+
+    Warning: this instruction is fake, so you will not be able
+    to find it in the original instructions.
+    """
+
 class PycparserUtilConstants:
     """Useful constants to use by the methods in this file.
     """
     visitor_nc = PreorderVisitor()
-    compound_instr = [ast.Compound, ast.DoWhile, ast.For,
+    compound_instr = (ast.Compound, ast.DoWhile, ast.For,
                       ast.If, ast.Switch, ast.While, ast.Case,
-                      ast.Default]
-
+                      ast.Default)
+    fake_instr = (Separator,)
 
 def get_instruction_path(instruction):
     """It returns the path of a instruction.
@@ -603,7 +613,7 @@ def get_full_instruction(instruction, instructions, display_coord=False):
     # ast.Compound, ast.DoWhile, ast.For,
     # ast.If, ast.Switch, ast.While
 
-    if type(instruction) in PycparserUtilConstants.compound_instr:
+    if isinstance(instruction, PycparserUtilConstants.compound_instr):
         if isinstance(instruction, ast.Compound):
             result = [[instruction]]  # Compound as an instruction itself
         elif isinstance(instruction, ast.Default):
@@ -623,7 +633,8 @@ def get_full_instruction(instruction, instructions, display_coord=False):
             expr = expr + expr_instrs
 
             # The statement is an instruction itself and the expr another
-            result = [[instruction], expr]
+            #result = [[instruction], expr]
+            result = [[instruction] + expr]
         elif isinstance(instruction, (ast.While, ast.DoWhile, ast.If, ast.Switch)):
             cond = instruction.cond
             cond_instrs = []
@@ -639,7 +650,8 @@ def get_full_instruction(instruction, instructions, display_coord=False):
             cond = cond + cond_instrs
 
             # The statement is an instruction itself and the condition another
-            result = [[instruction], cond]
+            #result = [[instruction], cond]
+            result = [[instruction] + cond]
         elif isinstance(instruction, ast.For):
             init = instruction.init
             init_instrs = []
@@ -672,8 +684,13 @@ def get_full_instruction(instruction, instructions, display_coord=False):
             cond = cond + cond_instrs
             for_next = for_next + for_next_instrs
 
+            first_separator = Separator()
+            second_separator = Separator()
+
             # Every part is an instruction itself
-            result = [[instruction], cond, init, for_next]
+            #result = [[instruction], cond, init, for_next]
+            result = [[instruction] + cond + [first_separator] + init +\
+                      [second_separator] + for_next]
         else:
             raise PycparserException("found instruction of type"
                                      f" '{get_just_type(instruction)}'"
@@ -756,6 +773,11 @@ def get_full_instruction_function(instructions, display_coord=False):
             for full_instruction in full_instructions:
                 result.append(full_instruction)
                 index += len(full_instruction)
+
+                # Subtract those fake instructions used for whatever reason
+                for fake in PycparserUtilConstants.fake_instr:
+                    fake_instrs = get_instructions_of_instance(fake, full_instruction)
+                    index -= len(fake_instrs)
 
             # Is there next instruction?
             if index < len(instructions):

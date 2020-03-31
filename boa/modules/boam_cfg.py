@@ -32,9 +32,9 @@ class CFGConstants:
     """Class which contains the necessary constants
     for working with the CFG.
     """
-    branching_instr = [ast.FuncCall, ast.If, ast.For, ast.While,
+    branching_instr = (ast.FuncCall, ast.If, ast.For, ast.While,
                        ast.DoWhile, ast.Goto, ast.Switch, ast.Break,
-                       ast.Continue, ast.Return]
+                       ast.Continue, ast.Return)
 
     exit_functions = ["exit"]   # Append the ones you need
     default_recursion_limit = 1000
@@ -1550,7 +1550,7 @@ class ProcessCFG():
             real_instruction = instruction.get_instruction()
 
             #print(f" -- Instruction: {instruction.get_type()}")
-            if instruction.get_type() in CFGConstants.branching_instr:
+            if isinstance(instruction.get_instruction(), CFGConstants.branching_instr):
                 if isinstance(real_instruction, ast.Return):
                     self.resolve_succs_return(function_name, instruction,
                                               instructions, function_invoked_by)

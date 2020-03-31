@@ -27,10 +27,10 @@ class TAConstants:
     split_char = "@"    # Character that will be used in order to split the values
                         #  of the rules file for the Sources and Sinks
 
-    id_instr = [#ast.Goto, ast.Label,
+    id_instr = (#ast.Goto, ast.Label,
                 ast.ArrayRef, ast.Decl, ast.Enum, ast.Enumerator,
                 ast.FuncCall, ast.ID, ast.NamedInitializer, ast.Struct,
-                ast.StructRef, ast.Typedef, ast.Typename, ast.Union]
+                ast.StructRef, ast.Typedef, ast.Typename, ast.Union)
 
 class BOAModuleTaintAnalysis(BOAModuleAbstract):
     """BOAModuleTaintAnalysis class.
@@ -412,10 +412,8 @@ class TaintAnalysis:
         # Initialize all the Taint instances with the variables of the function
         #  (initializes the algorithm)
         tainted_variables_names = list(map(lambda x: x.name, known_tainted))
-        #input_dict = {}
         input_dict = odict()
-        whole_instructions = pycutil.get_full_instruction_function(real_instructions, True)
-        #worklist = [func_body]
+        whole_instructions = pycutil.get_full_instruction_function(real_instructions)
 
         worklist = []
 
@@ -424,7 +422,6 @@ class TaintAnalysis:
 
         # Initialization of the first instruction
         self.initialize_input_dict(input_dict, variables_decl, function_name,
-                                   #tainted_variables_names, result, func_body_instructions[0],
                                    tainted_variables_names, result, whole_instructions[0],
                                    None)
 
@@ -437,13 +434,8 @@ class TaintAnalysis:
             # Take off the first instruction of the worklist
             worklist.remove(worklist[0])
 
-            #output = "NT"
             outputs = []
 
-            #index = real_instructions.index(first_instruction)
-
-            #index = whole_instructions.index(first_instruction)
-            #whole_instruction = whole_instructions[index]
             whole_instruction = first_instruction
 
             if len(whole_instruction) == 0:
@@ -455,9 +447,10 @@ class TaintAnalysis:
 
             ids = self.get_all_id_names(whole_instruction)
 
-            # Check if is a variable
-            if pycutil.is_variable_decl(whole_instruction[0]):
-                self.process_output_from_variable_decl(outputs, whole_instruction,
+            # Check if is a variable declaration or assignment
+            if (pycutil.is_variable_decl(whole_instruction[0]) or
+                    isinstance(whole_instruction[0], ast.Assignment)):
+                self.process_output_from_decl_or_asign(outputs, whole_instruction,
                                                        input_dict,
                                                        tainted_variables_names,
                                                        ids, result)
@@ -477,48 +470,35 @@ class TaintAnalysis:
             succs = self.get_succs_from_whole_instruction(whole_instruction, whole_instructions,
                                                           instructions, real_instructions)
 
-            #instruction = instructions[index]
-            #real_instruction = instruction.get_instruction()
-            #succs = instruction.get_succs()
-            #succ_real_instructions = pycfg.Instruction.get_instructions(succs)
-
-            #for succ_instruction in succ_real_instructions:
             for succ_instruction in succs:
                 visiting[-1] = id(succ_instruction)
 
-                #if succ_instruction not in real_instructions:
                 if succ_instruction[0] not in real_instructions:
                     eprint("Warning: the CFG has taken to a instruction of other"
                            " function and 'kildall' function has been designed to"
                            " have all the instructions in the same function.")
                     continue
 
-                #if not is_key_in_dict(input_dict, succ_instruction):
                 if not is_key_in_dict(input_dict, id(succ_instruction)):
                     self.initialize_input_dict(input_dict, variables_decl,
                                                function_name,
                                                tainted_variables_names, result,
-                                               succ_instruction,
-                                               #real_instruction)
-                                               whole_instruction)
-                #input_value = input_dict[succ_instruction]
+                                               succ_instruction, whole_instruction)
+
                 input_value = input_dict[id(succ_instruction)]
                 append_succ = False
 
-                #for var in input_value:
                 for var, output in outputs:
                     taint_status = input_value[var]
 
                     if output != taint_status:
                         if taint_status == "UNK":
                             # New taint status will be output, which is "T" or "NT"
-                            #input_dict[succ_instruction][var] = output
                             input_dict[id(succ_instruction)][var] = output
                             append_succ = True
                         elif taint_status != "MT":
                             # New taint status will be "MT" because output is "T" or "NT" and
                             #  taint_status the other, so we have the set {"T", "NT"} = "MT"
-                            #input_dict[succ_instruction][var] = "MT"
                             input_dict[id(succ_instruction)][var] = "MT"
                             append_succ = True
 
@@ -529,10 +509,17 @@ class TaintAnalysis:
                     # We have visited this concrete result before, so we are in a loop -> abort
                     abort = True
 
-                if ((append_succ or len(outputs) == 0) and not abort):
+                if (append_succ or not abort):
                     # A variable was affected, so we process the dependency
-                    #worklist.append(succ_instruction)
-                    worklist.insert(0, succ_instruction)
+
+                    if (len(succ_instruction) != 0 and
+                            isinstance(succ_instruction[0], pycfg.EndOfIfElse)):
+                        # The succ instruction is the end of if-else, which means that
+                        #  we might have not finished the whole if-else statement, so
+                        #  we append instead of insert
+                        worklist.append(succ_instruction)
+                    else:
+                        worklist.insert(0, succ_instruction)
 
                     # Append this current and concrete result as visited
                     visited.append(deepcopy(visiting))
@@ -545,10 +532,10 @@ class TaintAnalysis:
 
         return result
 
-    def process_output_from_variable_decl(self, outputs, whole_instruction,
+    def process_output_from_decl_or_asign(self, outputs, whole_instruction,
                                           input_dict, tainted_variables_names,
                                           ids, result):
-        """It process the output from a variable declaration.
+        """It process the output from a variable declaration or assignment.
 
         Arguments:
             outputs (list): list of tuple of format (str, str) which contains
@@ -569,12 +556,27 @@ class TaintAnalysis:
             result (list): list of tuples of format (str, *Taint*) which contains
                 taint information about all the variables in the function.
         """
-        name = whole_instruction[0].name
+        name = None
+
+        if isinstance(whole_instruction[0], ast.Assignment):
+            name = whole_instruction[0].lvalue.name
+        else:
+            name = whole_instruction[0].name
+
+        ids_valid_index = 1
 
         while not isinstance(name, str):
             name = name.name
+            ids_valid_index += 1
 
-        init = whole_instruction[0].init    # Initialization of the declaration
+        init = None
+
+        if isinstance(whole_instruction[0], ast.Assignment):
+            init = whole_instruction[0].rvalue
+        else:
+            init = whole_instruction[0].init    # Initialization of the declaration
+
+        index = self.get_result_index_by_var_name(result, name)
 
         if init is None:
             # The variable is not initialized, so is not tainted
@@ -594,10 +596,8 @@ class TaintAnalysis:
 
                 # Get the tainted variables from the variables of the
                 #  initialization
-                tainted = list(filter(lambda x: x in ids[1:],
+                tainted = list(filter(lambda x: x in ids[ids_valid_index:],
                                       current_tainted_variables))
-
-                index = self.get_result_index_by_var_name(result, name)
 
                 # Check if there are any tainted variables in the
                 #  initialization
@@ -611,9 +611,9 @@ class TaintAnalysis:
                     #  so, by the moment, NT
                     outputs.append((name, "NT"))
 
-                # Set the declaration if not set
-                if (index is not None and result[index][1].decl is None):
-                    result[index][1].decl = whole_instruction
+        # Set the declaration if not set
+        if (index is not None and result[index][1].decl is None):
+            result[index][1].decl = whole_instruction
 
     def get_result_index_by_var_name(self, result, name):
         """It looks for the index in *result* variable with the name
@@ -657,7 +657,7 @@ class TaintAnalysis:
         while index < len(whole_instruction):
             instruction = whole_instruction[index]
 
-            if type(instruction) in TAConstants.id_instr:
+            if isinstance(instruction, TAConstants.id_instr):
                 if isinstance(instruction, ast.StructRef):
                     struct_instructions = pycutil.get_instruction_path(instruction)
                     ids = pycutil.get_instructions_of_instance(ast.ID, struct_instructions)
@@ -763,6 +763,10 @@ class TaintAnalysis:
         #  the one used to get all the succesive whole instructions (it makes
         #  easier the searching)
         for instruction in whole_instruction:
+            # Check if instruction is real or fake
+            if isinstance(instruction, pycutil.PycparserUtilConstants.fake_instr):
+                # The instruction is fake and will not be found in real_instructions
+                continue
             instruction_index = real_instructions.index(instruction)
             instr = instructions[instruction_index]
             instr_succs = instr.get_succs()
