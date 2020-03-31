@@ -8,6 +8,7 @@ execute kildall's algorithm.
 """
 
 # Std libs
+from copy import deepcopy
 from collections import OrderedDict as odict
 
 # Own libs
@@ -413,7 +414,7 @@ class TaintAnalysis:
         tainted_variables_names = list(map(lambda x: x.name, known_tainted))
         #input_dict = {}
         input_dict = odict()
-        whole_instructions = pycutil.get_full_instruction_function(real_instructions)
+        whole_instructions = pycutil.get_full_instruction_function(real_instructions, True)
         #worklist = [func_body]
 
         worklist = []
@@ -426,6 +427,8 @@ class TaintAnalysis:
                                    #tainted_variables_names, result, func_body_instructions[0],
                                    tainted_variables_names, result, whole_instructions[0],
                                    None)
+
+        visited = []
 
         # Work with the worklist and the CFG
         while len(worklist) != 0:
@@ -452,17 +455,23 @@ class TaintAnalysis:
 
             ids = self.get_all_id_names(whole_instruction)
 
-            # TODO remove the following debug print
-            #print("-----------------------------------------")
-            #print(f"index: {whole_instructions.index(whole_instruction)}")
-            #print(input_dict[list(input_dict)[-1]])
-
             # Check if is a variable
             if pycutil.is_variable_decl(whole_instruction[0]):
                 self.process_output_from_variable_decl(outputs, whole_instruction,
                                                        input_dict,
                                                        tainted_variables_names,
                                                        ids, result)
+
+            # [instruction index, current result, new output values, current result, succ]
+            # If we visit the same values again, it means we have reached a loop
+            visiting = [whole_instructions.index(whole_instruction),
+                        input_dict[list(input_dict)[-1]], outputs,
+                        list(map(lambda x: x[0], result)), None]
+
+            # TODO remove the following debug print
+            print("-----------------------------------------")
+            print(f"index: {visiting[0]}")
+            print(visiting[1])
 
             # Get succ whole instructions from current whole instruction
             succs = self.get_succs_from_whole_instruction(whole_instruction, whole_instructions,
@@ -475,6 +484,8 @@ class TaintAnalysis:
 
             #for succ_instruction in succ_real_instructions:
             for succ_instruction in succs:
+                visiting[-1] = id(succ_instruction)
+
                 #if succ_instruction not in real_instructions:
                 if succ_instruction[0] not in real_instructions:
                     eprint("Warning: the CFG has taken to a instruction of other"
@@ -511,9 +522,23 @@ class TaintAnalysis:
                             input_dict[id(succ_instruction)][var] = "MT"
                             append_succ = True
 
-                if append_succ:
+                abort = False
+
+                # Check if we are in a loop
+                if visiting in visited:
+                    # We have visited this concrete result before, so we are in a loop -> abort
+                    abort = True
+
+                if ((append_succ or len(outputs) == 0) and not abort):
                     # A variable was affected, so we process the dependency
-                    worklist.append(succ_instruction)
+                    #worklist.append(succ_instruction)
+                    worklist.insert(0, succ_instruction)
+
+                    # Append this current and concrete result as visited
+                    visited.append(deepcopy(visiting))
+
+            # TODO remove next line used for debugging
+            print(f"worklist: {list(map(lambda x: whole_instructions.index(x), worklist))}")
 
         # Get only those Taint instantes which are tainted (T and MT status)
         result = list(filter(lambda x: x[1].status == "T" or x[1].status == "MT", result))
