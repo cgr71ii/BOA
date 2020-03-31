@@ -132,4 +132,4 @@ dmypy.json
 __pycache__/
 
 # VSCode
-.vscode/
+.vscode/*

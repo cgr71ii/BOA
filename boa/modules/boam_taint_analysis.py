@@ -285,10 +285,10 @@ class Taint:
 
         Arguments:
             source (Source): *Source* instance which represents the Taint.
-            decl (auxiliary_modules.pycparser_cfg.Instruction): declaration
-                of the instruction.
-            instruction (auxiliary_modules.pycparser_cfg.Instruction):
-                instruction which tainted the *source*.
+            decl (list): list of *pycparser.c_ast.Node* which represents a
+                whole instruction declaration of the instruction.
+            instruction (list): list of *pycparser.c_ast.Node* which represents
+                a whole instruction which tainted the *source*.
             status (str): status of the Taint instance. The allowed values
                 are in *Taint.allowed_status* class variable.
         """
@@ -300,6 +300,42 @@ class Taint:
         if self.status not in Taint.allowed_status:
             raise BOAModuleException("the Taint status can only contain a value of the"
                                      f" next: '{str(Taint.allowed_status)[1:-1]}'", self)
+
+    def get_declaration_coord(self):
+        """It attempts to return the coord variable of *self.decl*.
+
+        Returns:
+            pycparser.plyparser.Coord: if could not retrieve the coord element,
+            *None* will be returned
+        """
+        if (self.decl is not None and len(self.decl) != 0):
+            return self.decl[0].coord
+
+        return None
+
+    def get_instruction_coord(self):
+        """It attempts to return the last instruction which tainted the declaration
+        (*self.instruction*).
+
+        Returns:
+            pycparser.plyparser.Coord: if could not retrieve the coord element,
+            *None* will be returned
+        """
+        if (self.instruction is not None and len(self.instruction) != 0):
+            return self.instruction[0].coord
+
+        return None
+
+    def is_tainted(self):
+        """It checks if the current instance is tainted.
+
+        Returns:
+            bool: *True* if tainted. Otherwise, *False*
+        """
+        if self.status in ["T", "MT"]:
+            return True
+
+        return False
 
 class TaintAnalysis:
     """TaintAnalysis class.
@@ -399,7 +435,7 @@ class TaintAnalysis:
             worklist.remove(worklist[0])
 
             #output = "NT"
-            output = "UNK"
+            outputs = []
 
             #index = real_instructions.index(first_instruction)
 
@@ -414,12 +450,19 @@ class TaintAnalysis:
 
             # TODO get the real value of output
 
-            # TODO test get_all_id_names
-            #ids = self.get_all_id_names(whole_instruction)
+            ids = self.get_all_id_names(whole_instruction)
+
+            # TODO remove the following debug print
+            #print("-----------------------------------------")
+            #print(f"index: {whole_instructions.index(whole_instruction)}")
+            #print(input_dict[list(input_dict)[-1]])
 
             # Check if is a variable
             if pycutil.is_variable_decl(whole_instruction[0]):
-                name = whole_instruction[0].name
+                self.process_output_from_variable_decl(outputs, whole_instruction,
+                                                       input_dict,
+                                                       tainted_variables_names,
+                                                       ids, result)
 
             # Get succ whole instructions from current whole instruction
             succs = self.get_succs_from_whole_instruction(whole_instruction, whole_instructions,
@@ -434,22 +477,25 @@ class TaintAnalysis:
             for succ_instruction in succs:
                 #if succ_instruction not in real_instructions:
                 if succ_instruction[0] not in real_instructions:
-                    eprint("Warning: the CFG has taken to a instruction of other function"
-                           " and 'kildall' function has been designed to have all the"
-                           " instructions in the same function.")
+                    eprint("Warning: the CFG has taken to a instruction of other"
+                           " function and 'kildall' function has been designed to"
+                           " have all the instructions in the same function.")
                     continue
 
                 #if not is_key_in_dict(input_dict, succ_instruction):
                 if not is_key_in_dict(input_dict, id(succ_instruction)):
-                    self.initialize_input_dict(input_dict, variables_decl, function_name,
-                                               tainted_variables_names, result, succ_instruction,
+                    self.initialize_input_dict(input_dict, variables_decl,
+                                               function_name,
+                                               tainted_variables_names, result,
+                                               succ_instruction,
                                                #real_instruction)
                                                whole_instruction)
                 #input_value = input_dict[succ_instruction]
                 input_value = input_dict[id(succ_instruction)]
                 append_succ = False
 
-                for var in input_value:
+                #for var in input_value:
+                for var, output in outputs:
                     taint_status = input_value[var]
 
                     if output != taint_status:
@@ -469,13 +515,101 @@ class TaintAnalysis:
                     # A variable was affected, so we process the dependency
                     worklist.append(succ_instruction)
 
-        # TODO process input_dict in order to obtain the Taint instances for append it
-        #  in "result"
-
         # Get only those Taint instantes which are tainted (T and MT status)
-        result = list(filter(lambda x: x.status == "T" or x.status != "MT", result))
+        result = list(filter(lambda x: x[1].status == "T" or x[1].status == "MT", result))
 
         return result
+
+    def process_output_from_variable_decl(self, outputs, whole_instruction,
+                                          input_dict, tainted_variables_names,
+                                          ids, result):
+        """It process the output from a variable declaration.
+
+        Arguments:
+            outputs (list): list of tuple of format (str, str) which contains
+                the output values for the found variables for all the processed
+                whole instructions. In this function will be appended the values
+                for *whole_instruction*. This argument will mutate.
+            whole_instruction (list): list of *pycparser.c_ast.Node* wich contains
+                the instructions of the current whole instruction which is going
+                to be analyzed in case that is a variable declaration.
+            input_dict (dict): dict of dicts which contains the tainted
+                information.
+            tainted_variables_names (list): list of str which contains the known
+                tainted variables which might be or might not in the current
+                function and are known since the begin of the process of the
+                current function.
+            ids (list): list of str which contains the found ID's in
+                *whole_instruction*.
+            result (list): list of tuples of format (str, *Taint*) which contains
+                taint information about all the variables in the function.
+        """
+        name = whole_instruction[0].name
+
+        while not isinstance(name, str):
+            name = name.name
+
+        init = whole_instruction[0].init    # Initialization of the declaration
+
+        if init is None:
+            # The variable is not initialized, so is not tainted
+            outputs.append((name, "NT"))
+        else:
+            # The variable is initialized, so we have to check if is tainted
+
+            if len(input_dict) != 0:
+                # Get the taint status of the last analyzed instruction
+                last_key = list(input_dict)[-1]
+                current_tainted_variables = list(filter(
+                    lambda y: input_dict[last_key][y] == "T",
+                    input_dict[last_key]))
+
+                # Append the known tainted variables
+                current_tainted_variables += tainted_variables_names
+
+                # Get the tainted variables from the variables of the
+                #  initialization
+                tainted = list(filter(lambda x: x in ids[1:],
+                                      current_tainted_variables))
+
+                index = self.get_result_index_by_var_name(result, name)
+
+                # Check if there are any tainted variables in the
+                #  initialization
+                if len(tainted) != 0:
+                    outputs.append((name, "T"))
+
+                    if index is not None:
+                        result[index][1].instruction = whole_instruction
+                else:
+                    # There are not tainted variables (or unknown),
+                    #  so, by the moment, NT
+                    outputs.append((name, "NT"))
+
+                # Set the declaration if not set
+                if (index is not None and result[index][1].decl is None):
+                    result[index][1].decl = whole_instruction
+
+    def get_result_index_by_var_name(self, result, name):
+        """It looks for the index in *result* variable with the name
+        of a variable.
+
+        Arguments:
+            result (list): list of tuples of format (str, *Taint*) which
+                contains taint information about all the variables of the
+                function.
+            name (str): name of the variable which we want the index of
+                *result*.
+
+        Returns:
+            int: index of the place of the tuple which contains the name
+                of *name*.
+        """
+        for index, _result in enumerate(result, 0):
+            if _result[0] == name:
+                return index
+
+        return None
 
     def get_all_id_names(self, whole_instruction, struct_only_first_id=True):
         """It looks for the ID which are being used in a whole instruction.
@@ -517,7 +651,7 @@ class TaintAnalysis:
                     _index = index
 
                     while (_index + 1 < len(whole_instruction) and
-                               isinstance(whole_instruction[_index + 1], ast.ID)):
+                           isinstance(whole_instruction[_index + 1], ast.ID)):
                         _index += 1
                         count += 1
 
@@ -566,6 +700,7 @@ class TaintAnalysis:
                     else:
                         while not isinstance(name, str):
                             name = name.name
+                            index += 1
 
                         result.append(name)
                 else:
@@ -651,7 +786,8 @@ class TaintAnalysis:
             function_name (str): function name of the function.
             tainted_variables_names (list): list of *str* which contains all the
                 known taints.
-            result (list) list of *Taint* which contains all the found *Taint*'s.
+            result (list) list of tuples of format (str, *Taint*) which contains
+                all the taint information about all the variables of the function.
             instruction (list): list of instructions of *pycparser.c_ast.Node*
                 which is going to be initialized in *input_dict*. It represents
                 a whole instruction.
@@ -665,11 +801,10 @@ class TaintAnalysis:
             BOAModuleException: if *instruction_reference* is not *None* and is not
                 in *input_dict*.
         """
-        for variable_decl in variables_decl:
+        for index, variable_decl in enumerate(variables_decl, 0):
             variable_decl_name = variable_decl.name
             # Initially, all variables will be "UNK", but when declaration is found, it will change
             taint_status = "UNK"
-            taint_instruction = None
 
             # Initialize the inputs with a dictionary
             if not is_key_in_dict(input_dict, id(instruction)):
@@ -684,16 +819,23 @@ class TaintAnalysis:
             elif variable_decl_name in tainted_variables_names:
                 # The variable is tainted due to the known taints
                 taint_status = "T"
-                taint_instruction = variable_decl
 
             # Initial information
             input_dict[id(instruction)][variable_decl_name] = taint_status
 
-            source = Source(variable_decl_name, "variable", function_name)
-            taint = Taint(source, variable_decl, taint_instruction, taint_status)
+            if instruction_reference is not None:
+                # Update the taint status
+                result[index][1].status = taint_status
+            else:
+                # Create a new entry
 
-            # We append all the taint information of the variables and later it will be cleaned
-            result.append(taint)
+                source = Source(variable_decl_name, "variable", function_name)
+                # The variable declaration and instruction will be set later while the analysis
+                #  is being performed
+                taint = Taint(source, None, None, taint_status)
+
+                # We append all the taint information of the variables and later it will be cleaned
+                result.append((variable_decl_name, taint))
 
     def get_sources(self, stype=None, function_name_container=None):
         if (stype is None and function_name_container is None):
