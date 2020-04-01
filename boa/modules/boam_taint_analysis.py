@@ -120,10 +120,30 @@ class Sink:
                 parameters).
 
         Raises:
-            ValueError: if *dangerous_parameter* is not an integer.
+            BOAModuleException: if *dangerous_parameter* is not an integer.
         """
         self.function_name = function_name
         self.dangerous_parameter = int(dangerous_parameter)
+
+        try:
+            self.dangerous_parameter = int(self.dangerous_parameter)
+        except:
+            raise BOAModuleException("'dangerous_parameter' has to be number", self)
+
+    @classmethod
+    def get_instance(cls, args):
+        """Wrapper method to get an instance initialized with a list.
+
+        Arguments:
+            args (list): list of arguments to initialize the *Sink*.
+
+        Returns:
+            Sink: sink instance initialized with *args*
+
+        Raises:
+            BOAModuleException: check *Sink.__init__* method.
+        """
+        return Sink(*args)
 
     @classmethod
     def process_sinks(cls, sinks, module_instance):
@@ -153,8 +173,15 @@ class Sink:
             values = sink.split(TAConstants.split_char)
             sink = None
 
-            if len(values) == 2:
-                sink = Sink(values[0], values[1])
+            # Check if any value was not set (i.e. "@@" or "....@")
+            for index, value in enumerate(values):
+                if len(value) == "":
+                    values[index] = None
+
+            #if len(values) == 2:
+            #    sink = Sink(values[0], values[1])
+
+            sink = Sink.get_instance(values)
 
             if sink is None:
                 raise BOAModuleException("could not create a Sink object. Check your"
@@ -176,8 +203,10 @@ class Source:
     """
 
     allowed_types = ("function", "variable")
+    allowed_how = ("argument", "targ")
 
-    def __init__(self, name, stype, function_name_container=None):
+    def __init__(self, name, stype, function_name_container=None, how=None,
+                 affected_argument_position=None, tainted_argument_position=None):
         """It initializes a Source.
 
         Arguments:
@@ -188,20 +217,70 @@ class Source:
                 list *allowed_types*.
             function_name_container (str): optional value which indicates that a
                 Source can be found inside a concrete function.
+            how (str): optional value which indicates how and who affects the Source.
+                The possible values of *how* are in the class list *allowed_how*.
+            affected_argument_position (str): optional value which indicates which
+                argument, or even other variable, is affected.
+            tainted_argument_position (str): optional value which indicates that if
+                the argument indicated by *tainted_argument_position* is tainted,
+                then the argument in *affected_argument_poition* position is affected,
+                but if not tainted, then is not affected.
 
         Raises:
             BOAModuleException: if *stype* is not a value of *Source.allowed_types*.
+                If *how* is specified and is not a value of *allowed_how*. If
+                *affected_argument_position* or *tainted_argument_position* are
+                specified and are not integers.
         """
         self.name = name
         self.type = stype
         self.function_name_container = function_name_container
+        self.how = how
+        self.affected_argument_position = affected_argument_position
+        self.tainted_argument_position = tainted_argument_position
+
+        try:
+            if self.affected_argument_position is not None:
+                self.affected_argument_position = int(self.affected_argument_position)
+        except ValueError:
+            raise BOAModuleException("if 'affected_argument_position' is"
+                                     " specified, has to be number", self)
+
+        try:
+            if self.tainted_argument_position is not None:
+                self.tainted_argument_position = int(self.tainted_argument_position)
+        except ValueError:
+            raise BOAModuleException("if 'tainted_argument_position' is"
+                                     " specified, has to be number", self)
 
         if self.type not in Source.allowed_types:
-            raise BOAModuleException("the Source type can only contain a value of the"
-                                     f" next: '{str(Source.allowed_types)[1:-1]}'", self)
+            raise BOAModuleException("the Source type can only contain a"
+                                     " value of the next list: "
+                                     f"'{str(Source.allowed_types)[1:-1]}'", self)
+
+        if (self.how is not None and self.how not in Source.allowed_how):
+            raise BOAModuleException("the 'how' argument in Source can only"
+                                     " contain a value of the next list: "
+                                     f"'{str(Source.allowed_how)[1:-1]}'", self)
 
     @classmethod
-    def isinstance(cls, source, stype, function_name_container):
+    def get_instance(cls, args):
+        """Wrapper method to get an instance initialized with a list.
+
+        Arguments:
+            args (list): list of arguments to initialize the *Source*.
+
+        Returns:
+            Source: source instance initialized with *args*
+
+        Raises:
+            BOAModuleException: check *Source.__init__* method.
+        """
+        return Source(*args)
+
+    @classmethod
+    def isinstance(cls, source, stype, function_name_container=None, how=None,
+                   affected_argument_position=None, tainted_argument_position=None):
         """It helps us to know if a Source instance is of a concrete instance. This
         function is really useful when used with *list(filter())*.
 
@@ -209,6 +288,11 @@ class Source:
             source (Source): *Source* instance.
             stype (str): type of *Source*.
             function_name_container (str): function which contains *Source*.
+            how (str): how and who is affected by *Source*.
+            affected_argument_position (str): position of the argument or variable
+                affected.
+            tainted_argument_position (str): if tainted, then
+                *affected_argument_position* is affected.
 
         Returns:
             bool: *True* if *type* matchs with *Source.type* and *function_name_container*
@@ -244,10 +328,12 @@ class Source:
             values = source.split(TAConstants.split_char)
             source = None
 
-            if len(values) == 2:
-                source = Source(values[0], values[1])
-            elif len(values) == 3:
-                source = Source(values[0], values[1], values[2])
+            # Check if any value was not set (i.e. "@@" or "....@")
+            for index, value in enumerate(values):
+                if len(value) == 0:
+                    values[index] = None
+
+            source = Source.get_instance(values)
 
             if source is None:
                 raise BOAModuleException("could not create a Source object. Check your"
@@ -261,9 +347,12 @@ class Source:
 
 class Taint:
     """It represents a Taint, which in Taint Analysis terminology is
-    a Source which has a path in the CFG from a Sink until the Source
-    itself. The Taint might contain information manipulated, direct
-    or indirect, by the user.
+    a Source (we are talking about a Source like a real Source (variable
+    or function which introduces information possibly manipulated by the
+    user) or a variable which we could call "fake" Source because is
+    derived from a real Source) which has a path in the CFG from a Sink
+    until the Source itself. The Taint might contain information
+    manipulated, direct or indirectly, by the user.
 
     Possible taint status (static analysis):
               MT

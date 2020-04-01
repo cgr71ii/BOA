@@ -34,20 +34,35 @@
             <args>
                 <dict>
                     <list name="sources">
-                        <!-- Check the Source class documentation in order to know what a Source
-                             means in Taint Analysis terminology -->
+                        <!-- Check the Source class documentation in order to know what a
+                             Source means in Taint Analysis terminology -->
                         <!--
-                            format: name@type@function
-                            **************************
+                            format: name@type@function@how@affected@if_tainted
+                            **************************************************
                             name: name of the object which is a Source
                             type: type of the Source (check for allowed types in the TA module)
                             function (optional): function which contains the Source (if
                                                  specified, other functions will not be
                                                  affected unless you specify other rules)
+                            how (optional): it specifies how affects the source to other
+                                variables (check for allowed types in the TA module)
+                            affected (optional): it specifies the position of the affected
+                                argument, or even variable assignation. The value '0' means
+                                variable assignation, '1' the first parameter, ...
+                            if_tainted (optional): it specifies the position of an argument
+                                which, if tainted, the position of *affected* (above parameter
+                                position) parameter will be affected, but if not, will not be
+                                affected. Is a condition for *affected* argument. The value
+                                '0' means variable assignation, '1' the first parameter, ...
                         -->
                         <element value="argc@variable@main" />
                         <element value="argv@variable@main" />
-                        <element value="gets@function" />
+                        <!-- var1 = gets(var2); -> var1 and var2 are affected -->
+                        <element value="gets@function@@argument@0" />   <!-- var1 -->
+                        <element value="gets@function@@argument@1" />   <!-- var2 -->
+                        <!-- strcpy(not_tainted, tainted); -> "not_tainted" is affected by
+                                                              "tainted" -->
+                        <element value="strcpy@function@@targ@1@2" />
                     </list>
                     <list name="sinks">
                         <!-- Check the Sink class documentation in order to know what a Sink
