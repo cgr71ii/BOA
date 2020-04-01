@@ -600,6 +600,10 @@ def get_full_instruction(instruction, instructions, display_coord=False):
         list: elements of type list of type *pycparser.c_ast.Node* wich are
         part of the statement considered as a whole. The instructions
         considered as a whole will be that list inside the main list
+
+    Raises:
+        PycparserException: if the first instruction of *instructions*
+            is not an instance of *pycparser.c_ast.FuncDef*.
     """
     index = instructions.index(instruction)
     next_instruction = get_real_next_instruction(instructions[0], instruction)
@@ -749,6 +753,10 @@ def get_full_instruction_function(instructions, display_coord=False):
         all the instructions considered as atomic. Check
         *get_full_instruction* in order to have a more detailed
         explanation
+
+    Raises:
+        PycparserException: if the first instruction of *instructions*
+            is not an instance of *pycparser.c_ast.FuncDef*.
     """
     if not isinstance(instructions[0], ast.FuncDef):
         raise PycparserException("first instruction was expected to be"
@@ -786,5 +794,141 @@ def get_full_instruction_function(instructions, display_coord=False):
             else:
                 # No
                 instruction = None
+
+    return result
+
+def get_name(instruction):
+    """It returns the full name of a element.
+
+    The name could be a usual name (e.g. foo, bar) or could be a
+    function callback stored in a structure (e.g. a.b.foo).
+
+    Arguments:
+        instruction (pycparser.c_ast.Node): element which is
+            going to be analyzed for retrieve the name.
+
+    Returns:
+        str: name of the element
+
+    Raises:
+        PycparserException: if the type of the arguments
+            are not the expected.
+        KeyError: if "name" is not found in *instruction*.
+    """
+    if not isinstance(instruction, ast.Node):
+        raise PycparserException("'instruction' was expected to be"
+                                 " 'pycparser.c_ast.Node' but is"
+                                 f" '{get_just_type(instruction)}'")
+
+    name = instruction.name
+    instructions = None
+
+    if not isinstance(name, str):
+        instructions = [name] + get_instruction_path(name)
+
+        name = ""
+
+        for instr in instructions:
+            if isinstance(instr, ast.ID):
+                name += f".{instr.name}"
+
+        if name[0] == ".":
+            name = name[1:]
+
+    return name
+
+def get_func_call_parameters_name(instruction, recursive_struct=True):
+    """It returns the name of the found elements in the parameters
+    of a FuncCall element.
+
+    If other function call are found, it will be resolved recursively
+    and instead of returning the name of the function call, other result
+    will be returned in form of list where the first result will be the
+    name of the function call and the second a list, result of call this
+    function recursively (e.g. foo(a, bar(), a + bar(a)) -> [["a"],
+    [["bar", []], ["a", ["bar", [["a"]]]]], foo(foo(foo(a))) ->
+    [["foo", [["foo", ["a"]]]]])
+
+    Arguments:
+        instruction (pycparser.c_ast.FuncCall): function call which
+            is going to be analyzed in order to get the variables or
+            other function calls that are being used in its parameters.
+        recursive_struct (bool): if *True*, the name of the struct
+            references will be resolved recursively. Otherwise, it will
+            not. The default value is *True*.
+
+    Returns:
+        list: list of lists where every list will represent a parameter
+        of the function call, and every inner list will contain the found
+        ID's being used (e.g. foo(1, a, b + bar(c)) -> [[], ["a"],
+        ["b", ["bar", [[c]]]]]). If there are not parameters, an empty
+        list will be returned
+
+    Raises:
+        PycparserException: if the type of the arguments
+            are not the expected.
+    """
+    if not isinstance(instruction, ast.FuncCall):
+        raise PycparserException("'instruction' was expected to be"
+                                 " 'pycparser.c_ast.FuncCall' but is"
+                                 f" '{get_just_type(instruction)}'")
+    result = []
+    args = instruction.args
+
+    if args is None:
+        return result
+
+    args = args.exprs
+
+    for arg in args:
+        result.append([])
+
+        arg_instrs = [arg] + get_instruction_path(arg)
+        index = 0
+
+        while index < len(arg_instrs):
+            arg_instr = arg_instrs[index]
+
+            if isinstance(arg_instr, ast.StructRef):
+                aux = ast.StructRef(arg_instr, ".", ast.ID("temporal-var"))
+                struct_instrs = get_instruction_path(arg_instr)
+                removed_elements = 0
+
+                if recursive_struct:
+                    result[-1].append(get_name(aux))
+                else:
+                    for struct_instr in struct_instrs:
+                        if isinstance(struct_instr, ast.ID):
+                            result[-1].append(struct_instr.name)
+                            break
+
+                while removed_elements <= len(struct_instrs):
+                    arg_instrs.remove(arg_instrs[index])
+                    removed_elements += 1
+
+                # It is not necessary to make index += 1
+                break
+            if isinstance(arg_instr, ast.FuncCall):
+                result[-1].append([get_name(arg_instr),
+                                   get_func_call_parameters_name(arg_instr)])
+
+                func_instrs = get_instruction_path(arg_instr)
+                removed_elements = 0
+
+                while removed_elements <= len(func_instrs):
+                    arg_instrs.remove(arg_instrs[index])
+                    removed_elements += 1
+
+                # It is not necessary to make index += 1
+                break
+            if isinstance(arg_instr, ast.ID):
+                name = arg_instr.name
+
+                while not isinstance(name, str):
+                    name = name.name
+
+                result[-1].append(name)
+
+            index += 1
 
     return result

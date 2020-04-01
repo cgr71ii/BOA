@@ -118,9 +118,12 @@ class Sink:
                 the dangerous parameter. If the value is 0, it means that
                 all the parameters are dangerous (or none if there is no
                 parameters).
+
+        Raises:
+            ValueError: if *dangerous_parameter* is not an integer.
         """
         self.function_name = function_name
-        self.dangerous_parameter = dangerous_parameter
+        self.dangerous_parameter = int(dangerous_parameter)
 
     @classmethod
     def process_sinks(cls, sinks, module_instance):
@@ -169,10 +172,10 @@ class Source:
     which is inserted in the program. A Source may be a function, a variable,
     a network package or anything else which the user might alter. Usually,
     the Sources are function calls (e.g. gets()) and a few set of dangerous
-    variables (i.e. argc, argv).
+    variables (e.g. argc, argv, ...).
     """
 
-    allowed_types = ["function", "variable"]
+    allowed_types = ("function", "variable")
 
     def __init__(self, name, stype, function_name_container=None):
         """It initializes a Source.
@@ -279,7 +282,7 @@ class Taint:
     4. MT: T + NT
     """
 
-    allowed_status = ["UNK", "T", "NT", "MT"]
+    allowed_status = ("UNK", "T", "NT", "MT")
 
     def __init__(self, source, decl, instruction, status):
         """It initializes a Taint.
@@ -358,6 +361,7 @@ class TaintAnalysis:
         self.sources = sources
         self.sinks = sinks
         self.taints = []
+        self.threats = []
 
         # TODO temporal (it will be removed)
         self.kildall("main")
@@ -427,9 +431,7 @@ class TaintAnalysis:
                                    None)
 
         visited = []
-        # Store the temporal taints of control structures
-        # It will be removed when the end of the control structure is reached
-        # TODO
+        # Store the taints of control flow structures to affect the inner statements
         temporal_taints_of_control_structures = []
 
         # Work with the worklist and the CFG
@@ -467,14 +469,14 @@ class TaintAnalysis:
                 if not already_inserted:
                     temporal_taints_of_control_structures.append(compound_element_identifier)
 
+            func_calls = pycutil.get_instructions_of_instance(ast.FuncCall, whole_instruction)
 
-
-            if len(pycutil.get_instructions_of_instance(ast.FuncCall, whole_instruction)) != 0:
+            if len(func_calls) != 0:
                 # There are func call elements in the current whole instruction
-                # TODO Check if assignment
-                # TODO Store which arguments passed to the func call are T or NT
-                #  and from which function is being called from which other
-                pass
+
+                for func_call in func_calls:
+                    # Check if any taint variable reached a sink
+                    self.check_sinks(func_call, result)
 
             # Check if is a variable declaration or assignment
             if (pycutil.is_variable_decl(whole_instruction[0]) or
@@ -501,10 +503,14 @@ class TaintAnalysis:
                         if output == "NT":
                             # The variable was not tainted, and now it is
                             outputs[output_index][1] = control_structure_status
+                            result[self.get_result_index_by_var_name(result, var)][1]\
+                                .instruction = control_structure[0]
                         elif (output == "T" and control_structure_status == "MT"):
                             # The variable was tainted, but now also contains the value "NT"
                             #  "T" + "NT" -> "MT"
                             outputs[output_index][1] = control_structure_status
+                            result[self.get_result_index_by_var_name(result, var)][1]\
+                                .instruction = control_structure[0]
 
                         output_index += 1
 
@@ -588,6 +594,82 @@ class TaintAnalysis:
 
         return result
 
+    def check_sinks(self, func_call, result):
+        """It checks if the known sinks have been reached by a tainted variable
+        and, if so, a found threat will be created.
+
+        Only direct arguments are checked, so those arguments in a function call
+        which are other function calls are not processed. The reason is to avoid
+        complexity because we do not know if those functions with concrete
+        information about tainting is dangerous or not, and if we analyze that
+        function recursively, it might be recursively to the same function which
+        we are analyzing -> is difficult.
+
+        Arguments:
+            func_call (pycparser.c_ast.FuncCall): FuncCall element which will be
+                analyzed if is a sink.
+            result (dict): dict of dicts which contains information about all the
+                variables of the function and their taint information.
+        """
+        name = pycutil.get_name(func_call)
+        arguments = pycutil.get_func_call_parameters_name(func_call, False)
+        arguments_index = []
+
+        for sink in self.sinks:
+            if sink.function_name == name:
+                # A taint has been found -> check if dangerous
+
+                # Get the arguments which will be checked
+                if sink.dangerous_parameter == 0:
+                    # Check all arguments if contain any tainted variable
+                    arguments_index = list(range(0, len(arguments)))
+                else:
+                    # Check dangerous_parameter if contain any tainted
+                    #  variable if defined (if the parameter is not found,
+                    #  will not raise any exception)
+                    # 0 < sink.dangerous_parameter <= len(arguments)
+                    if 0 <= sink.dangerous_parameter - 1 < len(arguments):
+                        arguments_index = [sink.dangerous_parameter - 1]
+
+                # Check every parameter of the function call
+                for arg_index in arguments_index:
+                    arg = arguments[arg_index]
+
+                    # Check every variable found in the argument
+                    for arg_name in arg:
+                        if isinstance(arg_name, str):
+                            # Variable found in argument
+                            result_index =\
+                                self.get_result_index_by_var_name(\
+                                    result, arg_name)
+
+                            # Check if the variable exists
+                            if result is None:
+                                continue
+
+                            taint_status = result[result_index][1].status
+
+                            if taint_status in ["T", "MT"]:
+                                # Tainted variable in sink!
+                                severity = None
+
+                                if taint_status == "T":
+                                    severity = "ALERT"
+                                else:
+                                    severity = "CRITICAL"
+
+                                self.threats.append({
+                                    "threat": "sink",
+                                    "func_name": name,
+                                    "affected_parameter": str(arg_index),
+                                    "instruction": func_call,
+                                    "severity": severity
+                                    })
+                        else:
+                            # Function calls as arguments found.
+                            # Will not be processed!
+                            pass
+
     def get_taint_information_from_compound_element(self, whole_instruction, whole_instructions,
                                                     input_dict, ids):
         """It analyzes a compound element and gets taint information and
@@ -606,7 +688,7 @@ class TaintAnalysis:
 
         Returns:
             list: list which contains the following information:\n
-            1. pycparser.c_ast.Node: *whole_instruction[0]* (for debugging purposes).
+            1. pycparser.c_ast.Node: *whole_instruction* reference.
             2. bool: *True* if the statement is tainted.
             3. str: taint status
             4. int: index where the statement starts (from all the whole instructions)
@@ -617,7 +699,7 @@ class TaintAnalysis:
         compound_element_identifier = []
 
         # Append which type of compound instruction is (debbug purposes)
-        compound_element_identifier.append(whole_instruction[0])
+        compound_element_identifier.append(whole_instruction)
         # Append if the statement is tainted (T or MT in any of the variables used
         #  in the statement (e.g. if (tainted){indirectly tainted}))
         # Retrieve the tainted variables from the last result
@@ -639,7 +721,7 @@ class TaintAnalysis:
             # There are not tainted variables
             compound_element_identifier.append("NT")
         elif (len(not_tainted_vars_last_result) != 0 and
-                len(tainted_vars_last_result) != 0):
+              len(tainted_vars_last_result) != 0):
             # There are tainted and not tainted variables
             compound_element_identifier.append("MT")
         else:

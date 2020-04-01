@@ -41,10 +41,13 @@
                             **************************
                             name: name of the object which is a Source
                             type: type of the Source (check for allowed types in the TA module)
-                            function (optional): function which contains the Source
+                            function (optional): function which contains the Source (if
+                                                 specified, other functions will not be
+                                                 affected unless you specify other rules)
                         -->
                         <element value="argc@variable@main" />
                         <element value="argv@variable@main" />
+                        <element value="gets@function" />
                     </list>
                     <list name="sinks">
                         <!-- Check the Sink class documentation in order to know what a Sink
@@ -57,7 +60,11 @@
                                 of the Sink (0 for all parameters or None if has no
                                 parameters). The value '1' means first parameter.
                         -->
-                        <element value="gets@0" />
+                        <element value="strcpy@1" />
+                        <element value="system@0" />
+                        <!-- <element value="system@1" />  would have the same effect because
+                                                           system() only accepts 1 parameter -->
+                        <element value="strncpy@2" />
                     </list>
                 </dict>
             </args>
