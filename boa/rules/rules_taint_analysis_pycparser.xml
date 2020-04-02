@@ -30,6 +30,7 @@
         <module>
             <module_name>boam_taint_analysis</module_name>
             <class_name>BOAModuleTaintAnalysis</class_name>
+            <!-- The default lifecycle is the one we are going to use -->
             <!--<lifecycle_handler>boalc_pycparser_ast.BOALCPycparserAST</lifecycle_handler>-->
             <args>
                 <dict>
@@ -83,6 +84,13 @@
                                                            system() only accepts 1 parameter -->
                         <element value="strncpy@2" />
                     </list>
+
+                    <!-- For displaying information about the tainted variables
+                            of all functions. If you only want to get the relevant
+                            information, set this option to false or remove it.
+                            The default value is "true". The allowed values are
+                            "true" and "false". -->
+                    <element name="append_tainted_variables_to_report" value="true" />
                 </dict>
             </args>
             <dependencies>

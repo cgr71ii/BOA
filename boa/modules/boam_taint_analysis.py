@@ -20,6 +20,7 @@ from copy import deepcopy
 from collections import OrderedDict as odict
 
 # Own libs
+from constants import Meta
 from boam_abstract import BOAModuleAbstract
 from util import is_key_in_dict, eprint, get_just_type
 from own_exceptions import BOAModuleException
@@ -68,6 +69,16 @@ class BOAModuleTaintAnalysis(BOAModuleAbstract):
         self.sources = []
         self.sinks = []
 
+        self.append_tainted_variables_to_report = True
+
+        if is_key_in_dict(self.args, "append_tainted_variables_to_report"):
+            if self.args["append_tainted_variables_to_report"].lower() == "false":
+                self.append_tainted_variables_to_report = False
+            elif self.args["append_tainted_variables_to_report"].lower() != "true":
+                raise BOAModuleException("the argument "
+                                         "'append_tainted_variables_to_report'"
+                                         " only allows the values 'true' or 'false'")
+
         # Load Sources from rules file
         if (is_key_in_dict(self.args, "sources") and
                 isinstance(self.args["sources"], list)):
@@ -83,6 +94,7 @@ class BOAModuleTaintAnalysis(BOAModuleAbstract):
             eprint("Warning: no Sinks were found in the rules file.")
 
         self.taint_analysis = TaintAnalysis(self.cfg, self.sources, self.sinks)
+        self.results = None
 
     def process(self, args):
         """It process the given information from the rules
@@ -91,6 +103,7 @@ class BOAModuleTaintAnalysis(BOAModuleAbstract):
         Arguments:
             args: given information.
         """
+        self.results = self.taint_analysis.apply_kildall_to_all_functions()
 
     def clean(self):
         """It does nothing.
@@ -103,6 +116,134 @@ class BOAModuleTaintAnalysis(BOAModuleAbstract):
         Arguments:
             report: report which will contain the threats records.
         """
+        threats = self.taint_analysis.threats
+        results = self.results
+        severity_instance = report.get_severity_enum_instance_by_who(self.who_i_am)
+
+        if severity_instance is None:
+            eprint(f"Error: could not append threat records in '{self.who_i_am}'."
+                   " Wrong severity enum instance.")
+            return
+
+        self.save_threats(report, threats, severity_instance)
+
+        if self.append_tainted_variables_to_report:
+            self.save_results(report, results, severity_instance)
+
+    def save_threats(self, report, threats, severity_instance):
+        """It appends the found threats in Taint Analysis.
+
+        Arguments:
+            report: report which will contain the threats records.
+            threats (list): list of dicts which contain information
+                about the found threats.
+            severity_instance: severity instance used to retrieve
+                the position of concrete severity from name.
+        """
+        for threat in threats:
+            if threat["threat"] == "sink":
+                row = -1
+                col = -1
+                affected_parameter = int(threat["affected_parameter"])
+                func_name = threat["func_name"]
+                instruction = threat["instruction"]
+                instruction_coord = None
+
+                if instruction is not None:
+                    instruction_coord = instruction.coord
+
+                severity = severity_instance[threat["severity"]]
+
+                if instruction_coord is not None:
+                    row = int(str(instruction_coord).split(':')[-2])
+                    col = int(str(instruction_coord).split(':')[-1])
+
+                description = ""
+                description += "a sink with a tainted value has been found"
+                description += f" in function '{func_name}' in "
+
+                if affected_parameter == 0:
+                    description += "declaration/assignment of a variable"
+                else:
+                    description += f"the parameter with position {affected_parameter}"
+                    description += " (the first parameter starts with 1)"
+
+                advice = ""
+                advice += "try to avoid that the user has access to information"
+                advice += " which could reach dangerous functions unless that is"
+                advice += " your goal"
+
+                rtn_code = report.add(self.who_i_am,
+                                      description,
+                                      severity,
+                                      advice,
+                                      row,
+                                      col)
+
+                if rtn_code != Meta.ok_code:
+                    eprint("Error: could not append a threat"
+                           f" record (status code: {rtn_code})"
+                           f" in '{self.who_i_am}'.")
+
+    def save_results(self, report, results, severity_instance,
+                     severity_value="INFORMATIONAL"):
+        """It appends the results of the Taint Analysis, which means
+        to display those variables which were tainted. Just
+        informational.
+
+        Arguments:
+            report: report which will contain the threats records.
+            results (dict): dict with the functions of the file as keys
+                and the results as values.
+            severity_instance: severity instance used to retrieve
+                the position of concrete severity from name.
+            severity_value (str): severity to use in the report. The
+                default value is "INFORMATIONAL" of
+                *severity_syslog.SeveritySyslog*.
+        """
+        for function, result in results.items():
+            for variable in result:
+                row = -1
+                col = -1
+                variable_name = variable[0]
+                taint = variable[1]
+                taint_status = taint.status
+                instruction = taint.instruction
+                instruction_coord = None
+
+                if (instruction is not None and len(instruction) != 0):
+                    instruction_coord = instruction[0].coord
+
+                severity = severity_instance[severity_value]
+
+                if instruction_coord is not None:
+                    row = int(str(instruction_coord).split(':')[-2])
+                    col = int(str(instruction_coord).split(':')[-1])
+
+                description = ""
+                description += f"{function}: variable '{variable_name}'"
+                description += f" is tainted with status '{taint_status}'"
+                description += " which means that the variable"
+
+                if taint_status == "T":
+                    description += " is, if is not a false positive, tainted"
+                else:
+                    description += " could be tainted or not, because has"
+                    description += " both status (i.e. tainted and not tainted)"
+
+                advice = None
+
+                rtn_code = report.add(self.who_i_am,
+                                      description,
+                                      severity,
+                                      advice,
+                                      row,
+                                      col)
+
+                if rtn_code != Meta.ok_code:
+                    eprint("Error: could not append a threat"
+                           f" record (status code: {rtn_code})"
+                           f" in '{self.who_i_am}'.")
 
     def finish(self):
         """It does nothing.
@@ -474,11 +615,38 @@ class TaintAnalysis:
         self.cfg = cfg
         self.sources = sources
         self.sinks = sinks
-        self.taints = []
         self.threats = []
 
-        # TODO temporal (it will be removed)
-        self.kildall("main")
+    def apply_kildall_to_all_functions(self, main_first_if_defined=True):
+        """It applies kildall's algorithm to all the defined functions
+        in the file: *self.kildall(function)*.
+
+        Arguments:
+            main_first_if_defined (bool): if *True* and *main* function
+                is defined, the *main* function will be the first in be
+                analyzed with kildall's algorithm. Otherwise, the order
+                of the analysis will be decided by
+                *self.cfg.get_function_calls().keys()*
+
+        Returns:
+            dict: dict with the functions as key and the result of
+            kidall's algorithm as value
+        """
+        functions = list(self.cfg.get_function_calls().keys())
+        results = {}
+
+        if (main_first_if_defined and "main" in functions):
+            index = functions.index("main")
+
+            if index != 0:
+                functions.remove("main")
+                functions.insert(0, "main")
+
+        for function in functions:
+            result = self.kildall(function)
+            results[function] = result
+
+        return results
 
     def kildall(self, function_name):
         """It executes Kildall's algorithm in order to perform the Taint
