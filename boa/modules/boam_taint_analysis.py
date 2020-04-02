@@ -146,6 +146,7 @@ class BOAModuleTaintAnalysis(BOAModuleAbstract):
                 col = -1
                 affected_parameter = int(threat["affected_parameter"])
                 func_name = threat["func_name"]
+                container_func_name = threat["container_func_name"]
                 instruction = threat["instruction"]
                 instruction_coord = None
 
@@ -159,14 +160,11 @@ class BOAModuleTaintAnalysis(BOAModuleAbstract):
                     col = int(str(instruction_coord).split(':')[-1])
 
                 description = ""
-                description += "a sink with a tainted value has been found"
-                description += f" in function '{func_name}' in "
-
-                if affected_parameter == 0:
-                    description += "declaration/assignment of a variable"
-                else:
-                    description += f"the parameter with position {affected_parameter}"
-                    description += " (the first parameter starts with 1)"
+                description += f"function '{container_func_name}': a sink "
+                description += f"(function '{func_name}') with a"
+                description += " tainted value has been found, in"
+                description += f" the parameter with position '{affected_parameter}'"
+                description += " (the first parameter starts with 1)"
 
                 advice = ""
                 advice += "try to avoid that the user has access to information"
@@ -221,9 +219,9 @@ class BOAModuleTaintAnalysis(BOAModuleAbstract):
                     col = int(str(instruction_coord).split(':')[-1])
 
                 description = ""
-                description += f"{function}: variable '{variable_name}'"
-                description += f" is tainted with status '{taint_status}'"
-                description += " which means that the variable"
+                description += f"function '{function}': variable"
+                description += f" '{variable_name}' is tainted with status"
+                description += f" '{taint_status}' which means that the variable"
 
                 if taint_status == "T":
                     description += " is, if is not a false positive, tainted"
@@ -762,7 +760,7 @@ class TaintAnalysis:
                     self.check_sources(func_call, input_dict,
                                        outputs, function_name)
                     # Check if any taint variable reached a sink
-                    self.check_sinks(func_call, result)
+                    self.check_sinks(func_call, result, function_name)
 
             variable_decls = [whole_instruction]
 
@@ -1211,7 +1209,7 @@ class TaintAnalysis:
                             # Not found, so append the taint
                             outputs.append([name, "T"])
 
-    def check_sinks(self, func_call, result):
+    def check_sinks(self, func_call, result, function_name):
         """It checks if the known sinks have been reached by a tainted variable
         and, if so, a found threat will be created.
 
@@ -1227,6 +1225,7 @@ class TaintAnalysis:
                 analyzed if is a sink.
             result (dict): dict of dicts which contains information about all the
                 variables of the function and their taint information.
+            function_name (str): function which we are analyzing.
         """
         name = pycutil.get_name(func_call)
         arguments = pycutil.get_func_call_parameters_name(func_call, False)
@@ -1278,7 +1277,8 @@ class TaintAnalysis:
                                 self.threats.append({
                                     "threat": "sink",
                                     "func_name": name,
-                                    "affected_parameter": str(arg_index),
+                                    "container_func_name": function_name,
+                                    "affected_parameter": str(arg_index + 1),
                                     "instruction": func_call,
                                     "severity": severity
                                     })

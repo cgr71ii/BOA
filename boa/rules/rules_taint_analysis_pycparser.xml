@@ -78,11 +78,11 @@
                                 of the Sink (0 for all parameters or None if has no
                                 parameters). The value '1' means first parameter.
                         -->
-                        <element value="strcpy@1" />
+                        <element value="strcpy@2" />
                         <element value="system@0" />
                         <!-- <element value="system@1" />  would have the same effect because
                                                            system() only accepts 1 parameter -->
-                        <element value="strncpy@2" />
+                        <element value="strncpy@3" />
                     </list>
 
                     <!-- For displaying information about the tainted variables
