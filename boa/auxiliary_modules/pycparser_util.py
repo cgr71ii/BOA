@@ -46,7 +46,7 @@ class PycparserUtilConstants:
     compound_instr = strict_compound_instr + (ast.Case, ast.Default)
     fake_instr = (Separator,)
 
-def get_instruction_path(instruction):
+def get_instruction_path(instruction, include_instruction=False):
     """It returns the path of a instruction.
 
     This function is intented to give a basic instructions
@@ -56,6 +56,8 @@ def get_instruction_path(instruction):
 
     Arguments:
         instrution (pycparser.c_ast.Node): instruction.
+        include_instruction (bool): if *True*, *instruction* will be
+            the first instruction in the result.
 
     Raises:
         PycparserException: when *instruction* is not the expected
@@ -72,7 +74,12 @@ def get_instruction_path(instruction):
                                  " 'pycparser.c_ast.Node', but is"
                                  f" {get_just_type(instruction)}")
 
-    return PycparserUtilConstants.visitor_nc.visit_and_return_path(instruction)
+    result = PycparserUtilConstants.visitor_nc.visit_and_return_path(instruction)
+
+    if include_instruction:
+        result = [instruction] + result
+
+    return result
 
 def get_instructions_of_instance(instance, instructions):
     """It returns all the instructions of a concrete instance.
@@ -693,7 +700,7 @@ def get_full_instruction(instruction, instructions, display_coord=False):
 
             # Every part is an instruction itself
             #result = [[instruction], cond, init, for_next]
-            result = [[instruction] + cond + [first_separator] + init +\
+            result = [[instruction] + init + [first_separator] + cond +\
                       [second_separator] + for_next]
         else:
             raise PycparserException("found instruction of type"
@@ -932,3 +939,29 @@ def get_func_call_parameters_name(instruction, recursive_struct=True):
             index += 1
 
     return result
+
+def get_full_instruction_from_id(all_instructions, reference_id):
+    """It looks for an instruction with the ID (i.g. id() method).
+
+    Arguments:
+        all_instructions (list): list of elements where should
+            be an element with id *reference_id*.
+        reference_id (int): ID of the element which we are looking
+            for.
+
+    Returns:
+        object: element of *all_instructions* if *reference_id*
+        matchs with any element. Otherwise, an exception will be raised
+
+    Raises:
+        PycparserException: if *reference_id* does not match with any
+            element of *all_instructions*. The reason why an exception
+            is raised instead of return a value is because any returned
+            value could match with id() method, even the *None* value.
+    """
+    for instruction in all_instructions:
+        if id(instruction) == reference_id:
+            return instruction
+
+    raise PycparserException(f"element with reference '{reference_id}'"
+                             " was not found")

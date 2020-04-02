@@ -1,6 +1,9 @@
 void main()
 {
-    int x = source(i);
+    char x[20];
+
+    gets(x);
+    
     int y = 0;
 
     while (x > 0)
@@ -11,6 +14,6 @@ void main()
     
     int z = y;
 
-    sink1(y);
-    sink2(z);
+    system(y);
+    system(z);
 }
