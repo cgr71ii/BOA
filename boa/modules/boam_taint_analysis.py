@@ -242,6 +242,11 @@ class Source:
         try:
             if self.affected_argument_position is not None:
                 self.affected_argument_position = int(self.affected_argument_position)
+
+                if self.affected_argument_position < 0:
+                    raise BOAModuleException("if 'affected_argument_position' is"
+                                             " specified, has to be greater or equal"
+                                             " to 0", self)
         except ValueError:
             raise BOAModuleException("if 'affected_argument_position' is"
                                      " specified, has to be number", self)
@@ -249,6 +254,11 @@ class Source:
         try:
             if self.tainted_argument_position is not None:
                 self.tainted_argument_position = int(self.tainted_argument_position)
+
+                if self.tainted_argument_position <= 0:
+                    raise BOAModuleException("if 'tainted_argument_position' is"
+                                             " specified, has to be greater to 0",
+                                             self)
         except ValueError:
             raise BOAModuleException("if 'tainted_argument_position' is"
                                      " specified, has to be number", self)
@@ -298,7 +308,14 @@ class Source:
             bool: *True* if *type* matchs with *Source.type* and *function_name_container*
             matchs with *Source.function_name_container*. *False* otherwise
         """
-        return source.type == stype and source.function_name_container == function_name_container
+        if (source.type == stype and
+                source.function_name_container == function_name_container and
+                source.how == how and
+                source.affected_argument_position == affected_argument_position and
+                source.tainted_argument_position == tainted_argument_position):
+            return True
+
+        return False
 
     @classmethod
     def process_sources(cls, sources, module_instance):
@@ -490,7 +507,8 @@ class TaintAnalysis:
 
         # Get all the known Sources (initialization), which can be or not declared in the function
         known_tainted =\
-            self.get_sources("variable", function_name) + self.get_sources("variable", None)
+            self.get_sources(["variable", function_name]) +\
+                self.get_sources(["variable", None])
         variables_decl = []                 # All the found variables in the current function
 
         # Get the function parameters (if any)
@@ -564,16 +582,23 @@ class TaintAnalysis:
                 # There are func call elements in the current whole instruction
 
                 for func_call in func_calls:
+                    # Check sources
+                    self.check_sources(func_call, result, input_dict,
+                                       outputs, function_name)
                     # Check if any taint variable reached a sink
                     self.check_sinks(func_call, result)
 
             # Check if is a variable declaration or assignment
             if (pycutil.is_variable_decl(whole_instruction[0]) or
                     isinstance(whole_instruction[0], ast.Assignment)):
+                # Initialize those variables which have "UNK" status
                 self.process_output_from_decl_or_asign(outputs, whole_instruction,
                                                        input_dict,
                                                        tainted_variables_names,
                                                        ids, result)
+                # Once initialized, check the Sources knowing that are initialized!
+                self.check_sources(whole_instruction[0], result, input_dict,
+                                   outputs, function_name)
 
             # Once reached this point, outputs is already calculated
 
@@ -589,6 +614,11 @@ class TaintAnalysis:
                     # Update the tainted values of all the variables because are inside
                     #  a control flow structure tainted
                     for var, output in outputs:
+                        # Check if "var" is defined in the function
+                        if self.get_result_index_by_var_name(result, var) is None:
+                            # Using variable not defined in the function
+                            continue
+
                         if output == "NT":
                             # The variable was not tainted, and now it is
                             outputs[output_index][1] = control_structure_status
@@ -647,10 +677,12 @@ class TaintAnalysis:
                             # New taint status will be output, which is "T" or "NT"
                             input_dict[id(succ_instruction)][var] = output
                             append_succ = True
-                        elif taint_status != "MT":
+                        #elif taint_status != "MT":
+                        else:
                             # New taint status will be "MT" because output is "T" or "NT" and
                             #  taint_status the other, so we have the set {"T", "NT"} = "MT"
-                            input_dict[id(succ_instruction)][var] = "MT"
+                            #input_dict[id(succ_instruction)][var] = "MT"
+                            input_dict[id(succ_instruction)][var] = output
                             append_succ = True
 
                 abort = False
@@ -682,6 +714,264 @@ class TaintAnalysis:
         result = list(filter(lambda x: x[1].status == "T" or x[1].status == "MT", result))
 
         return result
+
+    def check_sources(self, instruction, result, input_dict, outputs, function_name):
+        """It checks if the current instruction is a *Source* and if is
+        dangerous.
+
+        The expected type of instructions are function calls, variable
+        assignments and variable declarations.
+
+        Arguments:
+            instruction (pycparser.c_ast.Node): instruction which is going
+                to be analyzed if is or is not a *Source*.
+            result (dict): dict of dicts which contains information about all the
+                variables of the function and their taint information.
+            input_dict (dict): dict of dicts of *str* which represents the tainted
+                variables of the current analysis.
+            outputs (list): list of tuple of format (str, str) which contains
+                the output values for the found variables for all the processed
+                whole instructions. This argument will mutate.
+            function_name (str): name of the current function being analyzed.
+
+        Raises:
+            BOAModuleException: if *instruction* is not an instance of the expected
+                ones. If any value of *Source* has not an expected value.
+        """
+        if not isinstance(instruction, (ast.FuncCall, ast.Assignment, ast.Decl)):
+            raise BOAModuleException("'instruction' was expected to be "
+                                     "'pycparser.c_ast.FuncCall', "
+                                     "'pycparser.c_ast.Assignment'"
+                                     " or 'pycparser.c_ast.Decl', "
+                                     f"but actual is '{get_just_type(instruction)}'",
+                                     self)
+
+        sources = self.get_sources(None)
+        last_input_dict = input_dict[list(input_dict)[-1]]
+
+        if isinstance(instruction, ast.FuncCall):
+            # Function information
+            name = pycutil.get_name(instruction)
+            arguments = pycutil.get_func_call_parameters_name(instruction, False)
+
+            # Filter sources
+            sources = list(filter(lambda x: x.type == "function" and x.name == name and
+                                  x.function_name_container in [function_name, None] and
+                                  x.affected_argument_position != 0,
+                                  sources))
+
+            for source in sources:
+                how = source.how
+                affected = source.affected_argument_position
+                if_tainted = source.tainted_argument_position
+
+                arg_tainted = "NT"
+
+                if how in Source.allowed_how:
+                    if how == "argument":
+                        if affected is None:
+                            raise BOAModuleException("'Source' defined with 'how="
+                                                     "argument', but 'affected' attr"
+                                                     " is not defined. Fix your rules"
+                                                     " file in order to continue", self)
+
+                        # Check if "affected" is a position of an argument
+                        if not 0 <= affected - 1 < len(arguments):
+                            continue
+
+                        arg_tainted = "T"
+                    elif how == "targ":
+                        if affected is None:
+                            raise BOAModuleException("'Source' defined with 'how="
+                                                     "targ', but 'affected' attr"
+                                                     " is not defined. Fix your rules"
+                                                     " file in order to continue", self)
+                        if if_tainted is None:
+                            raise BOAModuleException("'Source' defined with 'how="
+                                                     "targ', but 'if_tainted' attr"
+                                                     " is not defined. Fix your rules"
+                                                     " file in order to continue", self)
+
+                        # Check if "affected" and "if_tainted" are positions
+                        #  of arguments
+                        if (not 0 <= affected - 1 < len(arguments) or
+                                not 0 <= if_tainted - 1 < len(arguments)):
+                            continue
+
+                        target_args = arguments[if_tainted - 1]
+                        arg_tainted = "NT"
+
+                        for target_arg in target_args:
+                            if (is_key_in_dict(last_input_dict, target_arg) and
+                                    last_input_dict[target_arg] in ["T", "MT"]):
+                                # The argument which affects "affected" is tainted
+
+                                if arg_tainted == "NT":
+                                    arg_tainted = last_input_dict[target_arg]
+                                elif (arg_tainted == "MT" and
+                                      last_input_dict[target_arg] == "T"):
+                                    # "T" has more priority than "MT" in this case
+                                    arg_tainted = "T"
+
+                        # Check if "if_tainted" is tainted in order to taint
+                        #  "affected" as well
+                        if arg_tainted == "NT":
+                            # "if_tainted" is not tainted, so "affected" will not
+                            #  be tainted
+                            continue
+                    else:
+                        raise BOAModuleException("'source.how' has one of the"
+                                                 " defined in 'Source.allowed_how',"
+                                                 " but is not specified in this"
+                                                 " method (fix the module in order"
+                                                 " to continue)", self)
+
+                    # Check if there is only 1 variable as argument, because
+                    #  it will only affect the variable if is a reference, and
+                    #  only can be 1 variable as reference
+                    if (len(arguments[affected - 1]) != 1 or
+                            not isinstance(arguments[affected - 1][0], str)):
+                        continue
+
+                    name = arguments[affected - 1][0]
+                    found = False
+                    index = 0
+
+                    for var, output in outputs:
+                        if var == name:
+                            found = True
+                            break
+                        index += 1
+
+                    # Check if the variable has been defined right now
+                    #  (usual case when declaring and initializating)
+                    if found:
+                        # The variable has been declarated right now
+                        taint_value = outputs[index][1]
+
+                        # Only if the variable is not tainted, we taint the
+                        #  variable
+                        if taint_value == "NT":
+                            outputs[index][1] = arg_tainted
+                    else:
+                        # Not found, so append the taint
+                        outputs.append([name, arg_tainted])
+        else:
+            # Assignment or declaration
+
+            # Filter sources
+            sources = list(filter(lambda x: x.type == "function" and
+                                  x.function_name_container in [function_name, None] and
+                                  x.affected_argument_position == 0,
+                                  sources))
+
+            if len(sources) == 0:
+                return
+
+            name = None
+
+            if isinstance(instruction, ast.Assignment):
+                name = instruction.lvalue.name
+            else:
+                name = instruction.name
+
+            while not isinstance(name, str):
+                name = name.name
+
+            init = None
+
+            if isinstance(instruction, ast.Assignment):
+                init = instruction.rvalue
+            else:
+                init = instruction.init    # Initialization of the declaration
+
+            if init is not None:
+                # There are instructions to analyze. If there are not, we are done
+
+                instructions = pycutil.get_instruction_path(init)
+                func_calls = pycutil.get_instructions_of_instance(ast.FuncCall,
+                                                                  instructions)
+                func_call_names = list(map(pycutil.get_name, func_calls))
+                func_call_arguments = list(map(lambda x: pycutil\
+                                               .get_func_call_parameters_name(x, False),
+                                               func_calls))
+
+                # Get only those Sources which are being used in the declaration
+                #  or assignment
+                sources = list(filter(lambda x: x.name in func_call_names, sources))
+
+                for source in sources:
+                    how = source.how
+                    affected = source.affected_argument_position    # 0
+                    if_tainted = source.tainted_argument_position
+
+                    if how in Source.allowed_how:
+                        if how == "argument":
+                            pass
+                        elif how == "targ":
+                            # Check if "affected" and "if_tainted" are positions
+                            #  of arguments
+                            if if_tainted is None:
+                                raise BOAModuleException("'Source' defined with 'how="
+                                                         "targ', but 'if_tainted' attr"
+                                                         " is not defined. Fix your rules"
+                                                         " file in order to continue", self)
+                            if not 0 <= if_tainted - 1 < len(arguments):
+                                continue
+
+                            index = func_call_names.index(source.name)
+
+                            target_args = func_call_arguments[index][if_tainted - 1]
+                            arg_tainted = "NT"
+
+                            for target_arg in target_args:
+                                if (is_key_in_dict(last_input_dict, target_arg) and
+                                        last_input_dict[target_arg] in ["T", "MT"]):
+                                    # The argument which affects "affected" is tainted
+
+                                    if arg_tainted == "NT":
+                                        arg_tainted = last_input_dict[target_arg]
+                                    elif (arg_tainted == "MT" and
+                                          last_input_dict[target_arg] == "T"):
+                                        # "T" has more priority than "MT" in this case
+                                        arg_tainted = "T"
+
+                            # Check if "if_tainted" is tainted in order to taint
+                            #  "affected" as well
+                            if arg_tainted == "NT":
+                                # "if_tainted" is not tainted, so "affected" will not
+                                #  be tainted
+                                continue
+                        else:
+                            raise BOAModuleException("'source.how' has one of the"
+                                                     " defined in 'Source.allowed_how',"
+                                                     " but is not specified in this"
+                                                     " method (fix the module in order"
+                                                     " to continue)", self)
+
+                        # Check if the value has been appended to outputs right now
+                        found = False
+                        index = 0
+
+                        for var, output in outputs:
+                            if var == name:
+                                found = True
+                                break
+                            index += 1
+
+                        # Check if the variable has been defined right now
+                        #  (usual case when declaring and initializating)
+                        if found:
+                            # The variable has been declarated right now
+                            taint_value = outputs[index][1]
+
+                            # Only if the variable is not tainted, we taint the
+                            #  variable
+                            if taint_value == "NT":
+                                outputs[index][1] = "T"
+                        else:
+                            # Not found, so append the taint
+                            outputs.append([name, "T"])
 
     def check_sinks(self, func_call, result):
         """It checks if the known sinks have been reached by a tainted variable
@@ -898,7 +1188,7 @@ class TaintAnalysis:
                 # Get the taint status of the last analyzed instruction
                 last_key = list(input_dict)[-1]
                 current_tainted_variables = list(filter(
-                    lambda y: input_dict[last_key][y] == "T",
+                    lambda y: input_dict[last_key][y] in ["T", "MT"],
                     input_dict[last_key]))
 
                 # Append the known tainted variables
@@ -912,7 +1202,26 @@ class TaintAnalysis:
                 # Check if there are any tainted variables in the
                 #  initialization
                 if len(tainted) != 0:
-                    outputs.append([name, "T"])
+                    taint_value = "NT"
+
+                    for taint in tainted:
+                        if taint_value == "NT":
+                            # The taint might not be defined in the function (Source
+                            #  defined in the rules file), but we know is tainted
+                            taint_value = "T"
+                        elif (taint_value == "T" and
+                              input_dict[last_key][taint] == "MT"):
+                            taint_value = "MT"
+
+                    # Check if there are "NT" tainted variables
+                    if (taint_value != "MT" and
+                            len(ids[ids_valid_index:]) != len(tainted)):
+                        # There are variables that are not tainted and variables
+                        #  that are tainted, but not both (i.e. "MT"), so the
+                        #  result is both, which is "MT"
+                        taint_value = "MT"
+
+                    outputs.append([name, taint_value])
 
                     if index is not None:
                         result[index][1].instruction = whole_instruction
@@ -938,7 +1247,7 @@ class TaintAnalysis:
 
         Returns:
             int: index of the place of the tuple which contains the name
-                of *name*.
+            of *name*. If *name* is not in *result*, *None* will be returned
         """
         for index, _result in enumerate(result, 0):
             if _result[0] == name:
@@ -1176,13 +1485,20 @@ class TaintAnalysis:
                 # We append all the taint information of the variables and later it will be cleaned
                 result.append((variable_decl_name, taint))
 
-    def get_sources(self, stype=None, function_name_container=None):
-        if (stype is None and function_name_container is None):
+    def get_sources(self, args):
+        """It returns the sources.
+
+        Arguments:
+            args (list): list of arguments to pass to *Source.isinstance*.
+
+        Returns:
+            list: Sources.
+        """
+        if (args is None or len(args) == 0):
             return self.sources
 
         return\
         list(filter(lambda source: Source.isinstance(
             source,
-            stype,
-            function_name_container),
+            *args),
                     self.sources))

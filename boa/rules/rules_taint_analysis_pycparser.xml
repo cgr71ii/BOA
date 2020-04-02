@@ -49,11 +49,13 @@
                             affected (optional): it specifies the position of the affected
                                 argument, or even variable assignation. The value '0' means
                                 variable assignation, '1' the first parameter, ...
+                                If you use this argument, *how* has to have value.
                             if_tainted (optional): it specifies the position of an argument
                                 which, if tainted, the position of *affected* (above parameter
                                 position) parameter will be affected, but if not, will not be
                                 affected. Is a condition for *affected* argument. The value
-                                '0' means variable assignation, '1' the first parameter, ...
+                                '1' means the first parameter, ... If you use this argument,
+                                *how* has to have value.
                         -->
                         <element value="argc@variable@main" />
                         <element value="argv@variable@main" />
