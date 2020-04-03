@@ -65,12 +65,51 @@
                         <element value="gets@function@@argument@1" />   <!-- var2 -->
                         <!-- strcpy(not_tainted, tainted); -> "not_tainted" is affected by
                                                               "tainted" -->
-                        <element value="strcpy@function@@targ@1@2" />
                         <element value="strcpy@function@@targ@0@2" />
-                        <element value="strncpy@function@@targ@1@2" />
+                        <element value="strcpy@function@@targ@1@2" />
+                        <!-- strncpy -->
                         <element value="strncpy@function@@targ@0@2" />
-                        <element value="sprintf@function@@targ@1@2" />
+                        <element value="strncpy@function@@targ@1@2" />
+                        <!-- sprintf -->
                         <element value="sprintf@function@@targ@0@2" />
+                        <element value="sprintf@function@@targ@1@2" />
+                        <!-- vsprintf -->
+                        <element value="vsprintf@function@@targ@0@2" />
+                        <element value="vsprintf@function@@targ@1@2" />
+                        <!-- strcat -->
+                        <element value="strcat@function@@targ@0@2" />
+                        <element value="strcat@function@@targ@1@2" />
+                        <!-- strncat -->
+                        <element value="strncat@function@@targ@0@2" />
+                        <element value="strncat@function@@targ@1@2" />
+                        <!-- strcmp -->
+                        <element value="strcmp@function@@targ@0@1" />
+                        <element value="strcmp@function@@targ@0@2" />
+                        <!-- getenv -->
+                        <element value="getenv@function@@argument@0" />
+                        <!-- fopen -->
+                        <element value="fopen@function@@argument@0" />
+                        <!-- scanf (first 5 elements) -->
+                        <element value="scanf@function@@argument@2" />
+                        <element value="scanf@function@@argument@3" />
+                        <element value="scanf@function@@argument@4" />
+                        <element value="scanf@function@@argument@5" />
+                        <element value="scanf@function@@argument@6" />
+                        <!-- fscanf (first 5 elements) -->
+                        <element value="fscanf@function@@argument@3" />
+                        <element value="fscanf@function@@argument@4" />
+                        <element value="fscanf@function@@argument@5" />
+                        <element value="fscanf@function@@argument@6" />
+                        <element value="fscanf@function@@argument@7" />
+                        <!-- fgets -->
+                        <element value="fgets@function@@argument@0" />
+                        <element value="fgets@function@@argument@1" />
+                        <!-- fgetc -->
+                        <element value="fgetc@function@@argument@0" />
+                        <!-- fread -->
+                        <element value="fread@function@@argument@1" />
+                        <!-- getline -->
+                        <element value="getline@function@@argument@1" />
                     </list>
                     <list name="sinks">
                         <!-- Check the Sink class documentation in order to know what a Sink
@@ -89,7 +128,17 @@
                                                            system() only accepts 1 parameter -->
                         <element value="strncpy@3" />
                         <element value="printf@1" />
+                        <element value="fprintf@2" />
                         <element value="sprintf@2" />
+                        <element value="vsprintf@2" />
+                        <element value="strcat@2" />
+                        <element value="strncat@3" />
+                        <element value="getenv@1" />
+                        <element value="fopen@1" />
+                        <element value="fgets@2" />
+                        <element value="fread@2" />
+                        <element value="fread@3" />
+                        <element value="getline@2" />
                     </list>
 
                     <!-- For displaying information about the tainted variables
