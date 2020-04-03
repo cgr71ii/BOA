@@ -951,6 +951,35 @@ class TaintAnalysis:
         # Get only those Taint instantes which are tainted (T and MT status)
         result = list(filter(lambda x: x[1].status in ["T", "MT"], result))
 
+        function_parameters_name = list(map(lambda x: x.name, function_parameters))
+
+        # Check if there are results without instruction
+        for var, taint in result:
+            if taint.instruction is None:
+                # There are results without instruction
+                if ((taint.decl is not None and taint.decl in function_parameters) or
+                        (var in function_parameters_name)):
+                    # The result is a variable from the function arguments
+                    parameter_index = None
+
+                    # Get the index of the parameter
+                    if taint.decl is not None:
+                        parameter_index = function_parameters.index(taint.decl)
+                    else:
+                        parameter_index = function_parameters_name.index(var)
+
+                    # Get the parameter and the whole instruction of it
+                    parameter = function_parameters[parameter_index]
+                    parameter_whole_instruction =\
+                        pycutil.get_full_instruction(parameter, real_instructions)
+
+                    # Set, if possible, the declaration as the instruction
+                    if len(parameter_whole_instruction) != 0:
+                        taint.instruction = parameter_whole_instruction[0]
+                else:
+                    # Set the tainted instruction to pointing the declaration
+                    taint.instruction = taint.decl
+
         return result
 
     def check_sources(self, instruction, input_dict, outputs, function_name):

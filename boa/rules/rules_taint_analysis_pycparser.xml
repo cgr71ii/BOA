@@ -83,6 +83,7 @@
                         <!-- <element value="system@1" />  would have the same effect because
                                                            system() only accepts 1 parameter -->
                         <element value="strncpy@3" />
+                        <element value="printf@1" />
                     </list>
 
                     <!-- For displaying information about the tainted variables
