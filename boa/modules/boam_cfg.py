@@ -799,14 +799,32 @@ class ProcessCFG():
 
                         end_of_graph_node = cfg.FinalNode()
                         pycutil.append_element_to_function(end_of_graph_node,
-                                                           func_def=instructions_pyc[0])
+                                                           func_def=instructions_pyc[0],
+                                                           after_element=instr)
                         instr_position = -1
                         func_call_instrs =\
                             pycutil.get_real_next_instruction(instructions_pyc[0],
                                                               instr)
 
                         if func_call_instrs is not None:
-                            instr_position = instructions_pyc.index(func_call_instrs)
+                            if func_call_instrs in instructions_pyc:
+                                instr_position = instructions_pyc.index(
+                                    func_call_instrs)
+                            else:
+                                all_instructions =\
+                                    pycutil.get_instruction_path(instructions_pyc[0],
+                                                                 True)
+
+                                if func_call_instrs in all_instructions:
+                                    #instr_index_1 = instructions_pyc.index(instr)
+                                    #instr_index_2 = all_instructions.index(instr)
+
+                                    instr_position = all_instructions.index(
+                                        func_call_instrs)
+
+                                    #instr_position += instr_index_1 - instr_index_2
+                                else:
+                                    instr_position = len(instructions_pyc) - 1
 
                         # It appends the new node
                         self.basic_cfg.append_instruction(function_name,

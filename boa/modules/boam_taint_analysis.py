@@ -742,12 +742,15 @@ class TaintAnalysis:
                                                                      whole_instructions,
                                                                      input_dict, ids)
 
-                already_inserted = len(list(filter(lambda x:
-                                                   x[3] == compound_element_identifier[3],
-                                                   temporal_taints_of_control_structures))) > 0
+                if compound_element_identifier is not None:
+                    already_inserted = len(list(
+                        filter(lambda x:
+                               x[3] == compound_element_identifier[3],
+                               temporal_taints_of_control_structures))) > 0
 
-                if not already_inserted:
-                    temporal_taints_of_control_structures.append(compound_element_identifier)
+                    if not already_inserted:
+                        temporal_taints_of_control_structures\
+                            .append(compound_element_identifier)
 
             func_calls = pycutil.get_instructions_of_instance(ast.FuncCall, whole_instruction)
 
@@ -835,10 +838,15 @@ class TaintAnalysis:
 
                         output_index += 1
 
+            last_input_dict = None
+
+            if len(input_dict) != 0:
+                last_input_dict = input_dict[list(input_dict)[-1]]
+
             # [instruction index, current result, new output values, current result, succ]
             # If we visit the same values again, it means we have reached a loop
             visiting = [whole_instructions.index(whole_instruction),
-                        input_dict[list(input_dict)[-1]], outputs,
+                        last_input_dict, outputs,
                         list(map(lambda x: x[0], result)), None]
 
             # Get succ whole instructions from current whole instruction
@@ -850,6 +858,7 @@ class TaintAnalysis:
 
             for succ_instruction in succs:
                 visiting[-1] = id(succ_instruction)
+                abort = False
 
                 if succ_instruction[0] not in real_instructions:
                     eprint("Warning: the CFG has taken to a instruction of other"
@@ -858,21 +867,47 @@ class TaintAnalysis:
                     continue
 
                 if not is_key_in_dict(input_dict, id(succ_instruction)):
-                    instruction_reference =\
-                        pycutil.get_full_instruction_from_id(whole_instructions,
-                                                             list(input_dict)[-1])
+                    last_input_dict_id = None
 
-                    self.initialize_input_dict(input_dict, variables_decl,
-                                               function_name,
-                                               tainted_variables_names, result,
-                                               succ_instruction,
-                                               #whole_instruction)
-                                               instruction_reference)
+                    if len(input_dict) != 0:
+                        # If there is next instruction but we are in a function
+                        #  without parameters nor varaibles declaration, we cannot
+                        #  initialize input_dict because we do not have any
+                        #  instruction as reference
+                        last_input_dict_id = list(input_dict)[-1]
+
+                        instruction_reference =\
+                            pycutil.get_full_instruction_from_id(whole_instructions,
+                                                                 last_input_dict_id)
+
+                        self.initialize_input_dict(input_dict, variables_decl,
+                                                   function_name,
+                                                   tainted_variables_names, result,
+                                                   succ_instruction,
+                                                   instruction_reference)
+                    else:
+                        # Cannot continue, so avoid next iterations
+                        abort = True
+
+                if abort:
+                    continue
 
                 input_value = input_dict[id(succ_instruction)]
                 append_succ = False
 
                 for var, output in outputs:
+                    if not is_key_in_dict(input_value, var):
+                        # global variable -> initialize
+                        input_dict[id(succ_instruction)][var] = "UNK"
+
+                        # Initialize global variable in result
+                        if self.get_result_index_by_var_name(result, var) is None:
+                            # var is not in result, so append it
+                            gv_source = Source(var, "variable", function_name)
+                            gv_taint = Taint(gv_source, None, None, "UNK")
+
+                            result.append((var, gv_taint))
+
                     taint_status = input_value[var]
 
                     if output != taint_status:
@@ -1012,7 +1047,10 @@ class TaintAnalysis:
                                      self)
 
         sources = self.get_sources(None)
-        last_input_dict = input_dict[list(input_dict)[-1]]
+        last_input_dict = None
+
+        if len(input_dict) != 0:
+            last_input_dict = input_dict[list(input_dict)[-1]]
 
         if isinstance(instruction, ast.FuncCall):
             # Function information
@@ -1056,6 +1094,10 @@ class TaintAnalysis:
                                                      "targ', but 'if_tainted' attr"
                                                      " is not defined. Fix your rules"
                                                      " file in order to continue", self)
+                        if last_input_dict is None:
+                            # There is not input_dict (i.e. function without arguments
+                            #  nor defined sources in rules nor variables declarations)
+                            continue
 
                         # Check if "affected" and "if_tainted" are positions
                         #  of arguments
@@ -1136,9 +1178,29 @@ class TaintAnalysis:
             name = None
 
             if isinstance(instruction, ast.Assignment):
-                name = instruction.lvalue.name
+                # Try to find the root of the name
+                try:
+                    name = whole_instruction[0].lvalue.name
+                except:
+                    try:
+                        name = whole_instruction[0].lvalue.exprs[0]
+                    except:
+                        try:
+                            name = whole_instruction[0].lvalue.expr
+                        except:
+                            return
             else:
-                name = instruction.name
+                # Try to find the root of the name
+                try:
+                    name = whole_instruction[0].name
+                except:
+                    try:
+                        name = whole_instruction[0].exprs[0]
+                    except:
+                        try:
+                            name = whole_instruction[0].expr
+                        except:
+                            return
 
             while not isinstance(name, str):
                 name = name.name
@@ -1182,6 +1244,10 @@ class TaintAnalysis:
                                                          " is not defined. Fix your rules"
                                                          " file in order to continue", self)
                             if not 0 <= if_tainted - 1 < len(arguments):
+                                continue
+                            if last_input_dict is None:
+                                # There is not input_dict (i.e. function without arguments
+                                #  nor defined sources in rules nor variables declarations)
                                 continue
 
                             index = func_call_names.index(source.name)
@@ -1340,9 +1406,17 @@ class TaintAnalysis:
             4. int: index where the statement starts (from all the whole instructions)
             5. int: index where the statement finishes (from all the whole instructions).
                It does not include the instruction which targets!
+            If there are not elements, *None* will be returned
         """
         # The instruction might have a Compound element strictly
         compound_element_identifier = []
+
+        last_input_dict = None
+
+        if len(input_dict) != 0:
+            last_input_dict = input_dict[list(input_dict)[-1]]
+        else:
+            return None
 
         # Append which type of compound instruction is (debbug purposes)
         compound_element_identifier.append(whole_instruction)
@@ -1350,10 +1424,9 @@ class TaintAnalysis:
         #  in the statement (e.g. if (tainted){indirectly tainted}))
         # Retrieve the tainted variables from the last result
         not_tainted_vars_last_result = list(filter(lambda item: item[1] == "NT",
-                                                   input_dict[list(input_dict)[-1]]\
-                                                       .items()))
+                                                   last_input_dict.items()))
         tainted_vars_last_result = list(filter(lambda item: item[1] in ["T", "MT"],
-                                               input_dict[list(input_dict)[-1]].items()))
+                                               last_input_dict.items()))
 
         not_tainted_vars_last_result = list(filter(lambda x: x[0] in ids,
                                                    not_tainted_vars_last_result))
@@ -1432,9 +1505,29 @@ class TaintAnalysis:
         name = None
 
         if isinstance(whole_instruction[0], ast.Assignment):
-            name = whole_instruction[0].lvalue.name
+            # Try to find the root of the name
+            try:
+                name = whole_instruction[0].lvalue.name
+            except:
+                try:
+                    name = whole_instruction[0].lvalue.exprs[0]
+                except:
+                    try:
+                        name = whole_instruction[0].lvalue.expr
+                    except:
+                        return
         else:
-            name = whole_instruction[0].name
+            # Try to find the root of the name
+            try:
+                name = whole_instruction[0].name
+            except:
+                try:
+                    name = whole_instruction[0].exprs[0]
+                except:
+                    try:
+                        name = whole_instruction[0].expr
+                    except:
+                        return
 
         ids_valid_index = 1
 
@@ -1615,6 +1708,10 @@ class TaintAnalysis:
                                               ast.FuncCall, ast.ID, ast.NamedInitializer,
                                               ast.Struct, ast.Typedef, ast.Typename, ast.Union)):
                     name = instruction.name
+
+                    if name is None:
+                        index += 1
+                        continue
 
                     if (isinstance(instruction, ast.FuncCall) and
                             isinstance(name, ast.StructRef)):

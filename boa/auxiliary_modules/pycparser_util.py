@@ -199,7 +199,8 @@ def get_instructions_type(instructions, second_function_to_apply=None):
 
     return result
 
-def append_element_to_function(element, compound=None, func_def=None):
+def append_element_to_function(element, compound=None, func_def=None,
+                               after_element=None):
     """It attempts to append an element to a function.
 
     Arguments:
@@ -208,6 +209,10 @@ def append_element_to_function(element, compound=None, func_def=None):
             the function. If is *None*, *func_def* can not be *None*.
         func_def (pycparser.c_ast.FuncDef): 'func_def' element of
             the function. If is *None*, *compound* can not be *None*.
+        after_element (pycparser.c_ast.Node): element which will be
+            before of *element*. The default value is *None*. If is
+            different of *None* and the element is not found, the
+            position will be the last.
 
     Raises:
         PycparserException: if the type of the arguments
@@ -237,7 +242,36 @@ def append_element_to_function(element, compound=None, func_def=None):
     if compound.block_items is None:
         compound.block_items = [element]
     else:
-        compound.block_items.append(element)
+        found = False
+
+        if after_element is not None:
+
+            if after_element in compound.block_items:
+                index = compound.block_items.index(after_element)
+
+                compound.block_items.insert(index + 1, element)
+                found = True
+            else:
+                instructions = get_instruction_path(compound)
+                compound_elements = get_instructions_of_instance(ast.Compound,
+                                                                 instructions)
+
+                for comp in compound_elements:
+                    if after_element in comp.block_items:
+                        index = comp.block_items.index(after_element)
+
+                        comp.block_items.insert(index + 1, element)
+                        found = True
+                        break
+
+                if not found:
+                    index = instructions.index(after_element)
+
+                    instructions.insert(index + 1, element)
+                    found = True
+
+        if not found:
+            compound.block_items.append(element)
 
     return True
 
