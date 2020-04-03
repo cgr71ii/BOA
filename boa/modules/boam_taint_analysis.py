@@ -1178,29 +1178,21 @@ class TaintAnalysis:
             name = None
 
             if isinstance(instruction, ast.Assignment):
-                # Try to find the root of the name
-                try:
-                    name = whole_instruction[0].lvalue.name
-                except:
-                    try:
-                        name = whole_instruction[0].lvalue.exprs[0]
-                    except:
-                        try:
-                            name = whole_instruction[0].lvalue.expr
-                        except:
-                            return
+                name = instruction.lvalue
             else:
-                # Try to find the root of the name
+                name = instruction
+
+            # Try to find the root of the name
+            try:
+                name = name.name
+            except:
                 try:
-                    name = whole_instruction[0].name
+                    name = name.exprs[0]
                 except:
                     try:
-                        name = whole_instruction[0].exprs[0]
+                        name = name.expr
                     except:
-                        try:
-                            name = whole_instruction[0].expr
-                        except:
-                            return
+                        return
 
             while not isinstance(name, str):
                 name = name.name
@@ -1508,29 +1500,21 @@ class TaintAnalysis:
         name = None
 
         if isinstance(whole_instruction[0], ast.Assignment):
-            # Try to find the root of the name
-            try:
-                name = whole_instruction[0].lvalue.name
-            except:
-                try:
-                    name = whole_instruction[0].lvalue.exprs[0]
-                except:
-                    try:
-                        name = whole_instruction[0].lvalue.expr
-                    except:
-                        return
+            name = whole_instruction[0].lvalue
         else:
-            # Try to find the root of the name
+            name = whole_instruction[0]
+
+        # Try to find the root of the name
+        try:
+            name = name.name
+        except:
             try:
-                name = whole_instruction[0].name
+                name = name.exprs[0]
             except:
                 try:
-                    name = whole_instruction[0].exprs[0]
+                    name = name.expr
                 except:
-                    try:
-                        name = whole_instruction[0].expr
-                    except:
-                        return
+                    return
 
         ids_valid_index = 1
 

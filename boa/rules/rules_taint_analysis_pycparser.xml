@@ -66,6 +66,11 @@
                         <!-- strcpy(not_tainted, tainted); -> "not_tainted" is affected by
                                                               "tainted" -->
                         <element value="strcpy@function@@targ@1@2" />
+                        <element value="strcpy@function@@targ@0@2" />
+                        <element value="strncpy@function@@targ@1@2" />
+                        <element value="strncpy@function@@targ@0@2" />
+                        <element value="sprintf@function@@targ@1@2" />
+                        <element value="sprintf@function@@targ@0@2" />
                     </list>
                     <list name="sinks">
                         <!-- Check the Sink class documentation in order to know what a Sink
@@ -84,6 +89,7 @@
                                                            system() only accepts 1 parameter -->
                         <element value="strncpy@3" />
                         <element value="printf@1" />
+                        <element value="sprintf@2" />
                     </list>
 
                     <!-- For displaying information about the tainted variables
