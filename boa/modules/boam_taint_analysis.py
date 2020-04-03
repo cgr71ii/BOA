@@ -1369,14 +1369,17 @@ class TaintAnalysis:
                                 else:
                                     severity = "CRITICAL"
 
-                                self.threats.append({
+                                current_threat = {
                                     "threat": "sink",
                                     "func_name": name,
                                     "container_func_name": function_name,
                                     "affected_parameter": str(arg_index + 1),
                                     "instruction": func_call,
                                     "severity": severity
-                                    })
+                                    }
+
+                                if current_threat not in self.threats:
+                                    self.threats.append(current_threat)
                         else:
                             # Function calls as arguments found.
                             # Will not be processed!
