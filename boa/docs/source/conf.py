@@ -27,7 +27,7 @@ copyright = '2020, Cristian Garcia Romero'
 author = 'Cristian Garcia Romero'
 
 # The full version, including alpha/beta/rc tags
-release = '0.2'
+release = '0.3'
 
 
 # -- General configuration ---------------------------------------------------

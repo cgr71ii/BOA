@@ -730,7 +730,7 @@ def replace_dependencies_callbacks(dependencies, instances_dict):
                     'arg1': <bound method BOAModuleFunctionMatch.finish of
                     <boam_function_match.BOAModuleFunctionMatch object at 0x7f7bb49a7c50>>}}
 
-    Arguments
+    Arguments:
         dependencies (dict): dependencies of a concrete module.
         instances_dict (dict): dictionary which contains the
             instances as values and the name of the instances

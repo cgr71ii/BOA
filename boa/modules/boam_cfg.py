@@ -733,16 +733,16 @@ class ProcessCFG():
         Example:
             The following code would cause an infinite loop
             if the node *EndOfFunc* was not appended.
-
+            
             void foo()
-            {
-                bar();
-            }
+            \\{
+            bar();
+            \\}
 
             void bar()
-            {
-                foo();
-            }
+            \\{
+            foo();
+            \\}
         """
         functions = self.get_function_calls()
 

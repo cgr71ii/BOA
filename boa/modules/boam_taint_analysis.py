@@ -7,12 +7,14 @@ The CFG is used as dependency because we need it in order to
 execute kildall's algorithm.
 
 Things which this implementation DOES NOT do:
+
 1. Does not resolve graph cyclic dependencies within function
    calls of functions defined in the same file.
 2. Does not apply a concrete order when executing kildall's
    algorithm.
 3. It ignores those function calls which are not defined as
    a Source nor Sink.
+
 """
 
 # Std libs
@@ -519,21 +521,21 @@ class Taint:
     manipulated, direct or indirectly, by the user.
 
     Possible taint status (static analysis):
-              MT
-              /\\
-             /  \\
-            /    \\
-           T      NT
-            \\    /
-             \\  /
-              \\/
-              UNK
 
     1. UNK: Unknown
     2. T: Tainted
     3. NT: Not Tainted
     4. MT: T + NT
     """
+    #    MT
+    #    /\\
+    #   /  \\
+    #  /    \\
+    # T      NT
+    #  \\    /
+    #   \\  /
+    #    \\/
+    #    UNK
 
     allowed_status = ("UNK", "T", "NT", "MT")
 
@@ -1401,6 +1403,7 @@ class TaintAnalysis:
             4. int: index where the statement starts (from all the whole instructions)
             5. int: index where the statement finishes (from all the whole instructions).
                It does not include the instruction which targets!
+
             If there are not elements, *None* will be returned
         """
         # The instruction might have a Compound element strictly

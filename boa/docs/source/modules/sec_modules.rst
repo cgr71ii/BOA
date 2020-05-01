@@ -4,6 +4,8 @@
 
    sec_modules/boam_abstract
    sec_modules/boam_function_match
+   sec_modules/boam_cfg
+   sec_modules/boam_taint_analysis
    sec_modules/boam_test
 
 .. _sec-modules:
@@ -31,6 +33,8 @@ BOA internals
 Modules
 -------
 * :ref:`sec-modules-boam-function-match`
+* :ref:`sec-modules-boam-cfg`
 * :ref:`sec-modules-boam-test`
+* :ref:`sec-modules-boam-taint-analysis`
 
 .. include:: ../footer.rst

@@ -18,7 +18,7 @@ Changes:
 
 Fixed errors:
 
-* Main argument "--no-fail" was not working as expected.
+* Main argument "-\\-no-fail" was not working as expected.
 * When a module loading failed and the execution continued,
   was not being correctly removed.
 * Minnor fixes.

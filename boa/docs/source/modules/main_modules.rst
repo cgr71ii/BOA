@@ -11,6 +11,7 @@
    main_modules/own_exceptions
    main_modules/util
    main_modules/severity_enums
+   main_modules/auxiliary_modules
 
 .. _main-modules:
 
@@ -38,5 +39,7 @@ Modules
    * It defines own exceptions.
 * :ref:`main-modules-util`
    * General utilities.
+* :ref:`main-modules-auxiliary-modules`
+   * It contains auxiliary modules which may be used by any other module.
 
 .. include:: ../footer.rst
