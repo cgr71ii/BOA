@@ -21,9 +21,23 @@ class BOAPMPycparser(BOAParserModuleAbstract):
         """
         self.ast = None
         self.pycparser_fake_libc_include_ev = None
+        self.compiler_args = []
 
         if is_key_in_dict(self.environment_variables, "PYCPARSER_FAKE_LIBC_INCLUDE_PATH"):
             self.pycparser_fake_libc_include_ev = self.environment_variables["PYCPARSER_FAKE_LIBC_INCLUDE_PATH"]
+        if is_key_in_dict(self.environment_variables, "PYCPARSER_CPP_ARGS"):
+            self.compiler_args = self.environment_variables["PYCPARSER_CPP_ARGS"]
+
+            split_char = ";"
+
+            if is_key_in_dict(self.environment_variables, "PYCPARSER_CPP_ARGS_SPLIT_CHAR"):
+                if len(self.environment_variables["PYCPARSER_CPP_ARGS_SPLIT_CHAR"]) != 1:
+                    eprint(f"Warning: environment variable PYCPARSER_CPP_ARGS_SPLIT_CHAR"
+                           " has to contain only 1 character when defined.")
+                else:
+                    split_char = self.environment_variables["PYCPARSER_CPP_ARGS_SPLIT_CHAR"]
+
+            self.compiler_args = self.compiler_args.split(split_char)
 
     def parse(self):
         """It parses the file and save the necessary data structures.
@@ -33,7 +47,8 @@ class BOAPMPycparser(BOAParserModuleAbstract):
             if self.pycparser_fake_libc_include_ev is not None:
                 # use_cpp = Use CPreProcessor
                 self.ast = parse_file(self.path_to_file, use_cpp=True, cpp_path="gcc",
-                                      cpp_args=["-E", f"-I{self.pycparser_fake_libc_include_ev}"])
+                                      cpp_args=["-E", f"-I{self.pycparser_fake_libc_include_ev}"]
+                                      + self.compiler_args)
             else:
                 self.ast = parse_file(self.path_to_file, use_cpp=False)
         except ParseError as e:

@@ -11,6 +11,8 @@
         </callback>
         <env_vars>
             <env_var>PYCPARSER_FAKE_LIBC_INCLUDE_PATH</env_var>
+            <env_var>PYCPARSER_CPP_ARGS</env_var>
+            <env_var>PYCPARSER_CPP_ARGS_SPLIT_CHAR</env_var>
         </env_vars>
     </parser>
     <modules>
@@ -146,7 +148,7 @@
                             information, set this option to false or remove it.
                             The default value is "true". The allowed values are
                             "true" and "false". -->
-                    <element name="append_tainted_variables_to_report" value="true" />
+                    <element name="append_tainted_variables_to_report" value="false" />
                 </dict>
             </args>
             <dependencies>
@@ -163,8 +165,17 @@
         </module>
     </modules>
     <report>
+        <!--
+        <module_name>boar_basic_html</module_name>
+        <class_name>BOARBasicHTML</class_name>
+        -->
         <args>
-            <!-- Empty -->
+            <!--
+            <dict>
+                <element name="absolute_path" value="/tmp" />
+                <element name="filename" value="taint_analysis.html" />
+            </dict>
+            -->
         </args>
     </report>
 </boa_rules>

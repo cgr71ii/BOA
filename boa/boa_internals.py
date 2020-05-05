@@ -644,7 +644,7 @@ def process_security_modules(rules_manager):
         mods_args[f"{module_name}.{class_name}"] = \
              args[f"{module_name}.{class_name}"]
 
-        # Set dependencies if exists (are optional)
+        # Set dependencies if exist (are optional)
         if is_key_in_dict(dependencies, f"{module_name}.{class_name}"):
             mods_dependencies[f"{module_name}.{class_name}"] = \
                  dependencies[f"{module_name}.{class_name}"]
@@ -752,7 +752,9 @@ def replace_dependencies_callbacks(dependencies, instances_dict):
 
 def check_dependencies(modules, classes, mods_dependencies):
     """It checks if the dependencies are correct. Concretely,
-    it checks
+    it checks if the dependencies exist, if a module is a dependency
+    of itself and if the dependencies graph is cyclic, what is not
+    allowed.
 
     Arguments:
         modules (list): list of modules.

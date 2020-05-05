@@ -716,8 +716,13 @@ class TaintAnalysis:
         # Store the taints of control flow structures to affect the inner statements
         temporal_taints_of_control_structures = []
 
+        # Debug
+        times_len_worklist_neq_zero = 0
+
         # Work with the worklist and the CFG
         while len(worklist) != 0:
+            times_len_worklist_neq_zero += 1
+
             # Take the first instruction of the worklist
             first_instruction = worklist[0]
             # Take off the first instruction of the worklist
@@ -1188,13 +1193,18 @@ class TaintAnalysis:
             try:
                 name = name.name
             except:
-                try:
-                    name = name.exprs[0]
-                except:
+                while True:
                     try:
-                        name = name.expr
+                        name.name
+                        break
                     except:
-                        return
+                        try:
+                            name = name.exprs[0]
+                        except:
+                            try:
+                                name = name.expr
+                            except:
+                                return
 
             while not isinstance(name, str):
                 name = name.name
@@ -1511,13 +1521,18 @@ class TaintAnalysis:
         try:
             name = name.name
         except:
-            try:
-                name = name.exprs[0]
-            except:
+            while True:
                 try:
-                    name = name.expr
+                    name.name
+                    break
                 except:
-                    return
+                    try:
+                        name = name.exprs[0]
+                    except:
+                        try:
+                            name = name.expr
+                        except:
+                            return
 
         ids_valid_index = 1
 

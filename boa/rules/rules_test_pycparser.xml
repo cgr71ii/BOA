@@ -11,6 +11,8 @@
         </callback>
         <env_vars>
             <env_var>PYCPARSER_FAKE_LIBC_INCLUDE_PATH</env_var>
+            <env_var>PYCPARSER_CPP_ARGS</env_var>
+            <env_var>PYCPARSER_CPP_ARGS_SPLIT_CHAR</env_var>
         </env_vars>
     </parser>
     <modules>
