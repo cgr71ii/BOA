@@ -73,68 +73,68 @@ class Error:
     error_args_type = 11
 
     # Parsing errors
-    error_parse_parse = 20
+    #error_parse_parse = 20
 
     # Modules errors
-    error_module_some_mandatory_and_user_failed = 300
-    error_module_some_mandatory_failed = 301
-    error_module_some_user_failed = 302
-    error_module_cannot_load_instance = 303
-    error_module_some_instance_loading_failed = 304
-    error_module_cannot_remove_not_loaded_module = 305
-    error_module_cannot_load_abstract_instance = 306
-    error_module_not_expected_type = 307
-    error_module_importer_could_not_be_instantiated = 308
+    error_module_some_mandatory_and_user_failed = 200
+    error_module_some_mandatory_failed = 201
+    error_module_some_user_failed = 202
+    error_module_cannot_load_instance = 203
+    error_module_some_instance_loading_failed = 204
+    error_module_cannot_remove_not_loaded_module = 205
+    error_module_cannot_load_abstract_instance = 206
+    error_module_not_expected_type = 207
+    error_module_importer_could_not_be_instantiated = 208
     # Modules errors -> dependencies
-    error_module_dependency_failed = 310
-    error_module_dependency_itself = 311
-    error_module_dependencies_cyclic = 312
-    error_module_dependency_callback_not_found = 313
+    error_module_dependency_failed = 210
+    error_module_dependency_itself = 211
+    error_module_dependencies_cyclic = 212
+    error_module_dependency_callback_not_found = 213
 
     # Rules errors
-    error_rules_modules_classes_args_neq_length = 40
-    error_rules_bad_naming_references = 41
-    error_rules_could_not_open_file = 42
-    error_rules_could_not_read_file = 43
-    error_rules_could_not_close_file = 44
-    error_rules_bad_checking = 45
-    error_rules_args_not_found = 46
+    error_rules_modules_classes_args_neq_length = 30
+    error_rules_bad_naming_references = 31
+    error_rules_could_not_open_file = 32
+    error_rules_could_not_read_file = 33
+    error_rules_could_not_close_file = 34
+    error_rules_bad_checking = 35
+    error_rules_args_not_found = 36
 
     # Lifecycle errors
-    error_lifecycle_args_wrong_type = 50
-    error_lifecycle_args_neq_length = 51
-    error_lifecycle_module_exception = 52
-    error_lifecycle_exception = 53
-    error_lifecycle_module_not_found = 54
-    error_lifecycle_could_not_load_abstract_instance = 55
-    error_lifecycle_could_not_load_instance = 56
-    error_lifecycle_not_expected_type = 57
+    error_lifecycle_args_wrong_type = 40
+    error_lifecycle_args_neq_length = 41
+    error_lifecycle_module_exception = 42
+    error_lifecycle_exception = 43
+    error_lifecycle_module_not_found = 44
+    error_lifecycle_could_not_load_abstract_instance = 45
+    error_lifecycle_could_not_load_instance = 46
+    error_lifecycle_not_expected_type = 47
 
     # Report errors
-    error_report_args_not_optional = 600
-    error_report_args_not_expected_type = 601
-    error_report_who_regex_fail = 602
-    error_report_append_failed = 603
-    error_report_unknown = 604
-    error_report_module_abstract_not_loaded = 605
-    error_report_module_not_found = 606
-    error_report_module_abstract_not_expected_type = 607
+    error_report_args_not_optional = 500
+    error_report_args_not_expected_type = 501
+    error_report_who_regex_fail = 502
+    error_report_append_failed = 503
+    error_report_unknown = 504
+    error_report_module_abstract_not_loaded = 505
+    error_report_module_not_found = 506
+    error_report_module_abstract_not_expected_type = 507
     # Report -> severity enum errors
-    error_report_severity_enum_does_not_match = 610
-    error_report_severity_enum_not_expected = 611
-    error_report_severity_enum_module_not_found = 612
-    error_report_severity_enum_module_not_loaded = 613
+    error_report_severity_enum_does_not_match = 510
+    error_report_severity_enum_not_expected = 511
+    error_report_severity_enum_module_not_found = 512
+    error_report_severity_enum_module_not_loaded = 513
 
     # Parser module errors
-    error_parser_module_not_found = 70
-    error_parser_module_not_loaded = 71
-    error_parser_module_abstract_not_loaded = 72
-    error_parser_module_abstract_not_expected_type = 73
-    error_parser_module_some_callback_not_executed = 74
-    error_parser_module_no_callback_executed = 74
-    error_parser_module_failed_in_initialization = 75
-    error_parser_module_failed_in_parsing = 76
-    error_parser_module_failed_in_execution = 77
+    error_parser_module_not_found = 60
+    error_parser_module_not_loaded = 61
+    error_parser_module_abstract_not_loaded = 62
+    error_parser_module_abstract_not_expected_type = 63
+    error_parser_module_some_callback_not_executed = 64
+    error_parser_module_no_callback_executed = 64
+    error_parser_module_failed_in_initialization = 65
+    error_parser_module_failed_in_parsing = 66
+    error_parser_module_failed_in_execution = 67
 
 
     # Other errors
