@@ -58,7 +58,7 @@
                             <element name="method" value="strcpy" />
                             <element name="severity" value="FREQUENTLY_MISUSED" />
                             <element name="description" value="strcpy: destination pointer (first argument) length has to be greater or equal than origin (second argument) to avoid buffer overflow threats" />
-                            <element name="advice" value="You can use 'strcpy', but be sure about the length problem (check boundaries) and set correctly the end caracter. If you want a safer function, check 'strncpy', which is safer but not safe or 'strlcpy'" />
+                            <element name="advice" value="You can use 'strcpy', but be sure about the length problem (check boundaries) and set correctly the end character. If you want a safer function, check 'strncpy', which is safer but not safe or 'strlcpy'" />
                         </dict>
                         <dict>
                             <element name="method" value="strncpy" />
@@ -70,7 +70,7 @@
                             <element name="method" value="strcat" />
                             <element name="severity" value="FREQUENTLY_MISUSED" />
                             <element name="description" value="strcat: destination pointer (first argument) length has to be greater or equal than destination + origin (first argument + second argument) to avoid buffer overflow threats" />
-                            <element name="advice" value="You can use 'strcat', but be sure about the length problem (check boundaries) and set correctly the end caracter. If you want a safer function, check 'strncat', which is safer but not safe or 'strlcat'" />
+                            <element name="advice" value="You can use 'strcat', but be sure about the length problem (check boundaries) and set correctly the end character. If you want a safer function, check 'strncat', which is safer but not safe or 'strlcat'" />
                         </dict>
                         <dict>
                             <element name="method" value="strncat" />

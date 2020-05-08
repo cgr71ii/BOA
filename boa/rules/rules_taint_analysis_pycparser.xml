@@ -148,7 +148,7 @@
                             information, set this option to false or remove it.
                             The default value is "true". The allowed values are
                             "true" and "false". -->
-                    <element name="append_tainted_variables_to_report" value="false" />
+                    <element name="append_tainted_variables_to_report" value="true" />
                 </dict>
             </args>
             <dependencies>

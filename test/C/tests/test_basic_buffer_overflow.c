@@ -11,7 +11,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        strcpy(name, "Jak");
+        strcpy(name, "Master Chief");
     }
 
     printf("Hello, %s.\n", name);

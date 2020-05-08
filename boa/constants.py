@@ -86,10 +86,10 @@ class Error:
     error_module_not_expected_type = 307
     error_module_importer_could_not_be_instantiated = 308
     # Modules errors -> dependencies
-    error_module_dependency_failed = 321
-    error_module_dependency_itself = 322
-    error_module_dependencies_cyclic = 323
-    error_module_dependency_callback_not_found = 324
+    error_module_dependency_failed = 320
+    error_module_dependency_itself = 321
+    error_module_dependencies_cyclic = 322
+    error_module_dependency_callback_not_found = 323
 
     # Rules errors
     error_rules_modules_classes_args_neq_length = 40
@@ -119,7 +119,6 @@ class Error:
     error_report_module_abstract_not_loaded = 605
     error_report_module_not_found = 606
     error_report_module_abstract_not_expected_type = 607
-
     # Report -> severity enum errors
     error_report_severity_enum_does_not_match = 610
     error_report_severity_enum_not_expected = 611

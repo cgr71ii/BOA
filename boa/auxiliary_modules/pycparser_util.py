@@ -568,11 +568,12 @@ def is_variable_decl(instruction):
         ast.Union,
         instructions)
 
-    if (len(function_type_decl) == 1 and
-            (len(function_id_type) +\
-             len(function_struct_type) +\
-             len(function_enum_type) +\
-             len(function_union_type) == 1)):
+    if (len(function_type_decl) >= 1 and
+           isinstance(function_type_decl[0].declname, str) and
+           (len(function_id_type) +\
+            len(function_struct_type) +\
+            len(function_enum_type) +\
+            len(function_union_type) >= 1)):
         return True
 
     return False

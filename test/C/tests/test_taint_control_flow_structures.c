@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 int main(int argc, char** argv)
 {
     int a = argc;   // tainted
@@ -6,13 +8,9 @@ int main(int argc, char** argv)
     for (int i = b; i < 10; i++)    // not tainted
     {
         if (a)  // tainted
-        {
             a = b;  // still tainted
-        }
         if (b)  // not tainted
-        {
             a = b;  // from tainted to not tainted!
-        }
     }
 
     char* d = argv[0];
