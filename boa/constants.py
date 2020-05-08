@@ -69,7 +69,7 @@ class Error:
     error_file_not_found = 2
 
     # Args errors
-    error_args_code = 10
+    error_args_incorrect = 10
     error_args_type = 11
 
     # Parsing errors

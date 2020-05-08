@@ -17,6 +17,7 @@ import argparse
 from constants import Meta
 from constants import Args
 from constants import Error
+from util import eprint
 
 class ArgsManager:
     """ArgsManager class.
@@ -82,8 +83,16 @@ class ArgsManager:
     # It parses the arguments to easily check if they are correct
     def parse(self):
         """It parses the arguments.
+
+        Returns:
+            int: status code
         """
-        ArgsManager.args = self.parser.parse_args()
+        try:
+            ArgsManager.args = self.parser.parse_args()
+        except:
+            return Error.error_args_incorrect
+
+        return Meta.ok_code
 
     # It checks if args are correctly used
     def check(self):

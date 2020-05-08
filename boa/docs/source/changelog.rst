@@ -8,6 +8,16 @@ Changelog
 =========
 You will find here the main changes from one version to others.
 
+Version 0.4
+-----------
+Minnor changes.
+
+Changes:
+
+* Some error codes has been updated.
+* When input arguments are not correctly inserted, now
+  not only argparse displays error message, but also BOA.
+
 Version 0.3
 -----------
 Dependencies among modules are possible.

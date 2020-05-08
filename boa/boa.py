@@ -34,7 +34,10 @@ def manage_args():
     args_manager = ArgsManager()
 
     args_manager.load_args()
-    args_manager.parse()
+    rtn_code = args_manager.parse()
+
+    if rtn_code != Meta.ok_code:
+        return rtn_code
 
     rtn_code = args_manager.check()
 
@@ -57,7 +60,13 @@ def main():
         rtn_code = manage_args()
 
         if rtn_code != Meta.ok_code:
-            raise BOAFlowException("args management failed", rtn_code)
+            message = "args management failed"
+
+            if rtn_code == Error.error_args_incorrect:
+                # argparse displays its own message, so it is not necessary do it twice
+                message = ""
+
+            raise BOAFlowException(message, rtn_code)
 
         # Check if lang. file exists
         if not file_exists(ArgsManager.args.file):
