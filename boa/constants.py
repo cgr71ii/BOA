@@ -86,10 +86,10 @@ class Error:
     error_module_not_expected_type = 307
     error_module_importer_could_not_be_instantiated = 308
     # Modules errors -> dependencies
-    error_module_dependency_failed = 320
-    error_module_dependency_itself = 321
-    error_module_dependencies_cyclic = 322
-    error_module_dependency_callback_not_found = 323
+    error_module_dependency_failed = 310
+    error_module_dependency_itself = 311
+    error_module_dependencies_cyclic = 312
+    error_module_dependency_callback_not_found = 313
 
     # Rules errors
     error_rules_modules_classes_args_neq_length = 40
