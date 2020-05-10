@@ -5,8 +5,8 @@ This module goal is to look for unsafe functions that should
 be avoided or generally are misused.
 """
 
-# Pycparser libs
-from pycparser.c_ast import FuncCall
+# Javalang libs
+import javalang
 
 # Own libs
 from boam_abstract import BOAModuleAbstract
@@ -58,8 +58,15 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
             token: AST node.
         """
         # Look for function calls
-        if isinstance(token, FuncCall):
-            self.pycparser_funccall(token)
+        #if isinstance(token, FuncCall):
+        #    self.javalang_funccall(token)
+        #print(token["ast"].types)
+        for path, node in token["ast"]:
+            #print(type(node))
+            if isinstance(node, javalang.tree.MethodInvocation):
+                #print(node.qualifier)
+                #print(node.member)
+                self.javalang_funccall(node)
 
     def clean(self):
         """It does nothing.
@@ -91,14 +98,14 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
         """It does nothing.
         """
 
-    def pycparser_funccall(self, token):
+    def javalang_funccall(self, token):
         # Get the calling function name
-        function_name = token.name.name
+        function_name = token.member
 
         if function_name in self.all_methods_name:
             index = self.all_methods_name.index(function_name)
-            row = str(token.coord).split(':')[-2]
-            col = str(token.coord).split(':')[-1]
+            row = token.position.line
+            col = token.position.column
             severity = None
             description = None
             advice = None

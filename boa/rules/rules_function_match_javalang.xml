@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<boa_rules>
+    <parser>
+        <name>javalang</name>
+        <lang_objective>Java</lang_objective>
+        <module_name>boapm_javalang</module_name>
+        <class_name>BOAPMJavalang</class_name>
+        <callback>
+            <method name="ast" callback="get_ast" />
+        </callback>
+        <env_vars>
+        </env_vars>
+    </parser>
+    <modules>
+        <module>
+            <module_name>boam_function_match_javalang</module_name>
+            <class_name>BOAModuleFunctionMatch</class_name>
+            <severity_enum>severity_function_match.SeverityFunctionMatch</severity_enum>
+            <!--<lifecycle_handler>boalc_pycparser_ast.BOALCPycparserAST</lifecycle_handler>-->
+            <args>
+                <dict>
+                    <!--
+                        References
+
+                        https://security.web.cern.ch/security/recommendations/en/codetools/c.shtml
+                        
+                    -->
+                    <list name="methods">
+                        <dict>
+                            <element name="method" value="exec" />
+                            <element name="severity" value="HIGH" />
+                            <element name="description" value="exec: the function 'exec' allows to execute a command" />
+                            <element name="advice" value="do not use 'exec' unless you are sure that the final user cannot access to the value used by 'exec' (unless that is your goal)"/>
+                        </dict>
+
+                        <!-- Template
+                        <dict>
+                            <element name="method" value="" />
+                            <element name="severity" value="" />
+                            <element name="description" value="" />
+                            <element name="advice" value="" />
+                        </dict>
+
+                        Allowed severity levels (severity_function_match.SeverityFunctionMatch):
+                            VERY_LOW = 1
+                            LOW = 2
+                            MISUSED = 3
+                            FREQUENTLY_MISUSED = 4
+                            HIGH = 5
+                            CRITICAL = 6
+                        -->
+                    </list>
+                </dict>
+            </args>
+        </module>
+    </modules>
+    <report>
+        <!--
+        <module_name>boar_basic_html</module_name>
+        <class_name>BOARBasicHTML</class_name>
+        -->
+        <args>
+            <!--
+            <dict>
+                <element name="absolute_path" value="/tmp" />
+                <element name="filename" value="function_match.html" />
+            </dict>
+            -->
+        </args>
+    </report>
+</boa_rules>

@@ -426,6 +426,8 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
     for name, method in zip(names, methods):
         result = invoke_by_name(boapm_instance, method)
 
+        # Checking is made with "is" becase we want to check the reference, not the value!
+        # Check function "util.invoke_by_name" in order to understand the following checking
         if result is not Other.other_util_invoke_by_name_error_return:
             boapm_results[name] = result
         else:
@@ -451,6 +453,12 @@ def get_parser_env_vars(parser_rules):
     Returns:
         list: environment variable names
     """
+    env_vars = parser_rules["env_vars"]
+
+    if not env_vars:
+        # No environment variable was defined
+        return []
+
     env_vars = parser_rules["env_vars"]["env_var"]
 
     if not env_vars:

@@ -80,11 +80,11 @@ class Error:
     error_module_some_mandatory_failed = 201
     error_module_some_user_failed = 202
     error_module_cannot_load_instance = 203
-    error_module_some_instance_loading_failed = 204
-    error_module_cannot_remove_not_loaded_module = 205
-    error_module_cannot_load_abstract_instance = 206
-    error_module_not_expected_type = 207
-    error_module_importer_could_not_be_instantiated = 208
+    #error_module_some_instance_loading_failed = 204
+    error_module_cannot_remove_not_loaded_module = 204
+    error_module_cannot_load_abstract_instance = 205
+    error_module_not_expected_type = 206
+    error_module_importer_could_not_be_instantiated = 207
     # Modules errors -> dependencies
     error_module_dependency_failed = 210
     error_module_dependency_itself = 211
@@ -101,14 +101,14 @@ class Error:
     error_rules_args_not_found = 36
 
     # Lifecycle errors
-    error_lifecycle_args_wrong_type = 40
-    error_lifecycle_args_neq_length = 41
-    error_lifecycle_module_exception = 42
-    error_lifecycle_exception = 43
-    error_lifecycle_module_not_found = 44
-    error_lifecycle_could_not_load_abstract_instance = 45
-    error_lifecycle_could_not_load_instance = 46
-    error_lifecycle_not_expected_type = 47
+    #error_lifecycle_args_wrong_type = 40
+    #error_lifecycle_args_neq_length = 41
+    error_lifecycle_module_exception = 40
+    error_lifecycle_exception = 41
+    error_lifecycle_module_not_found = 42
+    error_lifecycle_could_not_load_abstract_instance = 43
+    error_lifecycle_could_not_load_instance = 44
+    error_lifecycle_not_expected_type = 45
 
     # Report errors
     error_report_args_not_optional = 500

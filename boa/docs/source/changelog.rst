@@ -18,6 +18,11 @@ Changes:
 * When input arguments are not correctly inserted, now
   not only argparse displays error message, but also BOA.
 
+Fixed errors:
+
+* When no environment variables was being used for a parser
+  module in the rules file, the running analysis crashed.
+
 Version 0.3
 -----------
 Dependencies among modules are possible.
