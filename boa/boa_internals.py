@@ -382,7 +382,7 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
         callback results (boa_rules.parser.callback.method) of *boapm_instance*.
     """
     # Initialize the instance and other necessary information
-    boapm_instance = boapm_instance(ArgsManager.args.file, environment_variable_names)
+    boapm_instance = boapm_instance(ArgsManager.args.code_file, environment_variable_names)
     boapm_instance_name = get_name_from_class_instance(boapm_instance)
     callbacks = parser_rules["callback"]["method"]
     names = []

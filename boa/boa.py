@@ -69,8 +69,8 @@ def main():
             raise BOAFlowException(message, rtn_code)
 
         # Check if lang. file exists
-        if not file_exists(ArgsManager.args.file):
-            raise BOAFlowException(f"file '{ArgsManager.args.file}' not found",
+        if not file_exists(ArgsManager.args.code_file):
+            raise BOAFlowException(f"file '{ArgsManager.args.code_file}' not found",
                                    Error.error_file_not_found)
 
         # Manage rules file

@@ -19,36 +19,8 @@ class Meta:
     """
     version = 0.3
     name = "BOA"
-    description = "In its first days attempted to detect buffer overflow" \
-                  " threats in C language files. Nowadays, it attemts to" \
-                  " detect all possible security threats from different" \
-                  " programming languages. To achieve our goal, we use" \
-                  " rules files."
+    description = "Static and dynamic analyzer of general purpose written in Python"
     ok_code = 0
-
-class Args:
-    """Args class.
-
-    It contains information about which kind of argumentes
-    can be suplied to BOA. Concretely, in this class can
-    be specified the name and the description of the
-    mandatory and optional arguments.
-    """
-    # Mandatory arguments has not to start with "--"
-    args_str = ["file",
-                "rules_file"]
-    args_help = ["language file to analyze.",
-                 "rules file"]
-    # None or default value
-    args_bool = [None,
-                 None]
-
-    # Optional arguments has to start with "--"
-    opt_args_str = ["--no-fail"]
-    opt_args_help = ["if a user module loading fails, execution will not stop." \
-                     " Default value is False."]
-    # None or default value
-    opt_args_bool = [False]
 
 class Error:
     """Error class.
