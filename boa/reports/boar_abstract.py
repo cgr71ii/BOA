@@ -6,11 +6,12 @@ about all the found threats.
 # Std libs
 import re
 from abc import abstractmethod
+import logging
 
 # Own libs
 from constants import Meta, Error, Regex
 from enumerations.severity.severity_base import SeverityBase
-from util import is_key_in_dict, eprint, get_name_from_class_instance
+from util import is_key_in_dict, get_name_from_class_instance
 from own_exceptions import BOAReportWhoNotFound, BOAReportEnumTypeNotExpected
 
 class BOAReportAbstract:
@@ -116,6 +117,8 @@ class BOAReportAbstract:
         Returns:
             str: text to be displayed
         """
+        if who not in self.who:
+            raise BOAReportWhoNotFound()
 
     @abstractmethod
     def display_all(self, print_summary=True, display=True):
@@ -285,7 +288,7 @@ class BOAReportAbstract:
                 tmp_rtn_code = self.add(t[0], t[1], t[2], t[3], t[4], t[5], sort_by_severity, t[6])
 
                 if tmp_rtn_code != Meta.ok_code:
-                    eprint(f"Error: could not append the element: {t}.")
+                    logging.error("could not append the element: %s", t)
 
                     rtn_code = Error.error_report_append_failed
 
@@ -315,17 +318,17 @@ class BOAReportAbstract:
             bool: it returns *True* if the relation was set. *False* otherwise
         """
         if is_key_in_dict(self.severity_enum_mapping, who):
-            eprint("Warning: the severity enumeration is already set in the relation.")
+            logging.warning("the severity enumeration is already set in the relation")
             return False
         if (not issubclass(severity_enum_instance, SeverityBase) or
                 severity_enum_instance is SeverityBase):
-            eprint("Warning: the severity enumeration instance does not contain a valid class.")
+            logging.warning("the severity enumeration instance does not contain a valid class")
             return False
 
         who_regex_result = re.match(Regex.regex_general_module_class_name, who)
 
         if who_regex_result is None:
-            print(f"Warning: '{who}' did not pass the regex expression '{Regex.regex_general_module_class_name}'.")
+            logging.warning("'%s' did not pass the regex expression '%s'", who, Regex.regex_general_module_class_name)
             return False
 
         self.severity_enum_mapping[who] = severity_enum_instance

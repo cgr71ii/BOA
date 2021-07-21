@@ -9,11 +9,11 @@ the arguments. The arguments are defined in this file
 
 # Std libs
 import argparse
+import logging
 
 # Own libs
 from constants import Meta
 from constants import Error
-from util import eprint
 
 class ArgsManager:
     """ArgsManager class.
@@ -31,15 +31,21 @@ class ArgsManager:
         """It creates the list of arguments.
         """
         # Mandatory
-        self.parser.add_argument("code_file",
+        self.parser.add_argument("code_file", metavar="code-file",
                                  help="code file to analyze")
-        self.parser.add_argument("rules_file",
+        self.parser.add_argument("rules_file", metavar="rules-file",
                                  help="rules file")
 
         # Optional
-        self.parser.add_argument("--no-fail",
-                                 help="continue the execution even if some user module could not be loaded",
-                                 action="store_true")
+        self.parser.add_argument("-v", "--version", action="store_true",
+                                 help="show the version and exit")
+        self.parser.add_argument("--no-fail", action="store_true",
+                                 help="continue the execution even if some user module could not be loaded")
+        ## Logging
+        self.parser.add_argument("--logging-level", metavar="N", type=int, default=20,
+                                 help="Logging level. Default value is 30, which is INFO")
+        self.parser.add_argument("--log-file", metavar="PATH",
+                                 help="if specified, the log will be dumped to this file besides to the standar error output")
 
     # It parses the arguments to easily check if they are correct
     def parse(self):
@@ -50,7 +56,8 @@ class ArgsManager:
         """
         try:
             ArgsManager.args = self.parser.parse_args()
-        except:
+        except Exception as e:
+            logging.error("error while parsing the args: %s", str(e))
             return Error.error_args_incorrect
 
         return Meta.ok_code

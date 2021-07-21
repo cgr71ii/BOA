@@ -5,14 +5,14 @@
 import sys
 from copy import deepcopy
 import random
+import logging
 
-# Pycparser libs
+# 3rd libs
 import pycparser.c_ast as ast
 
 # Own libs
 from boam_abstract import BOAModuleAbstract
-from constants import Meta
-from util import eprint, is_key_in_dict, get_just_type, get_name_from_class_instance
+from util import is_key_in_dict, get_just_type
 from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
 import auxiliary_modules.pycparser_cfg as cfg
 import auxiliary_modules.pycparser_util as pycutil
@@ -24,9 +24,9 @@ try:
     import matplotlib.pyplot as plt
     __matplotlib_loaded__ = True
 except ModuleNotFoundError as e:
-    print(f"Info: BOAModuleControlFlowGraph: {e}.")
+    logging.info("BOAModuleControlFlowGraph: %s", str(e))
 except ImportError as e:
-    print(f"Info: BOAModuleControlFlowGraph: {e}.")
+    logging.info("BOAModuleControlFlowGraph: %s", str(e))
 
 class CFGConstants:
     """Class which contains the necessary constants
@@ -65,10 +65,10 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
 
             try:
                 recursion_limit = int(self.args["recursion_limit"])
-            except ValueError:
+            except ValueError as e:
                 raise BOAModuleException("the argument 'recursion_limit' has to"
                                          " have a numeric value (check your rules"
-                                         " file)", self)
+                                         " file)", self) from e
 
             sys.setrecursionlimit(recursion_limit)
 
@@ -166,8 +166,7 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
             graph (CFG): graph.
         """
         if not self.is_matplotlib_loaded:
-            eprint("Warning: 'matplotlib' could not be loaded. It will not"
-                   " be possible to plot the graph.")
+            logging.warning("'matplotlib' could not be loaded: it will not be possible to plot the graph")
             return
 
         # Variables for plotting
@@ -184,7 +183,7 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
 
         function_x = CFGConstants.x_initial    # x coordinate of the current function
 
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
 
         for function in graph.get_function_calls():
             index = 0
@@ -283,7 +282,7 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
                             x_line_aux.append([inner_function, dependency_index])
                             x_line.append(x_line_aux)
                             y_line.append(y_line_aux)
-                        except:
+                        except Exception as _:
                             # Avoid the throwness of exceptions
                             pass
 
@@ -396,7 +395,7 @@ class BOAModuleControlFlowGraph(BOAModuleAbstract):
                                 print(f"** {graph.get_cfg(inner_function).index(dependency)}"
                                       f" in '{inner_function}' **")
                                 print()
-                        except:
+                        except Exception as _:
                             # Avoid the throwness of exceptions
                             pass
                 index += 1
@@ -491,10 +490,10 @@ class ProcessCFG():
         # It checks that self.compute_function_cfg_function does not exist
         try:
             self.compute_function_cfg_function
-            eprint("Error: variable 'self.compute_function_cfg_function' should not exist.")
+            logging.error("variable 'self.compute_function_cfg_function' should not exist")
 
             return
-        except:
+        except Exception as _:
             self.compute_function_cfg_function = function_name
 
         # Append first instruction (it should be FuncDef)
@@ -522,7 +521,7 @@ class ProcessCFG():
         try:
             self.compute_function_cfg_function
         except Exception:
-            eprint("Error: variable 'self.compute_function_cfg_function' should exist.")
+            logging.error("variable 'self.compute_function_cfg_function' should exist")
 
         current_function_name = self.compute_function_cfg_function
 
@@ -720,7 +719,7 @@ class ProcessCFG():
 
                 if not pycutil.append_element_to_function(not_invoked_node,
                                                           func_def=instructions[0]):
-                    eprint(f"Warning: could not insert 'NotInvoked' node in '{function_name}'.")
+                    logging.warning("could not insert 'NotInvoked' node in '%s'", function_name)
                     continue
 
                 self.basic_cfg.append_instruction(function_name,
@@ -733,7 +732,7 @@ class ProcessCFG():
         Example:
             The following code would cause an infinite loop
             if the node *EndOfFunc* was not appended.
-            
+
             void foo()
             \\{
             bar();
@@ -752,7 +751,7 @@ class ProcessCFG():
             end_of_func = cfg.EndOfFunc()
 
             if not pycutil.append_element_to_function(end_of_func, func_def=function[0]):
-                eprint(f"Warning: could not insert 'EndOfFunc' node in '{function_name}'.")
+                logging.warning("could not insert 'EndOfFunc' node in '%s'", function_name)
                 continue
 
             self.basic_cfg.append_instruction(function_name, end_of_func)
@@ -773,7 +772,7 @@ class ProcessCFG():
 
                 if not pycutil.append_element_to_function(end_of_graph_node,
                                                           func_def=instructions_pyc[0]):
-                    eprint(f"Warning: could not insert 'FinalNode' node in '{function_name}'.")
+                    logging.warning("could not insert 'FinalNode' node in '%s'", function_name)
                     continue
 
                 self.basic_cfg.append_instruction(function_name, end_of_graph_node)
@@ -793,9 +792,8 @@ class ProcessCFG():
 
                     if name in CFGConstants.exit_functions:
                         if last_compound is None:
-                            eprint("Warning: trying to append a 'FinalNode', but"
-                                   " no 'Compound' was found (exit function out"
-                                   " of a function?).")
+                            logging.warning("trying to append a 'FinalNode', but no 'Compound'"
+                                            " was found (exit function out of a function?)")
 
                         end_of_graph_node = cfg.FinalNode()
                         pycutil.append_element_to_function(end_of_graph_node,
@@ -837,7 +835,7 @@ class ProcessCFG():
         """
         functions = self.basic_cfg.get_cfg(None)
 
-        for function_name, instructions in functions.items():
+        for _, instructions in functions.items():
             types = list(map(lambda x: x.get_type(), instructions))
             instructions_pyc = list(map(lambda x: x.get_instruction(),
                                         instructions))
@@ -937,7 +935,7 @@ class ProcessCFG():
             label_index += 1
 
         if label_instruction is None:
-            eprint("Warning: found 'goto' statement without 'label' statement.")
+            logging.warning("found 'goto' statement without 'label' statement")
             return
 
         instructions[index].append_succ(instructions[label_index])
@@ -1399,10 +1397,10 @@ class ProcessCFG():
                              (ast.For, ast.While, ast.DoWhile, ast.Switch)):
             try:
                 break_target_instruction = parents[break_target_instruction]
-            except KeyError:
+            except KeyError as e:
                 raise BOAModuleException("the Break statement is expected to be inside a"
                                          " For, While, DoWhile or Switch statement, but"
-                                         " has not been found either of those statements", self)
+                                         " has not been found either of those statements", self) from e
 
         next_instruction = pycutil.get_real_next_instruction(real_instructions[0],
                                                              break_target_instruction)
@@ -1441,10 +1439,10 @@ class ProcessCFG():
             try:
                 continue_target_instruction =\
                     pycutil.get_parents(real_instructions)[continue_target_instruction]
-            except KeyError:
+            except KeyError as e:
                 raise BOAModuleException("the Continue statement is expected to be inside"
                                          " a For, While or DoWhile statement, but"
-                                         " has not been found either of those statements", self)
+                                         " has not been found either of those statements", self) from e
 
         # The statements For, While and DoWhile has the "cond" property in Pycparser
         next_instruction = continue_target_instruction.cond

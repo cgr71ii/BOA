@@ -20,16 +20,17 @@ Things which this implementation DOES NOT do:
 # Std libs
 from copy import deepcopy
 from collections import OrderedDict as odict
+import logging
 
 # Own libs
 from constants import Meta
 from boam_abstract import BOAModuleAbstract
-from util import is_key_in_dict, eprint, get_just_type
+from util import is_key_in_dict, get_just_type
 from own_exceptions import BOAModuleException
 import auxiliary_modules.pycparser_util as pycutil
 import auxiliary_modules.pycparser_cfg as pycfg
 
-# Pycparser libs
+# 3rd libs
 import pycparser.c_ast as ast
 
 class TAConstants:
@@ -86,14 +87,14 @@ class BOAModuleTaintAnalysis(BOAModuleAbstract):
                 isinstance(self.args["sources"], list)):
             self.sources = Source.process_sources(self.args["sources"], self)
         else:
-            eprint("Warning: no Sources were found in the rules file.")
+            logging.warning("no 'Sources' were found in the rules file")
 
         # Load Sinks from rules file
         if (is_key_in_dict(self.args, "sinks") and
                 isinstance(self.args["sinks"], list)):
             self.sinks = Sink.process_sinks(self.args["sinks"], self)
         else:
-            eprint("Warning: no Sinks were found in the rules file.")
+            logging.warning("no 'Sinks' were found in the rules file")
 
         self.taint_analysis = TaintAnalysis(self.cfg, self.sources, self.sinks)
         self.results = None
@@ -123,8 +124,8 @@ class BOAModuleTaintAnalysis(BOAModuleAbstract):
         severity_instance = report.get_severity_enum_instance_by_who(self.who_i_am)
 
         if severity_instance is None:
-            eprint(f"Error: could not append threat records in '{self.who_i_am}'."
-                   " Wrong severity enum instance.")
+            logging.error("could not append threat records in '%s':"
+                          " wrong severity enum instance", self.who_i_am)
             return
 
         self.save_threats(report, threats, severity_instance)
@@ -181,9 +182,8 @@ class BOAModuleTaintAnalysis(BOAModuleAbstract):
                                       col)
 
                 if rtn_code != Meta.ok_code:
-                    eprint("Error: could not append a threat"
-                           f" record (status code: {rtn_code})"
-                           f" in '{self.who_i_am}'.")
+                    logging.error("could not append a threat record (status code: %d)"
+                                  " in '%s'", rtn_code, self.who_i_am)
 
     def save_results(self, report, results, severity_instance,
                      severity_value="INFORMATIONAL"):
@@ -241,9 +241,8 @@ class BOAModuleTaintAnalysis(BOAModuleAbstract):
                                       col)
 
                 if rtn_code != Meta.ok_code:
-                    eprint("Error: could not append a threat"
-                           f" record (status code: {rtn_code})"
-                           f" in '{self.who_i_am}'.")
+                    logging.error("Error: could not append a threat record (status code: %d)"
+                                  " in '%s'", rtn_code, self.who_i_am)
 
     def finish(self):
         """It does nothing.
@@ -276,8 +275,8 @@ class Sink:
 
         try:
             self.dangerous_parameter = int(self.dangerous_parameter)
-        except:
-            raise BOAModuleException("'dangerous_parameter' has to be number", self)
+        except Exception as e:
+            raise BOAModuleException(f"'dangerous_parameter' has to be number", self) from e
 
     @classmethod
     def get_instance(cls, args):
@@ -396,9 +395,9 @@ class Source:
                     raise BOAModuleException("if 'affected_argument_position' is"
                                              " specified, has to be greater or equal"
                                              " to 0", self)
-        except ValueError:
+        except ValueError as e:
             raise BOAModuleException("if 'affected_argument_position' is"
-                                     " specified, has to be number", self)
+                                     " specified, has to be number", self) from e
 
         try:
             if self.tainted_argument_position is not None:
@@ -408,9 +407,9 @@ class Source:
                     raise BOAModuleException("if 'tainted_argument_position' is"
                                              " specified, has to be greater to 0",
                                              self)
-        except ValueError:
+        except ValueError as e:
             raise BOAModuleException("if 'tainted_argument_position' is"
-                                     " specified, has to be number", self)
+                                     " specified, has to be number", self) from e
 
         if self.type not in Source.allowed_types:
             raise BOAModuleException("the Source type can only contain a"
@@ -667,7 +666,7 @@ class TaintAnalysis:
         instructions = self.cfg.get_cfg(function_name)
 
         if instructions is None:
-            eprint(f"Warning: function '{function_name}' was not found in the CFG.")
+            logging.warning("function '%s' was not found in the CFG", function_name)
             return result
 
         real_instructions = pycfg.Instruction.get_instructions(instructions)
@@ -868,9 +867,9 @@ class TaintAnalysis:
                 abort = False
 
                 if succ_instruction[0] not in real_instructions:
-                    eprint("Warning: the CFG has taken to a instruction of other"
-                           " function and 'kildall' function has been designed to"
-                           " have all the instructions in the same function.")
+                    logging.warning("the CFG has taken to a instruction of other"
+                                    " function and 'kildall' function has been designed to"
+                                    " have all the instructions in the same function.")
                     continue
 
                 if not is_key_in_dict(input_dict, id(succ_instruction)):
@@ -1192,18 +1191,18 @@ class TaintAnalysis:
             # Try to find the root of the name
             try:
                 name = name.name
-            except:
+            except Exception as _:
                 while True:
                     try:
                         name.name
                         break
-                    except:
+                    except Exception as _:
                         try:
                             name = name.exprs[0]
-                        except:
+                        except Exception as _:
                             try:
                                 name = name.expr
-                            except:
+                            except Exception as _:
                                 return
 
             while not isinstance(name, str):
@@ -1520,18 +1519,18 @@ class TaintAnalysis:
         # Try to find the root of the name
         try:
             name = name.name
-        except:
+        except Exception as _:
             while True:
                 try:
                     name.name
                     break
-                except:
+                except Exception as _:
                     try:
                         name = name.exprs[0]
-                    except:
+                    except Exception as _:
                         try:
                             name = name.expr
-                        except:
+                        except Exception as _:
                             return
 
         ids_valid_index = 1

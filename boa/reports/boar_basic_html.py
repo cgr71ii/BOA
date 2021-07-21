@@ -6,10 +6,11 @@ uses HTML files to report about the found threats.
 
 # Std libs
 from datetime import datetime
+import logging
 
 # Own libs
-from own_exceptions import BOAReportWhoNotFound, BOAReportException
-from util import is_key_in_dict, eprint
+from own_exceptions import BOAReportException
+from util import is_key_in_dict
 from reports.boar_abstract import BOAReportAbstract
 
 # TODO finish
@@ -90,8 +91,7 @@ f"""                    <td>{who}</td>
         Returns:
             str: text to be displayed in HTML format
         """
-        if who not in self.who:
-            raise BOAReportWhoNotFound()
+        super().display(who, display)
 
         first_time = True
         # Add HTML table header
@@ -151,23 +151,23 @@ f"""            </tbody>
         index = 0
         # Initial HTML tags and style
         inner_html =\
-f"""<!DOCTYPE html>
+"""<!DOCTYPE html>
 <html lang="en">
     <head>
         <title>BOA - Report</title>
         <meta charset="utf-8" />
         <style>
-            table, th, td{{
+            table, th, td{
                 border: 1px solid black;
-            }}
+            }
 
-            td{{
+            td{
                 padding: 5px;
-            }}
+            }
 
-            tfoot{{
+            tfoot{
                 font-weight: bold;
-            }}
+            }
         </style>
     </head>
     <body>
@@ -202,7 +202,7 @@ f"""
 
         # Close HTML tags
         inner_html +=\
-f"""
+"""
     </body>
 </html>"""
 
@@ -240,6 +240,6 @@ f"""
 
             file.write(inner_html)
 
-            print(f"Report: HTML report generated at '{path}'.")
+            logging.info("report: HTML report generated at '%s'", path)
         except Exception as e:
-            eprint(f"Error: BOARBasicHTML: {e}.")
+            logging.error("BOARBasicHTML: %s", str(e))

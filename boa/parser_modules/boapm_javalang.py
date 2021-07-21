@@ -4,13 +4,15 @@
 Language: Java.
 """
 
-# Javalang libs
+# Std libs
+import logging
+
+# 3rd libs
 import javalang
 
 # Own libs
 from boapm_abstract import BOAParserModuleAbstract
-from util import eprint, is_key_in_dict
-from own_exceptions import ParseError, BOAPMParseError
+from own_exceptions import BOAPMParseError
 
 class BOAPMJavalang(BOAParserModuleAbstract):
     """BOAPMJavalang class.
@@ -30,7 +32,7 @@ class BOAPMJavalang(BOAParserModuleAbstract):
         try:
             self.ast = javalang.parse.parse(self.code)
         except Exception as e:
-            raise BOAPMParseError(f"could not parse the file '{self.path_to_file}'")
+            raise BOAPMParseError(f"could not parse the file '{self.path_to_file}'") from e
 
     def get_ast(self):
         """It returns the AST.
@@ -39,7 +41,7 @@ class BOAPMJavalang(BOAParserModuleAbstract):
             AST (Abstract Syntax Tree)
         """
         if self.ast is None:
-            eprint(f"Warning: '{self.who_i_am}': returning AST = None.")
+            logging.warning("'%s': returning AST = None", self.who_i_am)
 
         return self.ast
 
@@ -52,7 +54,7 @@ class BOAPMJavalang(BOAParserModuleAbstract):
         try:
             file_desc = open(self.path_to_file, "r")
         except Exception as e:
-            raise BOAPMParseError(f"could not open the file '{self.path_to_file}'")
+            raise BOAPMParseError(f"could not open the file '{self.path_to_file}'") from e
 
         # Read file
         try:
@@ -62,10 +64,10 @@ class BOAPMJavalang(BOAParserModuleAbstract):
             for line in lines:
                 self.code += line
         except Exception as e:
-            raise BOAPMParseError(f"could not read the file '{self.path_to_file}'")
-        
+            raise BOAPMParseError(f"could not read the file '{self.path_to_file}'") from e
+
         # Close file
         try:
             file_desc.close()
         except Exception as e:
-            raise BOAPMParseError(f"could not close the file '{self.path_to_file}'")
+            raise BOAPMParseError(f"could not close the file '{self.path_to_file}'") from e

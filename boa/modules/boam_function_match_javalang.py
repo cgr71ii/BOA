@@ -5,14 +5,16 @@ This module goal is to look for unsafe functions that should
 be avoided or generally are misused.
 """
 
-# Javalang libs
+# Std libs
+import logging
+
+# 3rd libs
 import javalang
 
 # Own libs
 from boam_abstract import BOAModuleAbstract
 from own_exceptions import BOAModuleException
 from constants import Meta
-from util import eprint
 
 class BOAModuleFunctionMatch(BOAModuleAbstract):
     """BOAModuleFunctionMatch class. It implements the class BOAModuleAbstract.
@@ -58,14 +60,8 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
             token: AST node.
         """
         # Look for function calls
-        #if isinstance(token, FuncCall):
-        #    self.javalang_funccall(token)
-        #print(token["ast"].types)
-        for path, node in token["ast"]:
-            #print(type(node))
+        for _, node in token["ast"]:
             if isinstance(node, javalang.tree.MethodInvocation):
-                #print(node.qualifier)
-                #print(node.member)
                 self.javalang_funccall(node)
 
     def clean(self):
@@ -84,13 +80,13 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
             severity = report.get_severity_enum_instance_by_who(self.who_i_am)
 
             if severity is None:
-                eprint(f"Error: could not append the threat record #{index} in '{self.who_i_am}'. Wrong severity enum instance.")
+                logging.error("could not append the threat record #%d in '%s': wrong severity enum instance", index, self.who_i_am)
             else:
                 severity = severity[threat[2]]
                 rtn_code = report.add(threat[0], threat[1], severity, threat[3], threat[4], threat[5])
 
                 if rtn_code != Meta.ok_code:
-                    eprint(f"Error: could not append the threat record #{index} (status code: {rtn_code}) in '{self.who_i_am}'.")
+                    logging.error("could not append the threat record #%d (status code: %d) in '%s'", index, rtn_code, self.who_i_am)
 
             index += 1
 
@@ -127,4 +123,4 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
                                         int(row),
                                         int(col)))
             else:
-                eprint(f"Warning: could not append a threat in '{self.who_i_am}'.")
+                logging.warning("could not append a threat in '%s'", self.who_i_am)

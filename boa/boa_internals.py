@@ -3,13 +3,16 @@ of functions separately of the main file. It is cleaner
 and more readable.
 """
 
+# Std libs
+import logging
+
 # Own libs
 from args_manager import ArgsManager
 from own_exceptions import BOAPMInitializationError, BOAPMParseError,\
                            BOALCException, BOAReportEnumTypeNotExpected,\
                            BOAModulesImporterException, BOAFlowException,\
                            BOAUnexpectedException, BOAReportException
-from util import eprint, is_key_in_dict, file_exists, get_current_path,\
+from util import is_key_in_dict, file_exists, get_current_path,\
                  invoke_by_name, get_name_from_class_instance, is_graph_cyclic
 from constants import Meta, Error, Other
 from modules_importer import ModulesImporter
@@ -45,8 +48,8 @@ def load_modules(user_modules):
     try:
         mod_loader = ModulesImporter(modules)
     except BOAModulesImporterException as e:
-        raise BOAFlowException(f"could not instantiate ModulesImporter: {e}",
-                               Error.error_module_importer_could_not_be_instantiated)
+        raise BOAFlowException("could not instantiate ModulesImporter",
+                               Error.error_module_importer_could_not_be_instantiated) from e
 
     mod_loader.load()
 
@@ -111,9 +114,9 @@ def load_instance(module_loader, module_name, class_name, module_args,
         return [Error.error_module_cannot_load_instance, None]
     if (not issubclass(instance, abstract_instance) or
             instance is abstract_instance):
-        eprint(f"Error: instance '{module_name}.{class_name}'"
-               " has not the expected type (does it inherit from "
-               f"'{Other.abstract_module_name}.{Other.abstract_module_class_name}'?).")
+        logging.error("instance '%s.%s' has not the expected type (does it inherit from "
+                      "'%s.%s'?)", module_name, class_name, Other.abstract_module_name,
+                      Other.abstract_module_class_name)
         return [Error.error_module_not_expected_type, None]
 
     if is_key_in_dict(module_args, Other.other_argument_name_for_dependencies_in_modules):
@@ -130,11 +133,11 @@ def load_instance(module_loader, module_name, class_name, module_args,
         # Initilize instance
         instance = instance(module_args)
 
-        print(f"Info: Instance '{module_name}.{class_name}' initialized.")
+        logging.info("instance '%s.%s' initialized", module_name, class_name)
     except Exception as e:
-        eprint(f"Error: could not load an instance of '{module_name}.{class_name}' "
-               f"(bad implementation of '{Other.abstract_module_name}."
-               f"{Other.abstract_module_class_name}' in '{module_name}.{class_name}'?). {e}.")
+        logging.error("could not load an instance of '%s.%s' (bad implementation of '%s."
+                      "%s' in '%s.%s'?): %s", module_name, class_name, Other.abstract_module_name,
+                      Other.abstract_module_class_name, module_name, class_name, str(e))
 
     return [Meta.ok_code, instance]
 
@@ -232,11 +235,11 @@ def remove_not_loaded_modules(mod_loader, modules, classes, mods_args,
             reports.pop(index)
             lifecycles.pop(index)
 
-            print(f"Warning: Instance '{removed_module}.{removed_class}' was removed.")
+            logging.warning("instance '%s.%s' was removed", removed_module, removed_class)
         except Exception as e:
             raise BOAFlowException("could not remove a module/class/arg/dependency while"
-                                   f" trying to remove module '{not_loaded_module}': {e}",
-                                   Error.error_module_cannot_remove_not_loaded_module)
+                                   f" trying to remove module '{not_loaded_module}'",
+                                   Error.error_module_cannot_remove_not_loaded_module) from e
 
 def manage_rules_file():
     """It handles the rules file (parsing, checking and processing)
@@ -347,11 +350,11 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
 
         rtn_code = lifecycle_manager.handle_lifecycle()
     except BOALCException as e:
-        raise BOAFlowException(f"lifecycle exception: {e}", Error.error_lifecycle_exception)
+        raise BOAFlowException("lifecycle exception", Error.error_lifecycle_exception) from e
     except BOAReportException as e:
-        raise BOAFlowException(f"report exception: {e}", Error.error_report_unknown)
+        raise BOAFlowException("report exception", Error.error_report_unknown) from e
     except Exception as e:
-        raise BOAFlowException(e, Error.error_lifecycle_exception)
+        raise BOAFlowException("unknown reason", Error.error_lifecycle_exception) from e
 
     if rtn_code != Meta.ok_code:
         raise BOAFlowException("lifecycle could finish, but not with a correct status",
@@ -394,14 +397,14 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
         boapm_instance.initialize()
         boapm_instance.parse()
     except BOAPMInitializationError as e:
-        raise BOAFlowException(f"'{boapm_instance_name}.initialize()': {e}",
-                               Error.error_parser_module_failed_in_initialization)
+        raise BOAFlowException(f"'{boapm_instance_name}.initialize()'",
+                               Error.error_parser_module_failed_in_initialization) from e
     except BOAPMParseError as e:
-        raise BOAFlowException(f"'{boapm_instance_name}.parse()': {e}",
-                               Error.error_parser_module_failed_in_parsing)
+        raise BOAFlowException(f"'{boapm_instance_name}.parse()'",
+                               Error.error_parser_module_failed_in_parsing) from e
     except Exception as e:
-        raise BOAFlowException(f"'{boapm_instance_name}': {e}",
-                               Error.error_parser_module_failed_in_execution)
+        raise BOAFlowException(f"'{boapm_instance_name}'",
+                               Error.error_parser_module_failed_in_execution) from e
 
     if not isinstance(callbacks, list):
         callbacks = [callbacks]
@@ -412,11 +415,11 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
         method = callback_dict["@callback"]
 
         if (not name or not method):
-            eprint(f"Warning: attributes 'name' ('{name}') and 'callback' ('{method}')"
-                   " in 'boa_rules.parser.callback.method' cannot be empty. Skipping.")
+            logging.warning("attributes 'name' ('%s') and 'callback' ('%s') in"
+                            " 'boa_rules.parser.callback.method' cannot be empty: skipping", name, method)
         elif name in names:
-            eprint(f"Warning: attribute 'name' ('{name}') cannot be duplicated in"
-                   " 'boa_rules.parser.callback.method'. Skipping.")
+            logging.warning("attribute 'name' ('%s') cannot be duplicated in"
+                            " 'boa_rules.parser.callback.method': skipping", name)
         else:
             names.append(callback_dict["@name"])
             methods.append(callback_dict["@callback"])
@@ -463,11 +466,11 @@ def get_parser_env_vars(parser_rules):
 
     if not env_vars:
         return []
-    elif isinstance(env_vars, str):
+    if isinstance(env_vars, str):
         return [env_vars]
-    elif not isinstance(env_vars, list):
-        eprint("Error: expected type in environment variables is 'list',"
-               f" but actually is '{type(env_vars)}'.")
+    if not isinstance(env_vars, list):
+        logging.error("expected type in environment variables is 'list',"
+                      " but actually is '%s'", type(env_vars))
 
     return env_vars
 
@@ -637,15 +640,15 @@ def process_security_modules(rules_manager):
         try:
             #report = Report(severity_enum_instance)
             report = handle_boar(rules_manager, severity_enum_instance)
-        except BOAReportEnumTypeNotExpected:
+        except BOAReportEnumTypeNotExpected as e:
             raise BOAFlowException(f"severity enum type not expected: '{severity_enum_name}'",
-                                   Error.error_report_severity_enum_not_expected)
+                                   Error.error_report_severity_enum_not_expected) from e
         except BOAUnexpectedException as e:
-            raise BOAFlowException(f"unexpected exception: {e}", Error.error_report_unknown)
+            raise BOAFlowException("unexpected exception", Error.error_report_unknown) from e
         except BOAFlowException as e:
             raise e
         except Exception as e:
-            raise BOAFlowException(e, Error.error_report_unknown)
+            raise BOAFlowException("unknown reason", Error.error_report_unknown) from e
 
         reports.append(report)
 
@@ -695,7 +698,7 @@ def load_instances(modules, classes, mods_args, mod_loader, rules_manager):
         except KeyError as e:
             raise BOAFlowException(f"could not get '{e}' arguments"
                                    " due to a bad naming reference",
-                                   Error.error_rules_bad_naming_references)
+                                   Error.error_rules_bad_naming_references) from e
 
         # Replace string callback with the real callback
         dependencies = rules_manager.get_dependencies(name_formatted)
@@ -749,14 +752,14 @@ def replace_dependencies_callbacks(dependencies, instances_dict):
             try:
                 dependencies[dependency][arg] = \
                     getattr(instances_dict[dependency], callback)
-            except AttributeError:
+            except AttributeError as e:
                 raise BOAFlowException(f"callback '{callback}' does not exist"
                                        f" in dependency '{dependency}'",
-                                       Error.error_module_dependency_callback_not_found)
+                                       Error.error_module_dependency_callback_not_found) from e
             except NameError as e:
-                raise BOAFlowException(e, Error.error_unknown)
+                raise BOAFlowException("name error", Error.error_unknown) from e
             except Exception as e:
-                raise BOAFlowException(e, Error.error_unknown)
+                raise BOAFlowException("unknown reason", Error.error_unknown) from e
 
 def check_dependencies(modules, classes, mods_dependencies):
     """It checks if the dependencies are correct. Concretely,

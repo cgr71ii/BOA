@@ -12,6 +12,7 @@ from __future__ import print_function
 import sys
 import os
 import re
+import logging
 
 # Own libs
 from constants import Other
@@ -20,8 +21,8 @@ def eprint(*args, **kwargs):
     """It prints to the error output (i.e. stderr).
 
     Arguments:
-        \*args (variadic list): list to be given to *print* function.
-        \*\*kwargs (variadic dict): dict to be given to *print* function.
+        \\*args (variadic list): list to be given to *print* function.
+        \\*\\*kwargs (variadic dict): dict to be given to *print* function.
     """
     print(*args, file=sys.stderr, **kwargs)
 
@@ -69,7 +70,7 @@ def get_name_from_class_instance(instance):
     try:
         return f"{instance.__class__.__module__}.{instance.__class__.__name__}"
     except Exception as e:
-        eprint(f"Warning: could not return the correct format (is it a class instance?): {e}.")
+        logging.warning("could not return the correct format (is it a class instance?): %s", str(e))
 
     return None
 
@@ -125,9 +126,9 @@ def is_key_in_dict(dictionary, key, split_by_point=False,
         return True
     except KeyError:
         if message is not None:
-            eprint(message)
+            logging.warning(message)
     except Exception as e:
-        eprint(f"Error: not expected error while checking if key is in dict: {e}.")
+        logging.error("not expected error while checking if key is in dict: %s", str(e))
 
     if raise_exception is not None:
         raise raise_exception(exception_args)
@@ -142,7 +143,7 @@ def do_nothing(*args, rtn_sth=False, rtn_value=None):
     used as default behaviour.
 
     Arguments:
-        \*args (variadict list): indefinite number of args to be provided.
+        \\*args (variadict list): indefinite number of args to be provided.
         rtn_sth (bool): if want something to be returned, use *True*.
         rtn_value: value to be returned.
     """
@@ -210,7 +211,7 @@ def get_environment_varibles(env_var_list, verbose_on_failure=False, failure_mes
     if (isinstance(env_var_list, list) and len(env_var_list) == 0):
         pass
     elif (not env_var_list or not isinstance(env_var_list, list)):
-        eprint(f"Error: unexpected type while trying to load environment variables.")
+        logging.error("unexpected type while trying to load environment variables")
         return env_var_dict
 
     for env_var in env_var_list:
@@ -218,9 +219,9 @@ def get_environment_varibles(env_var_list, verbose_on_failure=False, failure_mes
             env_var_dict[env_var] = os.environ[env_var]
         elif verbose_on_failure:
             if failure_message is not None:
-                eprint(f"{failure_message}: '{env_var}'.")
+                logging.warning("%s: '%s'", failure_message, env_var)
             else:
-                eprint(f"Warning: could not load the environment variable '{env_var}'.")
+                logging.warning("could not load the environment variable '%s'", env_var)
 
     return env_var_dict
 
@@ -237,8 +238,8 @@ def invoke_by_name(instance, method):
         with id() or *is*/*is not* in order to know if something wrong happened.
     """
     if (not instance or not isinstance(method, str)):
-        eprint(f"Error: invoke by name: 'instance' ('{instance}') has to have"
-               f" a value and 'method' ('{method}') has to be a string.")
+        logging.error("invoke by name: 'instance' ('%s') has to have a value"
+                      " and 'method' ('%s') has to be a string", instance, method)
         return Other.other_util_invoke_by_name_error_return
 
     try:
@@ -247,7 +248,7 @@ def invoke_by_name(instance, method):
 
         return result
     except Exception as e:
-        eprint(f"Error: invoke by name: {e}.")
+        logging.error("invoke by name: %s", str(e))
 
     return Other.other_util_invoke_by_name_error_return
 
@@ -278,9 +279,9 @@ def is_graph_cyclic(graph, visited_nodes=None, current_connection=None):
         current_connection = list(graph)[0]
         visited_nodes = [current_connection]
     elif (visited_nodes is None or current_connection is None):
-        eprint("Warning: unexpected behaviour could happen in method 'is_graph_cyclic'."
-               " 'visited_nodes' or 'current_connection' is 'None', but both were expected to"
-               " be 'None'.")
+        logging.warning("unexpected behaviour could happen in method 'is_graph_cyclic':"
+                        " 'visited_nodes' or 'current_connection' is 'None', but both were expected to"
+                        " be 'None'")
 
     # Base case: check if the node has been visited before
     if current_connection in visited_nodes[0:-1]:
@@ -324,3 +325,20 @@ def get_just_type(instance, instance_type=None):
     if not match:
         return None
     return match.group(1)
+
+def set_up_logging(filename=None, level=logging.INFO, format_str=Other.other_logging_format):
+    """It sets up the logging library
+
+    Arguments:
+        filename (str): path to the file where the logging entries will be dumped.
+        level (int): logging level (e.g. 20 is logging.INFO, 30 is logging.WARNING)
+        format_str (str): format of the logging messages
+    """
+    handlers = [
+        logging.StreamHandler()
+    ]
+
+    if filename is not None:
+        handlers.append(logging.FileHandler(filename))
+
+    logging.basicConfig(handlers=handlers, level=level, format=format_str)

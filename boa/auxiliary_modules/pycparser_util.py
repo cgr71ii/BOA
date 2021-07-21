@@ -2,6 +2,9 @@
 Pycparser.
 """
 
+# Std libs
+import logging
+
 # Pycparser imports
 import pycparser.c_ast as ast
 
@@ -752,7 +755,7 @@ def get_full_instruction(instruction, instructions, display_coord=False):
 
     if display_coord:
         if (len(result) == 0 or len(result[0]) == 0):
-            print("Whole instruction: there is NO instruction")
+            logging.debug("'Whole' instruction: there is NO instruction")
         else:
             coord = result[0][0].coord
             instr_type = get_just_type(result[0][0])
@@ -771,9 +774,9 @@ def get_full_instruction(instruction, instructions, display_coord=False):
                 coord = f"{coord[1]}:{coord[2]}"
 
             if name:
-                print(f"Whole instruction: {coord} - {instr_type} - {name}")
+                logging.debug("'Whole' instruction: %s - %s - %s", coord, instr_type, name)
             else:
-                print(f"Whole instruction: {coord} - {instr_type}")
+                logging.debug("'Whole' instruction: %s - %s", coord, instr_type)
 
     return result
 

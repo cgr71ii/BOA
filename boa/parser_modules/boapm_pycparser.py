@@ -4,12 +4,15 @@
 Language: C99.
 """
 
-# Pycparser libs
+# Std libs
+import logging
+
+# 3rd libs
 from pycparser import parse_file
 
 # Own libs
 from boapm_abstract import BOAParserModuleAbstract
-from util import eprint, is_key_in_dict
+from util import is_key_in_dict
 from own_exceptions import ParseError, BOAPMParseError
 
 class BOAPMPycparser(BOAParserModuleAbstract):
@@ -32,8 +35,8 @@ class BOAPMPycparser(BOAParserModuleAbstract):
 
             if is_key_in_dict(self.environment_variables, "PYCPARSER_CPP_ARGS_SPLIT_CHAR"):
                 if len(self.environment_variables["PYCPARSER_CPP_ARGS_SPLIT_CHAR"]) != 1:
-                    eprint(f"Warning: environment variable PYCPARSER_CPP_ARGS_SPLIT_CHAR"
-                           " has to contain only 1 character when defined.")
+                    logging.warning("environment variable 'PYCPARSER_CPP_ARGS_SPLIT_CHAR'"
+                                    " has to contain only 1 character when defined")
                 else:
                     split_char = self.environment_variables["PYCPARSER_CPP_ARGS_SPLIT_CHAR"]
 
@@ -52,11 +55,11 @@ class BOAPMPycparser(BOAParserModuleAbstract):
             else:
                 self.ast = parse_file(self.path_to_file, use_cpp=False)
         except ParseError as e:
-            raise BOAPMParseError(f"could not parse the file '{self.path_to_file}'")
+            raise BOAPMParseError(f"could not parse the file '{self.path_to_file}'") from e
         except Exception as e:
-            raise BOAPMParseError(f"{e} (if  preprocessor directives are being used (e.g."
+            raise BOAPMParseError(f"could not parse the file '{self.path_to_file}' (if  preprocessor directives are being used (e.g."
                                   " #include), try defining the environment variable"
-                                  " PYCPARSER_FAKE_LIBC_INCLUDE_PATH in order to solve the problem)")
+                                  f" 'PYCPARSER_FAKE_LIBC_INCLUDE_PATH' in order to solve the problem)") from e
 
     def get_ast(self):
         """It returns the AST.
@@ -65,6 +68,6 @@ class BOAPMPycparser(BOAParserModuleAbstract):
             AST (Abstract Syntax Tree)
         """
         if self.ast is None:
-            eprint(f"Warning: '{self.who_i_am}': returning AST = None.")
+            logging.warning("'%s': returning AST = None", self.who_i_am)
 
         return self.ast

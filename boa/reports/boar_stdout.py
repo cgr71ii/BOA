@@ -6,11 +6,8 @@ standard output. It is a basic way of report the
 threats.
 """
 
-# Std libs
-from reports.boar_abstract import BOAReportAbstract
-
 # Own libs
-from own_exceptions import BOAReportWhoNotFound
+from reports.boar_abstract import BOAReportAbstract
 
 class BOARStdout(BOAReportAbstract):
     """BOARStdout class.
@@ -110,8 +107,7 @@ class BOARStdout(BOAReportAbstract):
         Returns:
             str: text to be displayed
         """
-        if who not in self.who:
-            raise BOAReportWhoNotFound()
+        super().display(who, display)
 
         first_time = True
         text = ""

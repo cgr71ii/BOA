@@ -13,9 +13,10 @@ where it comes the error.
 
 # Std libs
 from abc import abstractmethod
+import logging
 
 # Own libs
-from util import get_name_from_class_instance, eprint
+from util import get_name_from_class_instance
 from constants import Other
 
 # This  file name has to match with constants.Meta.abstract_module_name
@@ -151,9 +152,8 @@ class BOAModuleAbstract:
             value (bool): value to set if the execution has to be stopped.
         """
         if value is None:
-            eprint("Error: not expected value in 'stop' property.")
+            logging.error("not expected value in 'stop' property")
         elif not isinstance(value, bool):
-            eprint("Error: expected type in 'stop' property is 'bool'"
-                   f" and the actual type is '{type(value)}'.")
+            logging.error("expected type in 'stop' property is 'bool' and the actual type is '%s'", type(value))
         else:
             self._stop = value

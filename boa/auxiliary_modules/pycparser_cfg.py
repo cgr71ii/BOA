@@ -2,7 +2,7 @@
 data structure.
 """
 
-# Pycparser libs
+# 3rd libs
 import pycparser.c_ast as ast
 
 # Own libs

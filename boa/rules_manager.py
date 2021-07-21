@@ -20,13 +20,14 @@ but concrete analysis.
 import os
 import re
 import copy
+import logging
 
 # 3rd libs
 import xmltodict
 
 # Own libs
 from constants import Meta, Error, Other, Regex
-from util import eprint, is_key_in_dict, get_index_if_match_element_in_tuples
+from util import is_key_in_dict, get_index_if_match_element_in_tuples
 from own_exceptions import BOARulesUnexpectedFormat, BOARulesIncomplete, BOARulesError
 
 class RulesManager:
@@ -58,13 +59,13 @@ class RulesManager:
             int: status code
         """
         if not os.path.exists(self.rules_file_path):
-            eprint(f"Error: file '{self.rules_file_path}' does not exist.")
+            logging.error("file '%s' does not exist", self.rules_file_path)
             return Error.error_file_not_found
 
         try:
             self.file = open(self.rules_file_path, "r")
         except Exception as e:
-            eprint(f"Error: RulesManager: {e}.")
+            logging.error("RulesManager: %s", str(e))
             return Error.error_rules_could_not_open_file
 
         return Meta.ok_code
@@ -84,7 +85,7 @@ class RulesManager:
 
             self.rules = xmltodict.parse(self.xml_str)
         except Exception as e:
-            eprint(f"Error: RulesManager: {e}.")
+            logging.error("RulesManager: %s", str(e))
             return Error.error_rules_could_not_read_file
         return Meta.ok_code
 
@@ -97,7 +98,7 @@ class RulesManager:
         try:
             self.file.close()
         except Exception as e:
-            eprint(f"Error: RulesManager: {e}.")
+            logging.error("RulesManager: %s", str(e))
             return Error.error_rules_could_not_close_file
 
         return Meta.ok_code
@@ -239,8 +240,7 @@ class RulesManager:
 
         if (father == "args" and save_args):
             if (not isinstance(args_reference, dict) or len(args_reference) != 0):
-                eprint("Error: check_rules_arg have to get an empty 'dict' as first"
-                       " args reference.")
+                logging.error("check_rules_arg have to get an empty 'dict' as first args reference")
                 return False
 
         if _arg is None:
@@ -253,13 +253,6 @@ class RulesManager:
         index = 0
 
         for __arg in _arg:
-            #print(f"grandpa:father -> {grandpa}:{father}")
-            #print(f"args_reference: {args_reference}")
-            #print(f"type(__arg): {type(__arg)}")
-            #print(f"len(__arg): {len(__arg)}")
-            #print(f"__arg: {__arg}")
-            #print(f"__arg")
-
             if (sort_args and sort_args_arg_list is None):
                 sort_args_arg_list = list(__arg.items())
 
@@ -294,7 +287,7 @@ class RulesManager:
                     sort_args_calling_queue[f"{str(sort_args_index)}.arg_reference"] = arg_reference
                 else:
                     if (sort_args_index is None and sort_args):
-                        eprint(f"Warning: args sorting failed. The result might be disordered.")
+                        logging.warning("args sorting failed: the result might be disordered")
 
                     # Recursive checking
                     self.check_rules_arg_recursive(__arg, "dict", father, arg_reference,
@@ -356,7 +349,7 @@ class RulesManager:
                     sort_args_calling_queue[f"{str(sort_args_index)}.arg_reference"] = arg_reference
                 else:
                     if (sort_args_index is None and sort_args):
-                        eprint(f"Warning: args sorting failed. The result might be disordered.")
+                        logging.warning("args sorting failed: the result might be disordered")
 
                     # Recursive checking
                     self.check_rules_arg_recursive(__arg, "list", father, arg_reference,
@@ -378,7 +371,7 @@ class RulesManager:
                     sort_args_calling_queue[f"{str(sort_args_index)}.arg_reference"] = arg_reference
                 else:
                     if (sort_args_index is None and sort_args):
-                        eprint(f"Warning: args sorting failed. The result might be disordered.")
+                        logging.warning("args sorting failed: the result might be disordered.")
 
                     # Recursive checking
                     self.check_rules_arg_recursive(__arg, "element", father, arg_reference,
@@ -437,7 +430,7 @@ class RulesManager:
                 found.
         """
         # Check if main tag is defined
-        is_key_in_dict(self.rules, "boa_rules", True,
+        is_key_in_dict(self.rules, "boa_rules", split_by_point=True,
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules'")
 
@@ -446,17 +439,17 @@ class RulesManager:
             raise BOARulesIncomplete("'boa_rules' has not the expected #elements")
 
         # Check if is defined the parser tag
-        is_key_in_dict(self.rules, "boa_rules.parser", True,
+        is_key_in_dict(self.rules, "boa_rules.parser", split_by_point=True,
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser'")
 
         # Check if is defined the modules tag
-        is_key_in_dict(self.rules, "boa_rules.modules", True,
+        is_key_in_dict(self.rules, "boa_rules.modules", split_by_point=True,
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.modules'")
 
         # Check if is defined the report tab
-        is_key_in_dict(self.rules, "boa_rules.report", True,
+        is_key_in_dict(self.rules, "boa_rules.report", split_by_point=True,
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.report'")
 
@@ -475,25 +468,25 @@ class RulesManager:
             raise BOARulesIncomplete("'boa_rules.parser' has not the expected #elements")
 
         # Check if the expected elements are in the parser element
-        is_key_in_dict(self.rules, "boa_rules.parser.name", True,
+        is_key_in_dict(self.rules, "boa_rules.parser.name", split_by_point=True,
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.name'")
-        is_key_in_dict(self.rules, "boa_rules.parser.lang_objective", True,
+        is_key_in_dict(self.rules, "boa_rules.parser.lang_objective", split_by_point=True,
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.lang_objective'")
-        is_key_in_dict(self.rules, "boa_rules.parser.module_name", True,
+        is_key_in_dict(self.rules, "boa_rules.parser.module_name", split_by_point=True,
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.module_name'")
-        is_key_in_dict(self.rules, "boa_rules.parser.class_name", True,
+        is_key_in_dict(self.rules, "boa_rules.parser.class_name", split_by_point=True,
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.class_name'")
-        is_key_in_dict(self.rules, "boa_rules.parser.callback", True,
+        is_key_in_dict(self.rules, "boa_rules.parser.callback", split_by_point=True,
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.callback'")
-        is_key_in_dict(self.rules, "boa_rules.parser.callback.method", True,
+        is_key_in_dict(self.rules, "boa_rules.parser.callback.method", split_by_point=True,
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.callback.method'")
-        is_key_in_dict(self.rules, "boa_rules.parser.env_vars", True,
+        is_key_in_dict(self.rules, "boa_rules.parser.env_vars", split_by_point=True,
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.env_vars'")
 
@@ -506,7 +499,7 @@ class RulesManager:
             raise BOARulesIncomplete("'boa_rules.parser.env_vars' has not"
                                      " the expected #elements")
 
-        is_key_in_dict(self.rules, "boa_rules.parser.callback.method", True,
+        is_key_in_dict(self.rules, "boa_rules.parser.callback.method", split_by_point=True,
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.callback.method'")
 
@@ -521,10 +514,10 @@ class RulesManager:
                 raise BOARulesIncomplete("'boa_rules.parser.callback.method'"
                                          " has not the expected #elements")
 
-            is_key_in_dict(method, "@name", False,
+            is_key_in_dict(method, "@name", split_by_point=False,
                            raise_exception=BOARulesIncomplete,
                            exception_args="'boa_rules.parser.callback.method@name'")
-            is_key_in_dict(method, "@callback", False,
+            is_key_in_dict(method, "@callback", split_by_point=False,
                            raise_exception=BOARulesIncomplete,
                            exception_args="'boa_rules.parser.callback.method@callback'")
 
@@ -544,7 +537,7 @@ class RulesManager:
         """
         args_sorting_defined_test = False
 
-        is_key_in_dict(dict_tag, "args", False,
+        is_key_in_dict(dict_tag, "args", split_by_point=False,
                        raise_exception=BOARulesIncomplete,
                        exception_args=f"'{tag_prefix}.args'")
 
@@ -595,7 +588,7 @@ class RulesManager:
         if len(self.rules["boa_rules"]["modules"]) != 1:
             raise BOARulesIncomplete("'boa_rules.modules' has not the expected #elements")
 
-        is_key_in_dict(self.rules, "boa_rules.modules.module", True,
+        is_key_in_dict(self.rules, "boa_rules.modules.module", split_by_point=True,
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.modules.module'")
 
@@ -681,7 +674,7 @@ class RulesManager:
             if dependencies is not None:
                 dependencies_reference = {}
 
-                is_key_in_dict(dependencies, "dependency", False,
+                is_key_in_dict(dependencies, "dependency", split_by_point=False,
                                raise_exception=BOARulesIncomplete,
                                exception_args="'boa_rules.modules.module."
                                               "dependencies.dependency'")
@@ -716,19 +709,19 @@ class RulesManager:
                                                  ".dependency' has not the expected #elements"
                                                  f" in '{module_name}.{class_name}'")
 
-                    is_key_in_dict(dependency, "module_name", False,
+                    is_key_in_dict(dependency, "module_name", split_by_point=False,
                                    raise_exception=BOARulesIncomplete,
                                    exception_args="'boa_rules.modules.module."
                                                   "dependencies.dependency.module_name'")
-                    is_key_in_dict(dependency, "class_name", False,
+                    is_key_in_dict(dependency, "class_name", split_by_point=False,
                                    raise_exception=BOARulesIncomplete,
                                    exception_args="'boa_rules.modules.module."
                                                   "dependencies.dependency.class_name'")
-                    is_key_in_dict(dependency, "callback", False,
+                    is_key_in_dict(dependency, "callback", split_by_point=False,
                                    raise_exception=BOARulesIncomplete,
                                    exception_args="'boa_rules.modules.module."
                                                   "dependencies.dependency.callback'")
-                    is_key_in_dict(dependency, "callback.method", True,
+                    is_key_in_dict(dependency, "callback.method", split_by_point=True,
                                    raise_exception=BOARulesIncomplete,
                                    exception_args="'boa_rules.modules.module."
                                                   "dependencies.dependency.callback.method'")
@@ -756,17 +749,17 @@ class RulesManager:
                                                      " expected #elements in"
                                                      f" '{module_name}.{class_name}'")
 
-                        is_key_in_dict(method, "@name", False,
+                        is_key_in_dict(method, "@name", split_by_point=False,
                                        raise_exception=BOARulesIncomplete,
                                        exception_args="'boa_rules.modules.module.dependencies."
                                                       "dependency.callback.method@name'")
-                        is_key_in_dict(method, "@callback", False,
+                        is_key_in_dict(method, "@callback", split_by_point=False,
                                        raise_exception=BOARulesIncomplete,
                                        exception_args="'boa_rules.modules.module.dependencies."
                                                       "dependency.callback.method@callback'")
 
                         if is_key_in_dict(dependencies_reference, method["@name"]):
-                            eprint(f"Warning: dependency '{method['@name']}' has been smashed.")
+                            logging.warning("dependency '%s' has been smashed", method['@name'])
 
                         dependencies_reference[dependency_key][method["@name"]] = \
                             method["@callback"]
@@ -780,11 +773,11 @@ class RulesManager:
                                                                 "boa_rules.modules.module",
                                                                 save_args)
             except BOARulesIncomplete as e:
-                raise BOARulesIncomplete(f"{e} in '{module_name}.{class_name}'")
+                raise BOARulesIncomplete(f"rules incomplete in '{module_name}.{class_name}'") from e
             except BOARulesUnexpectedFormat as e:
-                raise BOARulesUnexpectedFormat(f"{e} in '{module_name}.{class_name}'")
+                raise BOARulesUnexpectedFormat(f"rules unexpected format in '{module_name}.{class_name}'") from e
             except BOARulesError as e:
-                raise BOARulesError(f"{e} in '{module_name}.{class_name}'")
+                raise BOARulesError(f"rules error in '{module_name}.{class_name}'") from e
 
             # Set the args
             if (save_args and not self.set_args(f"{module_name}.{class_name}", arg_reference)):
@@ -850,12 +843,8 @@ class RulesManager:
                                                             "report",
                                                             "boa_rules.report",
                                                             save_args)
-        #except BOARulesIncomplete as e:
-        #    raise BOARulesIncomplete(e)
-        #except BOARulesUnexpectedFormat as e:
-        #    raise BOARulesUnexpectedFormat(e)
         except BOARulesError as e:
-            raise BOARulesError(e)
+            raise BOARulesError("rules error") from e
 
         # Set the report args
         self.report_args = arg_reference
@@ -891,16 +880,16 @@ class RulesManager:
             self.check_rules_report()
 
         except BOARulesUnexpectedFormat as e:
-            eprint(f"Error: wrong format: {e}.")
+            logging.error("wrong format: %s", str(e))
             return False
         except BOARulesIncomplete as e:
-            eprint(f"Error: rules are incomplete: {e}.")
+            logging.error("rules are incomplete: %s", str(e))
             return False
         except BOARulesError as e:
-            eprint(f"Error: something is wrong (format and completeness seems ok): {e}.")
+            logging.error("something is wrong (format and completeness seem to be ok): %s", str(e))
             return False
         except Exception as e:
-            eprint(f"Error: rules did not pass the checking: {e}.")
+            logging.error("rules did not pass the checking: %s", str(e))
             return False
 
         return True
@@ -934,12 +923,10 @@ class RulesManager:
             try:
                 rules = rules[p]
             except KeyError as e:
-                eprint(f"Error: could not get the rules: {e}."
-                       " Returning all the rules.")
+                logging.error("could not get the rules (returning all the rules): %s", str(e))
                 return self.rules
             except Exception as e:
-                eprint(f"Error: unexpected error while getting rules: {e}."
-                       " Returning all the rules.")
+                logging.error("unexpected error while getting the rules (returning all the rules): %s", str(e))
                 return self.rules
 
         if list_type:
@@ -964,17 +951,17 @@ class RulesManager:
         if self.args is None:
             self.args = {}
         elif not isinstance(self.args, dict):
-            eprint("Error: args type is not a dict.")
+            logging.error("args type is not a dict")
             return False
         elif is_key_in_dict(self.args, module):
-            eprint(f"Warning: args for module '{module}' already exists. Overwriting it.")
+            logging.warning("args for module '%s' already exists: overwriting it", module)
 
         try:
             self.args[module] = arg
 
             return True
         except Exception as e:
-            eprint(f"Error: RulesManager: {e}.")
+            logging.error("RulesManager: %s", str(e))
 
             return False
 
@@ -1001,7 +988,7 @@ class RulesManager:
                 is_key_in_dict(self.args, module)):
             return self.args[module]
 
-        eprint(f"Warning: could not get the args for module '{module}'.")
+        logging.warning("could not get the args for module '%s'", module)
         return None
 
     def set_dependencies(self, module, dependencies):
@@ -1020,25 +1007,24 @@ class RulesManager:
         if self.dependencies is None:
             self.dependencies = {}
         elif not isinstance(self.dependencies, dict):
-            eprint("Error: dependencies type is not a dict.")
+            logging.error("dependencies type is not a dict")
             return False
         if not is_key_in_dict(self.dependencies, module):
             self.dependencies[module] = {}
         elif not isinstance(self.dependencies[module], dict):
-            eprint(f"Error: dependencies['{module}'] type is not a dict.")
+            logging.error("dependencies['%s'] type is not a dict", module)
             return False
 
         try:
             for key, value in dependencies.items():
                 if is_key_in_dict(self.dependencies[module], key):
-                    eprint(f"Warning: dependency '{key}' for module '{module}' already exists."
-                           " Overwriting it.")
+                    logging.warning("dependency '%s' for module '%s' already exists: overwriting it", key, module)
 
                 self.dependencies[module][key] = value
 
             return True
         except Exception as e:
-            eprint(f"Error: RulesManager: {e}.")
+            logging.error("RulesManager: %s", str(e))
 
             return False
 

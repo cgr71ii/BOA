@@ -2,10 +2,13 @@
 """BOA module that does nothing. Test purposes.
 """
 
+# Std libs
+import logging
+
 # Own libs
 from boam_abstract import BOAModuleAbstract
 from constants import Meta
-from util import eprint, is_key_in_dict
+from util import is_key_in_dict
 
 class BOAModuleTest(BOAModuleAbstract):
     """BOAModuleTest class. It implements the class BOAModuleAbstract.
@@ -37,7 +40,6 @@ class BOAModuleTest(BOAModuleAbstract):
 
         self.bcfg = None
 
-        #print(f"dependencies: {self.dependencies}")
         if (is_key_in_dict(self.dependencies, "boam_cfg.BOAModuleControlFlowGraph")
                 and is_key_in_dict(self.dependencies\
                     ["boam_cfg.BOAModuleControlFlowGraph"], "get_basic_cfg")):
@@ -67,13 +69,13 @@ class BOAModuleTest(BOAModuleAbstract):
             severity = report.get_severity_enum_instance_by_who(self.who_i_am)
 
             if severity is None:
-                eprint(f"Error: could not append the threat record #{index} in '{self.who_i_am}'. Wrong severity enum instance.")
+                logging.error("could not append the threat record #%d in '%s': wrong severity enum instance", index, self.who_i_am)
             else:
                 severity = severity[threat[2]]
                 rtn_code = report.add(threat[0], threat[1], severity, threat[3], threat[4], threat[5])
 
                 if rtn_code != Meta.ok_code:
-                    eprint(f"Error: could not append the threat record #{index} (status code: {rtn_code}) in '{self.who_i_am}'.")
+                    logging.error("could not append the threat record #%d (status code: %d) in '%s'", index, rtn_code, self.who_i_am)
 
             index += 1
 

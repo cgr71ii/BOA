@@ -4,7 +4,7 @@ We implement the class NodeVisitor with the goal of be able to
 make a preorder path through the AST.
 """
 
-# Pycparser libs
+# 3rd libs
 from pycparser.c_ast import NodeVisitor
 
 # Own libs

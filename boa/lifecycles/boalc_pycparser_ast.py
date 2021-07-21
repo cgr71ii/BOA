@@ -3,6 +3,9 @@ to be executed when the parser Pycparser is being used and
 you want to use an AST and process each token separately.
 """
 
+# Std libs
+import logging
+
 # Own libs
 from lifecycles.boalc_abstract import BOALifeCycleAbstract
 from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
@@ -33,8 +36,8 @@ class BOALCPycparserAST(BOALifeCycleAbstract):
 
         # Process
         if not is_key_in_dict(self.args, "ast"):
-            print(f"Warning: '{self.who_i_am}' needs to have 'ast' in the"
-                  " given arguments to work. Skipping lifecycle.")
+            logging.warning("'%s' needs to have 'ast' in the given arguments to work. Skipping lifecycle", self.who_i_am)
+
             self.execute_method(self.instance,
                                 "set_stop_execution",
                                 "stop the execution",

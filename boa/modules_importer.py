@@ -5,11 +5,12 @@ This file contains the ModulesImporter class.
 
 # Std libs
 import importlib.util
+import logging
 import sys
 
 # Own libs
 from constants import Other
-from util import eprint, get_current_path, file_exists, is_key_in_dict
+from util import get_current_path, file_exists, is_key_in_dict
 from own_exceptions import BOAModuleNotLoaded, BOAModulesImporterException
 
 class ModulesImporter:
@@ -70,13 +71,14 @@ class ModulesImporter:
             try:
                 # Check if the module is already loaded
                 if module in sys.modules:
-                    eprint(f"Warning: module '{module}' cannot have that name because it collides with a sys module or has been already loaded. Skipping current module.")
+                    logging.warning("module '%s' cannot have that name because it collides with a sys"
+                                    " module or has been already loaded: skipping current module", module)
                     index += 1
                     continue
 
                 # Check if the actual file path does exist
                 if file_exists(file_path) is False:
-                    eprint(f"Warning: file '{file_path}' does not exist. Skipping current module.")
+                    logging.warning("file '%s' does not exist: skipping current module", file_path)
                     index += 1
                     continue
 
@@ -84,7 +86,7 @@ class ModulesImporter:
 
                 # Check if we could get the module spec
                 if spec is None:
-                    eprint(f"Warning: module '{module}' could not be loaded. Skipping current module.")
+                    logging.warning("module '%s' could not be loaded: skipping current module", module)
                     index += 1
                     continue
 
@@ -96,13 +98,9 @@ class ModulesImporter:
                 self.loaded[index] = True
                 self.nloaded += 1
 
-                print(f"Info: Module '{module}' successfully loaded.")
+                logging.info("module '%s' successfully loaded", module)
             except Exception as e:
-                eprint(f"Warning: {e}. Skipping current module.")
-                index += 1
-                continue
-            except:
-                eprint(f"Warning: unknown error while loading module '{module}'. Skipping current module.")
+                logging.warning("skipping current module: %s", str(e))
                 index += 1
                 continue
 
@@ -149,11 +147,11 @@ class ModulesImporter:
 
             return sys.modules[module_name]
         except ValueError:
-            eprint(f"Error: could not get module '{module_name}' because it does not exist.")
+            logging.error("could not get module '%s' because it does not exist", module_name)
         except BOAModuleNotLoaded:
-            eprint(f"Error: could not get module '{module_name}' because it is not loaded.")
-        except:
-            eprint(f"Error: could not get module '{module_name}'. Unknown reason.")
+            logging.error("could not get module '%s' because it is not loaded", module_name)
+        except Exception as e:
+            logging.error("could not get module '%s': %s", module_name, str(e))
 
         return None
 
@@ -176,9 +174,9 @@ class ModulesImporter:
         try:
             instance = getattr(sys.modules[module_name], class_name)
         except AttributeError as e:
-            eprint(f"Error: ModulesImporter: {e}.")
-        except:
-            eprint(f"Error: unknown error while trying to get {module_name}.{class_name}.")
+            logging.error("ModulesImporter: %s", str(e))
+        except Exception as e:
+            logging.error("unknown error while trying to get '%s.%s': %s", module_name, class_name, str(e))
 
         return instance
 
@@ -245,8 +243,7 @@ class ModulesImporter:
 
         # Check if the actual file path does exist
         if not file_exists(absolute_file_path):
-            eprint(f"Warning: file '{absolute_file_path}' does not exist. "
-                   "Skipping current module.")
+            logging.warning("file '%s' does not exist: skipping current module", absolute_file_path)
             return None
 
         try:
@@ -255,8 +252,7 @@ class ModulesImporter:
 
                 # Check if we could get the module spec
                 if spec is None:
-                    eprint(f"Warning: module '{module}' could not be loaded."
-                           " Skipping current module.")
+                    logging.warning("module '%s' could not be loaded: skipping current module", module)
                     return None
 
                 new_module = importlib.util.module_from_spec(spec)
@@ -265,12 +261,9 @@ class ModulesImporter:
                 spec.loader.exec_module(new_module)
 
                 if verbose:
-                    print(f"Info: Module '{module}' successfully loaded.")
+                    logging.info("module '%s' successfully loaded", module)
         except Exception as e:
-            eprint(f"Warning: {e}.")
-            return None
-        except:
-            eprint(f"Warning: unknown error while loading module '{module}'.")
+            logging.warning("error when importing module '%s': %s", module, str(e))
             return None
 
         # Module has been loaded once reached this point (or it was already loaded)
@@ -285,8 +278,8 @@ class ModulesImporter:
         try:
             instance = getattr(sys.modules[module], class_name)
         except AttributeError as e:
-            eprint(f"Error: ModulesImporter: {e}.")
-        except:
-            eprint(f"Error: unknown error while trying to get {module}.{class_name}.")
+            logging.error("ModulesImporter: %s", str(e))
+        except Exception as e:
+            logging.error("unknown error while trying to get '%s.%s': %s", module, class_name, str(e))
 
         return instance

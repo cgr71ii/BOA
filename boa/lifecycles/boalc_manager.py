@@ -6,9 +6,12 @@ handles the loop which is executed to analyze the language
 file.
 """
 
+# Std libs
+import logging
+
 # Own libs
 from constants import Meta, Error
-from util import eprint, get_name_from_class_instance, is_key_in_dict
+from util import get_name_from_class_instance
 from own_exceptions import BOAModuleException, BOALCException
 
 class BOALifeCycleManager:
@@ -93,14 +96,14 @@ class BOALifeCycleManager:
             self.reports[0].get_severity_enum_instance())
 
         if not severity_ok:
-            eprint("Error: could not append the threat reports.")
+            logging.error("could not append the threat reports")
             return None
 
         while index < len(self.reports):
             rtn_code = report.append(self.reports[index], who=self.instances_names[index])
 
             if rtn_code != Meta.ok_code:
-                eprint("Error: could not append the threat reports.")
+                logging.error("could not append the threat reports")
                 return None
 
             index += 1
@@ -126,12 +129,13 @@ class BOALifeCycleManager:
                 # This method may change self.rtn_code value
                 lifecycle.execute_lifecycle()
             except BOALCException as e:
-                eprint(f"Error: {lifecycle.get_name()}: {e}.")
+                logging.error("%s: %s", lifecycle.get_name(), str(e))
             except Exception as e:
-                eprint(f"Error: {lifecycle.get_name()}: {e}.")
+                logging.error("%s: %s", lifecycle.get_name(), str(e))
 
         return self.rtn_code
 
+    # TODO remove parameter 'error_verb'
     def execute_instance_method(self, instance, method_name, error_verb, args, force_invocation):
         """It attempts to execute a method of a concrete instance.
 
@@ -161,7 +165,7 @@ class BOALifeCycleManager:
         try:
             concrete_instance = self.instances.index(instance)
         except ValueError:
-            eprint(f"Warning: instance '{instance_name}' not found.")
+            logging.warning("instance '%s' not found", instance_name)
             return False
 
         concrete_instance = instance
@@ -174,8 +178,7 @@ class BOALifeCycleManager:
         if (instance_name not in self.instances_names and not force_invocation):
             # Warn only once
             if instance_method_name not in self.instances_warned:
-                eprint(f"Warning: skipping invocation to '{instance_method_name}'"
-                       " due to previous errors.")
+                logging.warning("skipping invocation to '%s' due to previous errors", instance_method_name)
                 self.instances_warned.append(instance_method_name)
 
             return False
@@ -189,13 +192,10 @@ class BOALifeCycleManager:
             else:
                 getattr(instance, method_name)(args)
         except BOAModuleException as e:
-            eprint(f"Error: BOALifeCycleManager: {e.message}.")
+            logging.error("BOALifeCycleManager: %s", e.message)
             exception = True
         except Exception as e:
-            eprint(f"Error: BOALifeCycleManager: {e}.")
-            exception = True
-        except:
-            eprint(f"Error: could not {error_verb} the instance '{instance_name}'.")
+            logging.error("BOALifeCycleManager: %s", str(e))
             exception = True
 
         # Something failed. Warn about this in the future

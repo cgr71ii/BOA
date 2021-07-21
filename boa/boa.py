@@ -13,11 +13,12 @@ Main tasks:\n
 
 # Std libs
 import sys
+import logging
 
 # Own libs
-from constants import Meta, Error
+from constants import Meta, Error, Other
 from args_manager import ArgsManager
-from util import file_exists, eprint
+from util import file_exists, set_up_logging
 from own_exceptions import BOAFlowException
 import boa_internals
 
@@ -52,14 +53,21 @@ def main():
     Returns:
         int: status code
     """
+    # Check if user asked about the version
+    #  (check with sys.args in order to avoid the mandatory parameters)
+    if ("-v" in sys.argv or "--version" in sys.argv):
+        print(f"Welcome to {Meta.name} - Version {Meta.version}")
 
-    print(f"Welcome to {Meta.name} - Version {Meta.version}\n")
+        return Meta.ok_code
 
     try:
         # Parse and check args
         rtn_code = manage_args()
 
         if rtn_code != Meta.ok_code:
+            # Set up the logging library with the default values
+            set_up_logging()
+
             message = "args management failed"
 
             if rtn_code == Error.error_args_incorrect:
@@ -67,6 +75,9 @@ def main():
                 message = ""
 
             raise BOAFlowException(message, rtn_code)
+
+        # Set up the logging library
+        set_up_logging(filename=ArgsManager.args.log_file, level=ArgsManager.args.logging_level)
 
         # Check if lang. file exists
         if not file_exists(ArgsManager.args.code_file):
@@ -138,30 +149,35 @@ def main():
 
         if report:
             # Blank line and display
-            print()
+            #print()
             report.display_all()
     except BOAFlowException as e:
         # Error in some internal function.
 
         if e.message:
-            eprint(f"Error: BOA: {e.message}.")
+            logging.error("BOA: %s", e.message)
 
         if e.error_code:
             return e.error_code
 
-        eprint(f"Error: 'BOAFlowException' does not have 'error_code' as expected.")
+        logging.error("'BOAFlowException' does not have 'error_code' as expected")
+
         return Error.error_unknown
     except Exception as e:
         # Unexpected and unknown error.
 
-        eprint(f"Error: BOA: {e}.")
+        logging.error("BOA: %s", str(e))
+
         return Error.error_unknown
 
     return Meta.ok_code
 
+def tear_down():
+    logging.info("exit status: %d", __rtn_code__)
+
 if __name__ == "__main__":
     __rtn_code__ = main()
 
-    print(f"\nExit status: {__rtn_code__}")
+    tear_down()
 
     sys.exit(__rtn_code__)

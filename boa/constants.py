@@ -39,6 +39,7 @@ class Error:
     # ok_code = 0
     error_unknown = 1
     error_file_not_found = 2
+    error_logging_configuration = 3
 
     # Args errors
     error_args_incorrect = 10
@@ -132,6 +133,7 @@ class Other:
     other_lifecycle_default_handler = "boalc_basic.BOALCBasic"
     other_report_default_handler = "boar_stdout.BOARStdout"
     other_argument_name_for_dependencies_in_modules = "__dependencies"
+    other_logging_format = "[%(asctime)s] [%(levelname)s] [%(module)s:%(lineno)d] %(message)s"
 
     # Modules
     modules_directory = "modules"
