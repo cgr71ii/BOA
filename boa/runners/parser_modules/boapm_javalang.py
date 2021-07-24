@@ -12,7 +12,7 @@ import javalang
 
 # Own libs
 from boapm_abstract import BOAParserModuleAbstract
-from own_exceptions import BOAPMParseError
+from exceptions import BOAPMParseError
 
 class BOAPMJavalang(BOAParserModuleAbstract):
     """BOAPMJavalang class.

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<boa_rules>
+<boa_rules analysis="static">
     <parser>
         <name>javalang</name>
         <lang_objective>Java</lang_objective>

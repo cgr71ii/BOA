@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<boa_rules> <!-- Mandatory -->
+<boa_rules analysis="static"> <!-- Mandatory -->
     <parser>    <!-- Mandatory -->
         <name>pycparser</name>  <!-- Mandatory
                                      Metadata -->

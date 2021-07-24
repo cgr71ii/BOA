@@ -13,7 +13,7 @@ from pycparser import parse_file
 # Own libs
 from boapm_abstract import BOAParserModuleAbstract
 from util import is_key_in_dict
-from own_exceptions import ParseError, BOAPMParseError
+from exceptions import ParseError, BOAPMParseError
 
 class BOAPMPycparser(BOAParserModuleAbstract):
     """BOAPMPycparser class.

@@ -17,7 +17,7 @@ class BOAStaticPycparserC(unittest.TestCase):
 
     def test_functions_basic_overflow_1(self):
         c_file = "../C/synthetic/test_basic_buffer_overflow.c"
-        rules_file = "../../boa/rules/rules_function_match_pycparser.xml"
+        rules_file = "../../boa/rules/rules_static_function_match_pycparser.xml"
         env = self.get_env()
 
         actual = subprocess.run(["../../boa/boa.py", c_file, rules_file], check=False, capture_output=True, text=True, env=env)

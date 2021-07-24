@@ -11,7 +11,7 @@ import sys
 # Own libs
 from constants import Other
 from util import get_current_path, file_exists, is_key_in_dict
-from own_exceptions import BOAModuleNotLoaded, BOAModulesImporterException
+from exceptions import BOAModuleNotLoaded, BOAModulesImporterException
 
 class ModulesImporter:
     """ModulesImporter class.
@@ -51,7 +51,7 @@ class ModulesImporter:
             raise BOAModulesImporterException("len(modules) has to be equal to "
                                               "len(filenames) and is not")
 
-    def load(self):
+    def load(self, module_subdir=None):
         """It attempts to load all the modules which were specified.
 
         This method iterates through self.modules to attempt to loading
@@ -60,13 +60,24 @@ class ModulesImporter:
         it skips the current module to next.
 
         The modules must be in *Other.modules_directory* directory.
+
+        Arguments:
+            module_subdir (str): subdir of *Other.modules_directory* where
+                the module will be looked for instead of directly look for
+                in *Other.modules_directory*
         """
         index = 0
 
         while index < len(self.modules):
             module = self.modules[index]
             filename = self.filenames[index]
-            file_path = f'{get_current_path(__file__)}/{Other.modules_directory}/{filename}'
+            file_path = f"{get_current_path(__file__)}/{Other.modules_directory}"
+
+            if module_subdir is not None:
+                module_subdir = module_subdir.strip("/")
+                file_path = f"{file_path}/{module_subdir}/{filename}"
+            else:
+                file_path = f"{file_path}/{filename}"
 
             try:
                 # Check if the module is already loaded

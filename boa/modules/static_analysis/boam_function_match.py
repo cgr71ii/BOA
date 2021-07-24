@@ -9,11 +9,11 @@ be avoided or generally are misused.
 import logging
 
 # 3rd libs
-import javalang
+from pycparser.c_ast import FuncCall
 
 # Own libs
 from boam_abstract import BOAModuleAbstract
-from own_exceptions import BOAModuleException
+from exceptions import BOAModuleException
 from constants import Meta
 
 class BOAModuleFunctionMatch(BOAModuleAbstract):
@@ -60,9 +60,8 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
             token: AST node.
         """
         # Look for function calls
-        for _, node in token["ast"]:
-            if isinstance(node, javalang.tree.MethodInvocation):
-                self.javalang_funccall(node)
+        if isinstance(token, FuncCall):
+            self.pycparser_funccall(token)
 
     def clean(self):
         """It does nothing.
@@ -94,14 +93,14 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
         """It does nothing.
         """
 
-    def javalang_funccall(self, token):
+    def pycparser_funccall(self, token):
         # Get the calling function name
-        function_name = token.member
+        function_name = token.name.name
 
         if function_name in self.all_methods_name:
             index = self.all_methods_name.index(function_name)
-            row = token.position.line
-            col = token.position.column
+            row = str(token.coord).split(':')[-2]
+            col = str(token.coord).split(':')[-1]
             severity = None
             description = None
             advice = None

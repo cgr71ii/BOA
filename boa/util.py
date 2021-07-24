@@ -39,7 +39,7 @@ def get_current_path(path=__file__):
     Returns:
         str: real path (it does not finish with '/')
     """
-    real_path_to_script = os.path.realpath(path)
+    real_path_to_script = os.path.realpath(os.path.expanduser(path))
     real_path = os.path.split(real_path_to_script)[0]
 
     return real_path
@@ -74,7 +74,7 @@ def get_name_from_class_instance(instance):
 
     return None
 
-def is_key_in_dict(dictionary, key, split_by_point=False,
+def is_key_in_dict(dictionary, key, split=None,
                    message=None, raise_exception=None, exception_args=None):
     """It checks if a given dictionary contains
     a concrete value. A try-except is used to perform
@@ -86,9 +86,9 @@ def is_key_in_dict(dictionary, key, split_by_point=False,
         dictionary (dict): dictionary to check.
         key (str): key which will be checked if it is
             in the dictionary.
-        split_by_point (bool): it will split *key* by '.'
-            if *True* and it will check for all the keys.
-            The default value is *False*.
+        split (str): it will split *key* if different of *None*
+            with the provided value and it will check for all the keys.
+            The default value is *None*.
         message (str): message to be displayed if the key
             is not contained. The default value is *False*.
         raise_exception (Exception): exception to be raised.
@@ -108,8 +108,8 @@ def is_key_in_dict(dictionary, key, split_by_point=False,
         *False* otherwise
     """
     try:
-        if split_by_point:
-            keys = key.split(".")
+        if split is not None:
+            keys = key.split(split)
 
             if (keys and len(keys) > 0):
                 value = dictionary
@@ -326,19 +326,27 @@ def get_just_type(instance, instance_type=None):
         return None
     return match.group(1)
 
-def set_up_logging(filename=None, level=logging.INFO, format_str=Other.other_logging_format):
+def set_up_logging(filename=None, level=logging.INFO, format_str=Other.other_logging_format,
+                   display_when_file=False):
     """It sets up the logging library
 
     Arguments:
         filename (str): path to the file where the logging entries will be dumped.
-        level (int): logging level (e.g. 20 is logging.INFO, 30 is logging.WARNING)
-        format_str (str): format of the logging messages
+        level (int): logging level (e.g. 20 is logging.INFO, 30 is logging.WARNING).
+        format_str (str): format of the logging messages.
+        display_when_file (bool): logging messages will be displayed using the standard
+            error output even when *filename* is provided.
     """
     handlers = [
         logging.StreamHandler()
     ]
 
     if filename is not None:
-        handlers.append(logging.FileHandler(filename))
+        if display_when_file:
+            # Logging messages will be stored and displayed
+            handlers.append(logging.FileHandler(filename))
+        else:
+            # Logging messages will be stored and not displayed
+            handlers[0] = logging.FileHandler(filename)
 
     logging.basicConfig(handlers=handlers, level=level, format=format_str)

@@ -28,7 +28,7 @@ import xmltodict
 # Own libs
 from constants import Meta, Error, Other, Regex
 from util import is_key_in_dict, get_index_if_match_element_in_tuples
-from own_exceptions import BOARulesUnexpectedFormat, BOARulesIncomplete, BOARulesError
+from exceptions import BOARulesUnexpectedFormat, BOARulesIncomplete, BOARulesError
 
 class RulesManager:
     """RulesManager class.
@@ -430,26 +430,36 @@ class RulesManager:
                 found.
         """
         # Check if main tag is defined
-        is_key_in_dict(self.rules, "boa_rules", split_by_point=True,
+        is_key_in_dict(self.rules, "boa_rules", split=".",
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules'")
 
         # Check if there are the expected #elements in the main element
-        if len(self.rules["boa_rules"]) != 3:
+        if len(self.rules["boa_rules"]) != 4:
             raise BOARulesIncomplete("'boa_rules' has not the expected #elements")
+        
+        # Check if is defined the analysis attribute
+        is_key_in_dict(self.rules, "boa_rules.@analysis", split=".",
+                       raise_exception=BOARulesIncomplete,
+                       exception_args="'boa_rules.@analysis'")
+
+        # Check if the analysis attribute contains a valid value
+        if self.rules["boa_rules"]["@analysis"] not in Other.other_valid_analysis:
+            raise BOARulesUnexpectedFormat("unexpected value in 'boa_rules.@analysis'. "
+                                           f"Valid values are: {str(Other.other_valid_analysis)[1:-1]}")
 
         # Check if is defined the parser tag
-        is_key_in_dict(self.rules, "boa_rules.parser", split_by_point=True,
+        is_key_in_dict(self.rules, "boa_rules.parser", split=".",
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser'")
 
         # Check if is defined the modules tag
-        is_key_in_dict(self.rules, "boa_rules.modules", split_by_point=True,
+        is_key_in_dict(self.rules, "boa_rules.modules", split=".",
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.modules'")
 
         # Check if is defined the report tab
-        is_key_in_dict(self.rules, "boa_rules.report", split_by_point=True,
+        is_key_in_dict(self.rules, "boa_rules.report", split=".",
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.report'")
 
@@ -468,25 +478,25 @@ class RulesManager:
             raise BOARulesIncomplete("'boa_rules.parser' has not the expected #elements")
 
         # Check if the expected elements are in the parser element
-        is_key_in_dict(self.rules, "boa_rules.parser.name", split_by_point=True,
+        is_key_in_dict(self.rules, "boa_rules.parser.name", split=".",
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.name'")
-        is_key_in_dict(self.rules, "boa_rules.parser.lang_objective", split_by_point=True,
+        is_key_in_dict(self.rules, "boa_rules.parser.lang_objective", split=".",
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.lang_objective'")
-        is_key_in_dict(self.rules, "boa_rules.parser.module_name", split_by_point=True,
+        is_key_in_dict(self.rules, "boa_rules.parser.module_name", split=".",
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.module_name'")
-        is_key_in_dict(self.rules, "boa_rules.parser.class_name", split_by_point=True,
+        is_key_in_dict(self.rules, "boa_rules.parser.class_name", split=".",
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.class_name'")
-        is_key_in_dict(self.rules, "boa_rules.parser.callback", split_by_point=True,
+        is_key_in_dict(self.rules, "boa_rules.parser.callback", split=".",
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.callback'")
-        is_key_in_dict(self.rules, "boa_rules.parser.callback.method", split_by_point=True,
+        is_key_in_dict(self.rules, "boa_rules.parser.callback.method", split=".",
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.callback.method'")
-        is_key_in_dict(self.rules, "boa_rules.parser.env_vars", split_by_point=True,
+        is_key_in_dict(self.rules, "boa_rules.parser.env_vars", split=".",
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.env_vars'")
 
@@ -499,7 +509,7 @@ class RulesManager:
             raise BOARulesIncomplete("'boa_rules.parser.env_vars' has not"
                                      " the expected #elements")
 
-        is_key_in_dict(self.rules, "boa_rules.parser.callback.method", split_by_point=True,
+        is_key_in_dict(self.rules, "boa_rules.parser.callback.method", split=".",
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.callback.method'")
 
@@ -514,10 +524,10 @@ class RulesManager:
                 raise BOARulesIncomplete("'boa_rules.parser.callback.method'"
                                          " has not the expected #elements")
 
-            is_key_in_dict(method, "@name", split_by_point=False,
+            is_key_in_dict(method, "@name",
                            raise_exception=BOARulesIncomplete,
                            exception_args="'boa_rules.parser.callback.method@name'")
-            is_key_in_dict(method, "@callback", split_by_point=False,
+            is_key_in_dict(method, "@callback",
                            raise_exception=BOARulesIncomplete,
                            exception_args="'boa_rules.parser.callback.method@callback'")
 
@@ -537,7 +547,7 @@ class RulesManager:
         """
         args_sorting_defined_test = False
 
-        is_key_in_dict(dict_tag, "args", split_by_point=False,
+        is_key_in_dict(dict_tag, "args",
                        raise_exception=BOARulesIncomplete,
                        exception_args=f"'{tag_prefix}.args'")
 
@@ -588,7 +598,7 @@ class RulesManager:
         if len(self.rules["boa_rules"]["modules"]) != 1:
             raise BOARulesIncomplete("'boa_rules.modules' has not the expected #elements")
 
-        is_key_in_dict(self.rules, "boa_rules.modules.module", split_by_point=True,
+        is_key_in_dict(self.rules, "boa_rules.modules.module", split=".",
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.modules.module'")
 
@@ -674,7 +684,7 @@ class RulesManager:
             if dependencies is not None:
                 dependencies_reference = {}
 
-                is_key_in_dict(dependencies, "dependency", split_by_point=False,
+                is_key_in_dict(dependencies, "dependency",
                                raise_exception=BOARulesIncomplete,
                                exception_args="'boa_rules.modules.module."
                                               "dependencies.dependency'")
@@ -709,19 +719,19 @@ class RulesManager:
                                                  ".dependency' has not the expected #elements"
                                                  f" in '{module_name}.{class_name}'")
 
-                    is_key_in_dict(dependency, "module_name", split_by_point=False,
+                    is_key_in_dict(dependency, "module_name",
                                    raise_exception=BOARulesIncomplete,
                                    exception_args="'boa_rules.modules.module."
                                                   "dependencies.dependency.module_name'")
-                    is_key_in_dict(dependency, "class_name", split_by_point=False,
+                    is_key_in_dict(dependency, "class_name",
                                    raise_exception=BOARulesIncomplete,
                                    exception_args="'boa_rules.modules.module."
                                                   "dependencies.dependency.class_name'")
-                    is_key_in_dict(dependency, "callback", split_by_point=False,
+                    is_key_in_dict(dependency, "callback",
                                    raise_exception=BOARulesIncomplete,
                                    exception_args="'boa_rules.modules.module."
                                                   "dependencies.dependency.callback'")
-                    is_key_in_dict(dependency, "callback.method", split_by_point=True,
+                    is_key_in_dict(dependency, "callback.method", split=".",
                                    raise_exception=BOARulesIncomplete,
                                    exception_args="'boa_rules.modules.module."
                                                   "dependencies.dependency.callback.method'")
@@ -749,11 +759,11 @@ class RulesManager:
                                                      " expected #elements in"
                                                      f" '{module_name}.{class_name}'")
 
-                        is_key_in_dict(method, "@name", split_by_point=False,
+                        is_key_in_dict(method, "@name",
                                        raise_exception=BOARulesIncomplete,
                                        exception_args="'boa_rules.modules.module.dependencies."
                                                       "dependency.callback.method@name'")
-                        is_key_in_dict(method, "@callback", split_by_point=False,
+                        is_key_in_dict(method, "@callback",
                                        raise_exception=BOARulesIncomplete,
                                        exception_args="'boa_rules.modules.module.dependencies."
                                                       "dependency.callback.method@callback'")

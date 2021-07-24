@@ -6,7 +6,7 @@ a class with its methods to be overriden by those modules
 which will be executed after, using these methods.
 
 In order to raise exceptions, you may use
-*own_exceptions.BOAModuleException* if you want to know
+*exceptions.BOAModuleException* if you want to know
 descriptive information about your errors and know from
 where it comes the error.
 """

@@ -134,17 +134,28 @@ class Other:
     other_report_default_handler = "boar_stdout.BOARStdout"
     other_argument_name_for_dependencies_in_modules = "__dependencies"
     other_logging_format = "[%(asctime)s] [%(levelname)s] [%(module)s:%(lineno)d] %(message)s"
+    other_valid_analysis = ("static", "dynamic")
 
     # Modules
     modules_directory = "modules"
     abstract_module_name = "boam_abstract"
     abstract_module_class_name = "BOAModuleAbstract"
+    ## Static analysis
+    modules_subdir_static_analysis = "static_analysis"
+    ## Dynamic analysis
+    modules_subdir_dynamic_analysis = "dynamic_analysis"
 
-    # Parser modules
-    parser_modules_directory = "parser_modules"
+    # Runners
+    ## Parser modules (static analysis)
+    parser_modules_directory = "runners/parser_modules"
     abstract_parser_module_filename = "boapm_abstract.py"
     abstract_parser_module_name = "boapm_abstract"
     abstract_parser_module_class_name = "BOAParserModuleAbstract"
+    ## Caller modules (dynamic analysis)
+    caller_modules_directory = "runners/caller_modules"
+    abstract_caller_module_filename = "boacm_abstract.py"
+    abstract_caller_module_name = "boacm_abstract"
+    abstract_caller_module_class_name = "BOACallerModuleAbstract"
 
     # Lifecycle modules
     lifecycle_modules_directory = "lifecycles"

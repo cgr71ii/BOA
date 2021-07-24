@@ -26,7 +26,7 @@ import logging
 from constants import Meta
 from boam_abstract import BOAModuleAbstract
 from util import is_key_in_dict, get_just_type
-from own_exceptions import BOAModuleException
+from exceptions import BOAModuleException
 import auxiliary_modules.pycparser_util as pycutil
 import auxiliary_modules.pycparser_cfg as pycfg
 

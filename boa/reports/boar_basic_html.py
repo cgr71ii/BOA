@@ -9,7 +9,7 @@ from datetime import datetime
 import logging
 
 # Own libs
-from own_exceptions import BOAReportException
+from exceptions import BOAReportException
 from util import is_key_in_dict
 from reports.boar_abstract import BOAReportAbstract
 

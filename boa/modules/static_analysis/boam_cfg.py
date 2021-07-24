@@ -16,7 +16,7 @@ from util import is_key_in_dict, get_just_type
 from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
 import auxiliary_modules.pycparser_cfg as cfg
 import auxiliary_modules.pycparser_util as pycutil
-from own_exceptions import BOAModuleException
+from exceptions import BOAModuleException
 
 __matplotlib_loaded__ = False
 

@@ -12,7 +12,7 @@ import logging
 # Own libs
 from constants import Meta, Error
 from util import get_name_from_class_instance
-from own_exceptions import BOAModuleException, BOALCException
+from exceptions import BOAModuleException, BOALCException
 
 class BOALifeCycleManager:
     """BOALifeCycleManager class.

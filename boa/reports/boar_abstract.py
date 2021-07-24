@@ -12,7 +12,7 @@ import logging
 from constants import Meta, Error, Regex
 from enumerations.severity.severity_base import SeverityBase
 from util import is_key_in_dict, get_name_from_class_instance
-from own_exceptions import BOAReportWhoNotFound, BOAReportEnumTypeNotExpected
+from exceptions import BOAReportWhoNotFound, BOAReportEnumTypeNotExpected
 
 class BOAReportAbstract:
     """BOAReportAbstract class.

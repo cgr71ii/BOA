@@ -14,12 +14,13 @@ Main tasks:\n
 # Std libs
 import sys
 import logging
+import traceback
 
 # Own libs
 from constants import Meta, Error, Other
 from args_manager import ArgsManager
 from util import file_exists, set_up_logging
-from own_exceptions import BOAFlowException
+from exceptions import BOAFlowException
 import boa_internals
 
 def manage_args():
@@ -77,7 +78,8 @@ def main():
             raise BOAFlowException(message, rtn_code)
 
         # Set up the logging library
-        set_up_logging(filename=ArgsManager.args.log_file, level=ArgsManager.args.logging_level)
+        set_up_logging(filename=ArgsManager.args.log_file, level=ArgsManager.args.logging_level,
+                       display_when_file=ArgsManager.args.log_display)
 
         # Check if lang. file exists
         if not file_exists(ArgsManager.args.code_file):
@@ -119,7 +121,7 @@ def main():
         lifecycle_args = boa_internals.handle_boapm(boapm_instance, parser_rules, parser_env_vars)
 
         # Load modules
-        rtn = boa_internals.load_modules(modules)
+        rtn = boa_internals.load_modules(modules, rules_manager)
         rtn_code = rtn[0]
         mod_loader = rtn[1]
         fail_if_some_user_module_failed = False
@@ -167,6 +169,8 @@ def main():
         # Unexpected and unknown error.
 
         logging.error("BOA: %s", str(e))
+
+        traceback.print_exc()
 
         return Error.error_unknown
 

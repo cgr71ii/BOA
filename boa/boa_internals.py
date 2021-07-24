@@ -8,7 +8,7 @@ import logging
 
 # Own libs
 from args_manager import ArgsManager
-from own_exceptions import BOAPMInitializationError, BOAPMParseError,\
+from exceptions import BOAPMInitializationError, BOAPMParseError,\
                            BOALCException, BOAReportEnumTypeNotExpected,\
                            BOAModulesImporterException, BOAFlowException,\
                            BOAUnexpectedException, BOAReportException
@@ -19,12 +19,14 @@ from modules_importer import ModulesImporter
 from lifecycles.boalc_manager import BOALifeCycleManager
 from rules_manager import RulesManager
 
-def load_modules(user_modules):
+def load_modules(user_modules, rules_manager):
     """It handles the modules loading through ModulesImporter class.
 
     Arguments:
         user_modules (list): user modules (i.e. non-mandatory modules)
             to be loaded.
+        rules_manager (RulesManager): rules manager instance which
+            will allow us to get information.
 
     Raises:
         BOAFlowException: could not finish the expected behaviour of
@@ -51,7 +53,16 @@ def load_modules(user_modules):
         raise BOAFlowException("could not instantiate ModulesImporter",
                                Error.error_module_importer_could_not_be_instantiated) from e
 
-    mod_loader.load()
+    module_subdir = None
+
+    if rules_manager.rules["boa_rules"]["@analysis"] == "static":
+        module_subdir = Other.modules_subdir_static_analysis
+    elif rules_manager.rules["boa_rules"]["@analysis"] == "dynamic":
+        module_subdir = Other.modules_subdir_dynamic_analysis
+    else:
+        logging.warning("unexpected analysis attribute value: '%s'", rules_manager.rules["boa_rules"]["@analysis"])
+
+    mod_loader.load(module_subdir=module_subdir)
 
     # Check if mandatory or user modules failed
     mandatory_module_failed = False

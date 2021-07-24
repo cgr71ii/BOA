@@ -32,20 +32,22 @@ class ArgsManager:
         """
         # Mandatory
         self.parser.add_argument("code_file", metavar="code-file",
-                                 help="code file to analyze")
+                                 help="Code file to analyze")
         self.parser.add_argument("rules_file", metavar="rules-file",
-                                 help="rules file")
+                                 help="Rules file")
 
         # Optional
         self.parser.add_argument("-v", "--version", action="store_true",
-                                 help="show the version and exit")
+                                 help="Show the version and exit")
         self.parser.add_argument("--no-fail", action="store_true",
-                                 help="continue the execution even if some user module could not be loaded")
+                                 help="Continue the execution even if some user module could not be loaded")
         ## Logging
         self.parser.add_argument("--logging-level", metavar="N", type=int, default=20,
                                  help="Logging level. Default value is 30, which is INFO")
         self.parser.add_argument("--log-file", metavar="PATH",
-                                 help="if specified, the log will be dumped to this file besides to the standar error output")
+                                 help="If specified, the log will be dumped to the file instead of displayed to the standar error output")
+        self.parser.add_argument("--log-display", action="store_true",
+                                 help="If specified besides --log-file, the log will be also displayed to the standar error output")
 
     # It parses the arguments to easily check if they are correct
     def parse(self):
