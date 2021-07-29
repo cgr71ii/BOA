@@ -7,7 +7,7 @@ you want to use an AST and process each token separately.
 import logging
 
 # Own libs
-from lifecycles.boalc_abstract import BOALifeCycleAbstract
+from boalc_abstract import BOALifeCycleAbstract
 from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
 from util import is_key_in_dict
 

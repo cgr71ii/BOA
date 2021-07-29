@@ -20,7 +20,7 @@ class BOAParserModuleAbstract:
 
     This class is the base class for those class whose want to
     be a Parser Module to make operations relationed to a concrete
-    parser (e.g. pycparser). Those class has to inherit from this
+    parser (e.g. pycparser). Those classes have to inherit from this
     class in order to be possible to invoke the methods defined
     here.
     """

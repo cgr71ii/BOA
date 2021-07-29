@@ -19,14 +19,13 @@ from modules_importer import ModulesImporter
 from lifecycles.boalc_manager import BOALifeCycleManager
 from rules_manager import RulesManager
 
-def load_modules(user_modules, rules_manager):
+def load_modules(user_modules, analysis):
     """It handles the modules loading through ModulesImporter class.
 
     Arguments:
         user_modules (list): user modules (i.e. non-mandatory modules)
             to be loaded.
-        rules_manager (RulesManager): rules manager instance which
-            will allow us to get information.
+        analysis (str): information about which analysis we are running.
 
     Raises:
         BOAFlowException: could not finish the expected behaviour of
@@ -55,12 +54,12 @@ def load_modules(user_modules, rules_manager):
 
     module_subdir = None
 
-    if rules_manager.rules["boa_rules"]["@analysis"] == "static":
-        module_subdir = Other.modules_subdir_static_analysis
-    elif rules_manager.rules["boa_rules"]["@analysis"] == "dynamic":
-        module_subdir = Other.modules_subdir_dynamic_analysis
+    if analysis == "static":
+        module_subdir = Other.modules_static_analysis_subdir
+    elif analysis == "dynamic":
+        module_subdir = Other.modules_dynamic_analysis_subdir
     else:
-        logging.warning("unexpected analysis attribute value: '%s'", rules_manager.rules["boa_rules"]["@analysis"])
+        logging.warning("unexpected analysis attribute value: '%s'", analysis)
 
     mod_loader.load(module_subdir=module_subdir)
 
@@ -173,7 +172,7 @@ def get_boapm_instance(module_name, class_name, filename=None):
     if filename is None:
         filename = f"{module_name}.py"
 
-    file_path = f'{get_current_path(__file__)}/{Other.parser_modules_directory}'
+    file_path = f'{get_current_path(__file__)}/{Other.runners_static_analysis_directory}/{Other.parser_modules_directory}'
     abstract_instance = ModulesImporter.load_and_get_instance(Other.abstract_parser_module_name,
                                                               f'{file_path}/{Other.abstract_parser_module_filename}',
                                                               Other.abstract_parser_module_class_name)
@@ -290,7 +289,7 @@ def manage_rules_file():
 
     return rules_manager
 
-def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
+def manage_lifecycles(instances, reports, lifecycle_args, lifecycles, analysis):
     """It handles the lifecycles of the instances.
 
     Arguments:
@@ -299,6 +298,7 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
         lifecycle_args (dict): args to be used by the lifecycle.
         lifecycles (list): list of names in format
             "module_name.class_name" to be used.
+        analysis (str): information about which analysis we are running.
 
     Raises:
         BOAFlowException: could not finish the expected behaviour of
@@ -307,10 +307,20 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
     Returns:
         BOALifeCycleManager: BOALifeCycleManager instance
     """
+    lifecycle_subdir = None
+
+    if analysis == "static":
+        lifecycle_subdir = Other.lifecycle_static_analysis_subdir
+    elif analysis == "dynamic":
+        lifecycle_subdir = Other.lifecycle_dynamic_analysis_subdir
+    else:
+        logging.warning("unexpected analysis attribute value: '%s'", analysis)
+
     lifecycle_manager = None
     lifecycle_instances = []
     lifecycle_path = f"{get_current_path()}/"\
                      f"{Other.lifecycle_modules_directory}/"\
+                     f"{lifecycle_subdir}/"\
                      f"{Other.lifecycle_abstract_module_filename}"
     lifecycle_abstract_instance = ModulesImporter.load_and_get_instance(
         Other.lifecycle_abstract_module_name,
@@ -328,6 +338,7 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles):
         lifecycle_class_name = lifecycle_splitted[1]
         lifecycle_path = f"{get_current_path()}/"\
                          f"{Other.lifecycle_modules_directory}/"\
+                         f"{lifecycle_subdir}/"\
                          f"{lifecycle_module_name}.py"
 
         # Check if the lifecycle file exists

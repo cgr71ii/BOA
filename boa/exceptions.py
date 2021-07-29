@@ -112,6 +112,33 @@ class BOAPMParseError(Exception):
     module.
     """
 
+class BOACMInitializationError(Exception):
+    """BOACMInitializationError exception.
+
+    This exception should be raised when initialization is executed
+    and any error happens. It is a general exception and only this
+    exception should be raised in the *initialize* method in a
+    BOA caller module.
+    """
+
+class BOACMRunError(Exception):
+    """BOACMRunError exception.
+
+    This exception should be raised when the caller method is executed
+    and any error happens. It is a general exception and only this
+    exception should be raised in the *run* method in a BOA caller
+    module.
+    """
+
+class BOACMTearDownError(Exception):
+    """BOACMTearDownError exception.
+
+    This exception should be raised when the caller method is executed
+    and any error happens while is tearing down. It is a general exception
+    and only this exception should be raised in the *tear_down* method in
+    a BOA caller module.
+    """
+
 class BOALCException(Exception):
     """BOALCException exception.
 

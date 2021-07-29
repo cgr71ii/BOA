@@ -9,7 +9,7 @@ This class has 2 main goals:
 """
 
 # Own libs
-from lifecycles.boalc_abstract import BOALifeCycleAbstract
+from boalc_abstract import BOALifeCycleAbstract
 
 class BOALCBasic(BOALifeCycleAbstract):
     """BOALCBasic class.

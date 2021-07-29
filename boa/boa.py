@@ -17,11 +17,11 @@ import logging
 import traceback
 
 # Own libs
-from constants import Meta, Error, Other
+from constants import Meta, Error
 from args_manager import ArgsManager
 from util import file_exists, set_up_logging
 from exceptions import BOAFlowException
-import boa_internals
+import boa_utilities
 
 def manage_args():
     """It handles BOA's general args through ArgsManager class.
@@ -87,10 +87,10 @@ def main():
                                    Error.error_file_not_found)
 
         # Manage rules file
-        rules_manager = boa_internals.manage_rules_file()
+        rules_manager = boa_utilities.manage_rules_file()
 
         # Process all security modules and get the necessary information
-        processed_info_sec_mods = boa_internals.process_security_modules(rules_manager)
+        processed_info_sec_mods = boa_utilities.process_security_modules(rules_manager)
 
         modules = processed_info_sec_mods[0]
         classes = processed_info_sec_mods[1]
@@ -100,28 +100,31 @@ def main():
         lifecycles = processed_info_sec_mods[5]
 
         # Check if the dependencies are ok (detect cyclic dependencies and dependencies to itself)
-        dependencies_graph = boa_internals.check_dependencies(modules, classes, mods_dependencies)
+        dependencies_graph = boa_utilities.check_dependencies(modules, classes, mods_dependencies)
+
+        # Analysis
+        analysis = rules_manager.get_rules("boa_rules.@analysis")
 
         # Get the correct execution order to avoid dependencies problems
-        execution_order = boa_internals.get_execution_order(dependencies_graph)
+        execution_order = boa_utilities.get_execution_order(dependencies_graph)
 
         # Apply execution order
-        boa_internals.apply_execution_order(execution_order, modules, classes, reports, lifecycles)
+        boa_utilities.apply_execution_order(execution_order, modules, classes, reports, lifecycles)
 
         # Parser module
         parser_rules = rules_manager.get_rules("boa_rules.parser")
 
         # Get parser module instance
-        boapm_instance = boa_internals.get_boapm_instance(parser_rules['module_name'], parser_rules['class_name'])
+        boapm_instance = boa_utilities.get_boapm_instance(parser_rules['module_name'], parser_rules['class_name'])
 
         # Get environment variables for the parser module
-        parser_env_vars = boa_internals.get_parser_env_vars(parser_rules)
+        parser_env_vars = boa_utilities.get_parser_env_vars(parser_rules)
 
         # Handle parser module and get the result for the lifecycle
-        lifecycle_args = boa_internals.handle_boapm(boapm_instance, parser_rules, parser_env_vars)
+        lifecycle_args = boa_utilities.handle_boapm(boapm_instance, parser_rules, parser_env_vars)
 
         # Load modules
-        rtn = boa_internals.load_modules(modules, rules_manager)
+        rtn = boa_utilities.load_modules(modules, analysis)
         rtn_code = rtn[0]
         mod_loader = rtn[1]
         fail_if_some_user_module_failed = False
@@ -135,16 +138,17 @@ def main():
             raise BOAFlowException("a security module failed", rtn_code)
 
         # Remove not loaded modules
-        boa_internals.remove_not_loaded_modules(mod_loader, modules, classes, mods_args,
+        boa_utilities.remove_not_loaded_modules(mod_loader, modules, classes, mods_args,
                                                 mods_dependencies, reports, lifecycles)
 
         # Load rules and instances with that rules as args
-        instances = boa_internals.load_instances(modules, classes, mods_args,
+        instances = boa_utilities.load_instances(modules, classes, mods_args,
                                                  mod_loader, rules_manager)
 
         # It handles the lifecycles
-        lifecycle_handler = boa_internals.manage_lifecycles(instances, reports,
-                                                            lifecycle_args, lifecycles)
+        lifecycle_handler = boa_utilities.manage_lifecycles(instances, reports,
+                                                            lifecycle_args, lifecycles,
+                                                            analysis)
 
         # Display all the found threats
         report = lifecycle_handler.get_final_report()
