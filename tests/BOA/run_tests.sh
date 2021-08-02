@@ -6,7 +6,7 @@ export PYTHONPATH="$DIR/../../boa"
 
 echo "PYTHONPATH set to: $PYTHONPATH"
 
-for test_file in $DIR/*.py; do
+for test_file in $DIR/tests/*.py; do
     test_name=$(basename $test_file)
     test_name_length=$(expr ${#test_name} + 0)
     echo ""

@@ -6,6 +6,9 @@ import sys
 import os
 import copy
 
+def get_script_dir():
+    return os.path.dirname(os.path.realpath(__file__))
+
 class BOAReportMethods(unittest.TestCase):
 
     def get_module(self, module, path):
@@ -29,20 +32,17 @@ class BOAReportMethods(unittest.TestCase):
 
         return loaded_module
 
-    def get_instance(self, module, class_name):
-        return getattr(sys.modules[module], class_name)
-
     def setUp(self):
         try:
             self.severity_syslog = self.get_module(
                 "SeveritySyslog",
-                f"{os.path.dirname(os.path.realpath(__file__))}/../../boa/enumerations/severity/severity_syslog.py").SeveritySyslog
+                f"{get_script_dir()}/../../../boa/enumerations/severity/severity_syslog.py").SeveritySyslog
             self.severity_function_match = self.get_module(
                 "SeverityFunctionMatch",
-                f"{os.path.dirname(os.path.realpath(__file__))}/../../boa/enumerations/severity/severity_function_match.py").SeverityFunctionMatch
+                f"{get_script_dir()}/../../../boa/enumerations/severity/severity_function_match.py").SeverityFunctionMatch
             self.report = self.get_module(
                 "BOARStdout",
-                f"{os.path.dirname(os.path.realpath(__file__))}/../../boa/reports/boar_stdout.py").BOARStdout
+                f"{get_script_dir()}/../../../boa/reports/boar_stdout.py").BOARStdout
         except Exception as e:
             sys.stderr.write(f"{e}\n")
 
