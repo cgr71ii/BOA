@@ -8,7 +8,7 @@ import logging
 # Own libs
 from boam_abstract import BOAModuleAbstract
 from constants import Meta
-from util import is_key_in_dict
+from utils import is_key_in_dict
 
 class BOAModuleTest(BOAModuleAbstract):
     """BOAModuleTest class. It implements the class BOAModuleAbstract.

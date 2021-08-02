@@ -10,7 +10,7 @@ import logging
 
 # Own libs
 from exceptions import BOAReportException
-from util import is_key_in_dict
+from utils import is_key_in_dict
 from reports.boar_abstract import BOAReportAbstract
 
 # TODO finish

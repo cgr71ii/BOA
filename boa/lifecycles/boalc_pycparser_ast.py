@@ -9,7 +9,8 @@ import logging
 # Own libs
 from boalc_abstract import BOALifeCycleAbstract
 from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
-from util import is_key_in_dict
+from utils import is_key_in_dict
+from exceptions import BOALCAnalysisException
 
 class BOALCPycparserAST(BOALifeCycleAbstract):
     """BOALCPycparserAST class.
@@ -17,6 +18,14 @@ class BOALCPycparserAST(BOALifeCycleAbstract):
     It implements the necessary logic to process each token
     and not just give all the AST to the *process* method.
     """
+
+    def raise_exception_if_non_valid_analysis(self):
+        """This analysis is only compatible with static analysis
+        """
+        if self.analysis != "static":
+            raise BOALCAnalysisException(f"lifecycle '{self.who_i_am}' is only"
+                                         " compatible with 'static' analysis, but"
+                                         f" actual was '{self.analysis}'")
 
     def execute_lifecycle(self):
         """It invokes the next methods:

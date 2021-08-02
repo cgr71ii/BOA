@@ -12,7 +12,7 @@ from pycparser import parse_file
 
 # Own libs
 from boapm_abstract import BOAParserModuleAbstract
-from util import is_key_in_dict
+from utils import is_key_in_dict
 from exceptions import ParseError, BOAPMParseError
 
 class BOAPMPycparser(BOAParserModuleAbstract):
@@ -57,7 +57,7 @@ class BOAPMPycparser(BOAParserModuleAbstract):
         except ParseError as e:
             raise BOAPMParseError(f"could not parse the file '{self.path_to_file}'") from e
         except Exception as e:
-            raise BOAPMParseError(f"could not parse the file '{self.path_to_file}' (if  preprocessor directives are being used (e.g."
+            raise BOAPMParseError(f"could not parse the file '{self.path_to_file}' (if preprocessor directives are being used (e.g."
                                   " #include), try defining the environment variable"
                                   f" 'PYCPARSER_FAKE_LIBC_INCLUDE_PATH' in order to solve the problem)") from e
 

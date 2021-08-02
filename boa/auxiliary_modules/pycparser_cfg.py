@@ -6,8 +6,8 @@ data structure.
 import pycparser.c_ast as ast
 
 # Own libs
-from util import is_key_in_dict, get_just_type
-import auxiliary_modules.pycparser_util as pycutil
+from utils import is_key_in_dict, get_just_type
+import auxiliary_modules.pycparser_utils as pycutil
 
 class FinalNode(ast.EmptyStatement):
     """Empty pycparser statement which is a reference

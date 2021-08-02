@@ -19,7 +19,7 @@ import traceback
 # Own libs
 from constants import Meta, Error
 from args_manager import ArgsManager
-from util import file_exists, set_up_logging
+from utils import file_exists, set_up_logging
 from exceptions import BOAFlowException
 import boa_utilities
 
@@ -163,6 +163,9 @@ def main():
         if e.message:
             logging.error("BOA: %s", e.message)
 
+        if ArgsManager.args.print_traceback:
+            traceback.print_exc()
+
         if e.error_code:
             return e.error_code
 
@@ -174,7 +177,8 @@ def main():
 
         logging.error("BOA: %s", str(e))
 
-        traceback.print_exc()
+        if ArgsManager.args.print_traceback:
+            traceback.print_exc()
 
         return Error.error_unknown
 

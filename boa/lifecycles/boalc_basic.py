@@ -18,6 +18,10 @@ class BOALCBasic(BOALifeCycleAbstract):
     the necessary methods.
     """
 
+    def raise_exception_if_non_valid_analysis(self):
+        """This lifecycle is compatible with all analysis
+        """
+
     def execute_lifecycle(self):
         """It invokes the next methods:
 

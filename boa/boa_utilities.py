@@ -8,12 +8,9 @@ import logging
 
 # Own libs
 from args_manager import ArgsManager
-from exceptions import BOAPMInitializationError, BOAPMParseError,\
-                           BOALCException, BOAReportEnumTypeNotExpected,\
-                           BOAModulesImporterException, BOAFlowException,\
-                           BOAUnexpectedException, BOAReportException
-from util import is_key_in_dict, file_exists, get_current_path,\
-                 invoke_by_name, get_name_from_class_instance, is_graph_cyclic
+import exceptions
+from exceptions import BOAFlowException
+import utils
 from constants import Meta, Error, Other
 from modules_importer import ModulesImporter
 from lifecycles.boalc_manager import BOALifeCycleManager
@@ -48,7 +45,7 @@ def load_modules(user_modules, analysis):
 
     try:
         mod_loader = ModulesImporter(modules)
-    except BOAModulesImporterException as e:
+    except exceptions.BOAModulesImporterException as e:
         raise BOAFlowException("could not instantiate ModulesImporter",
                                Error.error_module_importer_could_not_be_instantiated) from e
 
@@ -112,7 +109,7 @@ def load_instance(module_loader, module_name, class_name, module_args,
 
     Note:
         All the modules has to inherit from *constants.Meta.
-        abstract_parser_module_class_name*.
+        abstract_module_class_name*.
     """
     instance = module_loader.get_instance(module_name, class_name)
     abstract_instance = module_loader.get_instance(Other.abstract_module_name,
@@ -129,7 +126,7 @@ def load_instance(module_loader, module_name, class_name, module_args,
                       Other.abstract_module_class_name)
         return [Error.error_module_not_expected_type, None]
 
-    if is_key_in_dict(module_args, Other.other_argument_name_for_dependencies_in_modules):
+    if utils.is_key_in_dict(module_args, Other.other_argument_name_for_dependencies_in_modules):
         raise BOAFlowException("argument"
                                f" '{Other.other_argument_name_for_dependencies_in_modules}'"
                                " must not be defined because it is used for intenal purposes"
@@ -172,7 +169,7 @@ def get_boapm_instance(module_name, class_name, filename=None):
     if filename is None:
         filename = f"{module_name}.py"
 
-    file_path = f'{get_current_path(__file__)}/{Other.runners_static_analysis_directory}/{Other.parser_modules_directory}'
+    file_path = f'{utils.get_current_path(__file__)}/{Other.runners_static_analysis_directory}/{Other.parser_modules_directory}'
     abstract_instance = ModulesImporter.load_and_get_instance(Other.abstract_parser_module_name,
                                                               f'{file_path}/{Other.abstract_parser_module_filename}',
                                                               Other.abstract_parser_module_class_name)
@@ -182,7 +179,7 @@ def get_boapm_instance(module_name, class_name, filename=None):
         raise BOAFlowException("could not load and get an instance of "
                                f"'{Other.abstract_parser_module_name}.{Other.abstract_parser_module_class_name}'",
                                Error.error_parser_module_abstract_not_loaded)
-    if not file_exists(file_path):
+    if not utils.file_exists(file_path):
         raise BOAFlowException(f"file '{file_path}' not found",
                                Error.error_parser_module_not_found)
 
@@ -239,7 +236,7 @@ def remove_not_loaded_modules(mod_loader, modules, classes, mods_args,
 
             mods_args.pop(f"{removed_module}.{removed_class}")
 
-            if is_key_in_dict(mods_dependencies, f"{removed_module}.{removed_class}"):
+            if utils.is_key_in_dict(mods_dependencies, f"{removed_module}.{removed_class}"):
                 mods_dependencies.pop(f"{removed_module}.{removed_class}")
 
             reports.pop(index)
@@ -307,20 +304,10 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles, analysis):
     Returns:
         BOALifeCycleManager: BOALifeCycleManager instance
     """
-    lifecycle_subdir = None
-
-    if analysis == "static":
-        lifecycle_subdir = Other.lifecycle_static_analysis_subdir
-    elif analysis == "dynamic":
-        lifecycle_subdir = Other.lifecycle_dynamic_analysis_subdir
-    else:
-        logging.warning("unexpected analysis attribute value: '%s'", analysis)
-
     lifecycle_manager = None
     lifecycle_instances = []
-    lifecycle_path = f"{get_current_path()}/"\
+    lifecycle_path = f"{utils.get_current_path(__file__)}/"\
                      f"{Other.lifecycle_modules_directory}/"\
-                     f"{lifecycle_subdir}/"\
                      f"{Other.lifecycle_abstract_module_filename}"
     lifecycle_abstract_instance = ModulesImporter.load_and_get_instance(
         Other.lifecycle_abstract_module_name,
@@ -336,13 +323,12 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles, analysis):
         lifecycle_splitted = lifecycle.split('.')
         lifecycle_module_name = lifecycle_splitted[0]
         lifecycle_class_name = lifecycle_splitted[1]
-        lifecycle_path = f"{get_current_path()}/"\
+        lifecycle_path = f"{utils.get_current_path(__file__)}/"\
                          f"{Other.lifecycle_modules_directory}/"\
-                         f"{lifecycle_subdir}/"\
                          f"{lifecycle_module_name}.py"
 
         # Check if the lifecycle file exists
-        if not file_exists(lifecycle_path):
+        if not utils.file_exists(lifecycle_path):
             raise BOAFlowException("could not found the lifecycle "
                                    f"module '{lifecycle_module_name}'",
                                    Error.error_lifecycle_module_not_found)
@@ -368,12 +354,14 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles, analysis):
 
     # Manage the lifecycles
     try:
-        lifecycle_manager = BOALifeCycleManager(instances, reports, lifecycle_args, lifecycle_instances)
+        lifecycle_manager = BOALifeCycleManager(instances, reports, lifecycle_args, lifecycle_instances, analysis)
 
         rtn_code = lifecycle_manager.handle_lifecycle()
-    except BOALCException as e:
+    except exceptions.BOALCAnalysisException as e:
+        raise BOAFlowException(f"lifecycle wrong analysis: {str(e)}", Error.error_lifecycle_wrong_analysis) from e
+    except exceptions.BOALCException as e:
         raise BOAFlowException("lifecycle exception", Error.error_lifecycle_exception) from e
-    except BOAReportException as e:
+    except exceptions.BOAReportException as e:
         raise BOAFlowException("report exception", Error.error_report_unknown) from e
     except Exception as e:
         raise BOAFlowException("unknown reason", Error.error_lifecycle_exception) from e
@@ -408,7 +396,7 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
     """
     # Initialize the instance and other necessary information
     boapm_instance = boapm_instance(ArgsManager.args.code_file, environment_variable_names)
-    boapm_instance_name = get_name_from_class_instance(boapm_instance)
+    boapm_instance_name = utils.get_name_from_class_instance(boapm_instance)
     callbacks = parser_rules["callback"]["method"]
     names = []
     methods = []
@@ -418,10 +406,10 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
     try:
         boapm_instance.initialize()
         boapm_instance.parse()
-    except BOAPMInitializationError as e:
+    except exceptions.BOAPMInitializationError as e:
         raise BOAFlowException(f"'{boapm_instance_name}.initialize()'",
                                Error.error_parser_module_failed_in_initialization) from e
-    except BOAPMParseError as e:
+    except exceptions.BOAPMParseError as e:
         raise BOAFlowException(f"'{boapm_instance_name}.parse()'",
                                Error.error_parser_module_failed_in_parsing) from e
     except Exception as e:
@@ -449,10 +437,10 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
     error = False
 
     for name, method in zip(names, methods):
-        result = invoke_by_name(boapm_instance, method)
+        result = utils.invoke_by_name(boapm_instance, method)
 
         # Checking is made with "is" becase we want to check the reference, not the value!
-        # Check function "util.invoke_by_name" in order to understand the following checking
+        # Check function "utils.invoke_by_name" in order to understand the following checking
         if result is not Other.other_util_invoke_by_name_error_return:
             boapm_results[name] = result
         else:
@@ -517,7 +505,7 @@ def get_boar_instance(module_name, class_name, filename=None):
     if filename is None:
         filename = f"{module_name}.py"
 
-    file_path = f'{get_current_path(__file__)}/{Other.report_modules_directory}'
+    file_path = f'{utils.get_current_path(__file__)}/{Other.report_modules_directory}'
     abstract_instance = ModulesImporter.load_and_get_instance(Other.report_abstract_module_name,
                                                               f'{file_path}/{Other.report_abstract_module_filename}',
                                                               Other.report_abstract_module_class_name)
@@ -527,7 +515,7 @@ def get_boar_instance(module_name, class_name, filename=None):
         raise BOAFlowException("could not load and get an instance of "
                                f"'{Other.report_abstract_module_name}.{Other.report_abstract_module_class_name}'",
                                Error.error_report_module_abstract_not_loaded)
-    if not file_exists(file_path):
+    if not utils.file_exists(file_path):
         raise BOAFlowException(f"file '{file_path}' not found",
                                Error.error_report_module_not_found)
 
@@ -568,17 +556,17 @@ def handle_boar(rules_manager, severity_enum_instance):
     report_default_handler = Other.other_report_default_handler.split(".")
 
     if (not report_default_handler or len(report_default_handler) != 2):
-        raise BOAUnexpectedException("the default report handler has not the expected value:"
-                                     f" '{Other.other_report_default_handler}'")
+        raise exceptions.BOAUnexpectedException("the default report handler has not the expected value:"
+                                                f" '{Other.other_report_default_handler}'")
 
     report_module_name = report_default_handler[0]
     report_class_name = report_default_handler[1]
     report_args = rules_manager.get_report_args()
     report_rules = rules_manager.get_rules("boa_rules.report")
 
-    if is_key_in_dict(report_rules, "module_name"):
+    if utils.is_key_in_dict(report_rules, "module_name"):
         report_module_name = report_rules["module_name"]
-    if is_key_in_dict(report_rules, "class_name"):
+    if utils.is_key_in_dict(report_rules, "class_name"):
         report_class_name = report_rules["class_name"]
 
     # Get instance
@@ -637,13 +625,13 @@ def process_security_modules(rules_manager):
         classes.append(class_name)
         lifecycles.append(lifecycle)
 
-        if not is_key_in_dict(args, f"{module_name}.{class_name}"):
+        if not utils.is_key_in_dict(args, f"{module_name}.{class_name}"):
             raise BOAFlowException(f"args for module '{module_name}.{class_name} not found'",
                                    Error.error_rules_args_not_found)
 
-        severity_enum_path = f"{get_current_path()}/enumerations/severity/{severity_enum_module_name}.py"
+        severity_enum_path = f"{utils.get_current_path(__file__)}/enumerations/severity/{severity_enum_module_name}.py"
 
-        if not file_exists(severity_enum_path):
+        if not utils.file_exists(severity_enum_path):
             raise BOAFlowException("could not found the severity enumeration"
                                    f" module '{severity_enum_module_name}'",
                                    Error.error_report_severity_enum_module_not_found)
@@ -662,10 +650,10 @@ def process_security_modules(rules_manager):
         try:
             #report = Report(severity_enum_instance)
             report = handle_boar(rules_manager, severity_enum_instance)
-        except BOAReportEnumTypeNotExpected as e:
+        except exceptions.BOAReportEnumTypeNotExpected as e:
             raise BOAFlowException(f"severity enum type not expected: '{severity_enum_name}'",
                                    Error.error_report_severity_enum_not_expected) from e
-        except BOAUnexpectedException as e:
+        except exceptions.BOAUnexpectedException as e:
             raise BOAFlowException("unexpected exception", Error.error_report_unknown) from e
         except BOAFlowException as e:
             raise e
@@ -678,7 +666,7 @@ def process_security_modules(rules_manager):
              args[f"{module_name}.{class_name}"]
 
         # Set dependencies if exist (are optional)
-        if is_key_in_dict(dependencies, f"{module_name}.{class_name}"):
+        if utils.is_key_in_dict(dependencies, f"{module_name}.{class_name}"):
             mods_dependencies[f"{module_name}.{class_name}"] = \
                  dependencies[f"{module_name}.{class_name}"]
 
@@ -829,19 +817,19 @@ def check_dependencies(modules, classes, mods_dependencies):
                                        Error.error_module_dependency_itself)
 
             # Fill dependencies graph
-            if not is_key_in_dict(dependencies_graph, key_module):
+            if not utils.is_key_in_dict(dependencies_graph, key_module):
                 dependencies_graph[key_module] = []
 
             dependencies_graph[key_module].append(key_mod_dependecie)
 
     # If there are not dependencies for a concrete module, is not initialized, so we have to
     for dependency_name in dependencies_names:
-        if not is_key_in_dict(dependencies_graph, dependency_name):
+        if not utils.is_key_in_dict(dependencies_graph, dependency_name):
             # Initialize modules without dependencies
             dependencies_graph[dependency_name] = []
 
     # Check if the dependencies are cyclic
-    if is_graph_cyclic(dependencies_graph):
+    if utils.is_graph_cyclic(dependencies_graph):
         raise BOAFlowException(f"cyclic dependencies detected",
                                Error.error_module_dependencies_cyclic)
 

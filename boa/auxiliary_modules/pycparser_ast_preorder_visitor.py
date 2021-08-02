@@ -8,7 +8,7 @@ make a preorder path through the AST.
 from pycparser.c_ast import NodeVisitor
 
 # Own libs
-from util import do_nothing
+from utils import do_nothing
 
 class PreorderVisitor(NodeVisitor):
     """PreorderVisitor class. It implements the NodeVisitor class.
@@ -24,7 +24,7 @@ class PreorderVisitor(NodeVisitor):
 
         Arguments:
             callback: callback to be invoked after. If *None*,
-                *util.do_nothing* will be invoked instead. When
+                *utils.do_nothing* will be invoked instead. When
                 callback is invoked, the current Pycparser node
                 is set as parameter.
         """

@@ -6,7 +6,7 @@ uses through all the files (the custom ones).
 """
 
 # Own libs
-from util import get_name_from_class_instance
+from utils import get_name_from_class_instance
 
 class ParseError(Exception):
     """ParseError exception.
@@ -146,6 +146,13 @@ class BOALCException(Exception):
     of a BOA lifecycle. Other exceptions might be raised, but this one
     will give specific information about the error to know that the
     exception has been raised because a BOA lifecycle.
+    """
+
+class BOALCAnalysisException(Exception):
+    """BOALCAnalysisException exception.
+
+    This exception should be raised when a lifecycle has been initialized
+    for an incompatible analysis.
     """
 
 class BOAModulesImporterException(Exception):

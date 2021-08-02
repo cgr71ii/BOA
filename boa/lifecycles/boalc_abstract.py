@@ -8,7 +8,7 @@ in this file, an error will be raised.
 from abc import abstractmethod
 
 # Own libs
-from util import get_name_from_class_instance
+from utils import get_name_from_class_instance
 
 class BOALifeCycleAbstract:
     """BOALifeCycleAbstract class.
@@ -19,14 +19,29 @@ class BOALifeCycleAbstract:
     which contains the given arguments throught the rules file).
     """
 
-    def __init__(self, instance, report, lifecycle_args, execute_method_callback):
+    def __init__(self, instance, report, lifecycle_args, execute_method_callback, analysis):
         """It initializes the class.
         """
         self.instance = instance
         self.report = report
         self.args = lifecycle_args
         self.execute_method = execute_method_callback
+        self.analysis = analysis
         self.who_i_am = get_name_from_class_instance(self)
+
+        # Check if the selected analysis is valid for the current lifecycle
+        self.raise_exception_if_non_valid_analysis()
+
+    @abstractmethod
+    def raise_exception_if_non_valid_analysis(self):
+        """Method which will be executed when a lifecycle has been initialized
+        and should raise an exception if the analysis is not valid for the
+        lifecycle.
+
+        Raises:
+            BOALCAnalysisException: when the selected analysis is not compatible
+                with the lifecycle.
+        """
 
     @abstractmethod
     def execute_lifecycle(self):

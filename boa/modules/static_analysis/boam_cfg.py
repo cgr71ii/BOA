@@ -12,10 +12,10 @@ import pycparser.c_ast as ast
 
 # Own libs
 from boam_abstract import BOAModuleAbstract
-from util import is_key_in_dict, get_just_type
+from utils import is_key_in_dict, get_just_type
 from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
 import auxiliary_modules.pycparser_cfg as cfg
-import auxiliary_modules.pycparser_util as pycutil
+import auxiliary_modules.pycparser_utils as pycutil
 from exceptions import BOAModuleException
 
 __matplotlib_loaded__ = False

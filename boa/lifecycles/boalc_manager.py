@@ -11,7 +11,7 @@ import logging
 
 # Own libs
 from constants import Meta, Error
-from util import get_name_from_class_instance
+from utils import get_name_from_class_instance
 from exceptions import BOAModuleException, BOALCException
 
 class BOALifeCycleManager:
@@ -25,7 +25,7 @@ class BOALifeCycleManager:
     used by a concrete module.
     """
 
-    def __init__(self, instances, reports, lifecycle_args, lifecycle_instances):
+    def __init__(self, instances, reports, lifecycle_args, lifecycle_instances, analysis):
         """It initializes all the variables which will be used by
         the other methods.
 
@@ -35,6 +35,7 @@ class BOALifeCycleManager:
             lifecycle_args (dict): args to be used by the lifecycles.
             lifecycle_instances (list): instances of lifecycles to
                 be used by the *instances*.
+            analysis (str): information about which analysis we are running.
         """
         self.instances = instances
         self.reports = reports
@@ -43,6 +44,7 @@ class BOALifeCycleManager:
         self.lifecycle_args = lifecycle_args
         self.rtn_code = Meta.ok_code
         self.lifecycle_instances = lifecycle_instances
+        self.analysis = analysis
 
         if len(self.instances) != len(self.reports):
             raise BOALCException("len(instances) is not equal to len(reports)")
@@ -63,7 +65,8 @@ class BOALifeCycleManager:
                 self.instances[index],
                 self.final_report,
                 self.lifecycle_args,
-                self.execute_instance_method
+                self.execute_instance_method,
+                self.analysis
             )
 
             index += 1

@@ -16,7 +16,7 @@ from abc import abstractmethod
 import logging
 
 # Own libs
-from util import get_name_from_class_instance
+from utils import get_name_from_class_instance
 from constants import Other
 
 # This  file name has to match with constants.Meta.abstract_module_name

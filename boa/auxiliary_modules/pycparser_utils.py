@@ -10,7 +10,7 @@ import pycparser.c_ast as ast
 
 # Own imports
 from auxiliary_modules.pycparser_ast_preorder_visitor import PreorderVisitor
-from util import get_just_type, is_key_in_dict
+from utils import get_just_type, is_key_in_dict
 
 class PycparserException(Exception):
     """PycparserException exception.

@@ -82,6 +82,7 @@ class Error:
     error_lifecycle_could_not_load_abstract_instance = 43
     error_lifecycle_could_not_load_instance = 44
     error_lifecycle_not_expected_type = 45
+    error_lifecycle_wrong_analysis = 46
 
     # Report errors
     error_report_args_not_optional = 500

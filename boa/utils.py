@@ -8,10 +8,9 @@ This file does not have a concrete goal.
 """
 
 # Std libs
-from __future__ import print_function
-import sys
 import os
 import re
+import sys
 import logging
 
 # Own libs

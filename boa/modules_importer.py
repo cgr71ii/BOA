@@ -10,7 +10,7 @@ import sys
 
 # Own libs
 from constants import Other
-from util import get_current_path, file_exists, is_key_in_dict
+from utils import get_current_path, file_exists, is_key_in_dict
 from exceptions import BOAModuleNotLoaded, BOAModulesImporterException
 
 class ModulesImporter:

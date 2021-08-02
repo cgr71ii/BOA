@@ -9,7 +9,7 @@ must be deal with the execution and other optional steps
 from abc import abstractmethod
 
 # Own libs
-from util import get_name_from_class_instance
+from utils import get_name_from_class_instance
 
 # This  file name has to match with constants.Meta.abstract_caller_module_name
 # This class name has to match with constants.Meta.abstract_caller_module_class_name

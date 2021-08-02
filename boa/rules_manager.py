@@ -27,7 +27,7 @@ import xmltodict
 
 # Own libs
 from constants import Meta, Error, Other, Regex
-from util import is_key_in_dict, get_index_if_match_element_in_tuples
+from utils import is_key_in_dict, get_index_if_match_element_in_tuples
 from exceptions import BOARulesUnexpectedFormat, BOARulesIncomplete, BOARulesError
 
 class RulesManager:
@@ -952,7 +952,7 @@ class RulesManager:
         Arguments:
             module (str): instance identification as string. The
                 expected format is (without quotes): "module_name
-                .class_name". Check *util.get_name_from_class_instance*.
+                .class_name". Check *utils.get_name_from_class_instance*.
             arg (dict): the new args for the module.
 
         Returns:
@@ -982,7 +982,7 @@ class RulesManager:
             module (str): module from which args are going
                 to be returned. The expected format is
                 (without quotes): "module_name.class_name".
-                Check *util.get_name_from_class_instance*.
+                Check *utils.get_name_from_class_instance*.
                 The default value is *None*.
 
         Returns:
@@ -1008,7 +1008,7 @@ class RulesManager:
         Arguments:
             module (str): instance identification as string. The
                 expected format is (without quotes): "module_name
-                .class_name". Check *util.get_name_from_class_instance*.
+                .class_name". Check *utils.get_name_from_class_instance*.
             dependencies (dict): the new dependencies for the module.
 
         Returns:
@@ -1045,7 +1045,7 @@ class RulesManager:
             module (str): module from which args are going
                 to be returned. The expected format is
                 (without quotes): "module_name.class_name".
-                Check *util.get_name_from_class_instance*.
+                Check *utils.get_name_from_class_instance*.
                 The default value is *None*.
 
         Returns:

@@ -11,7 +11,7 @@ from abc import abstractmethod
 import logging
 
 # Own libs
-from util import get_environment_varibles, get_name_from_class_instance
+from utils import get_environment_varibles, get_name_from_class_instance
 
 # This  file name has to match with constants.Meta.abstract_parser_module_name
 # This class name has to match with constants.Meta.abstract_parser_module_class_name

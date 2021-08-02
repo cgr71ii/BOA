@@ -25,9 +25,9 @@ import logging
 # Own libs
 from constants import Meta
 from boam_abstract import BOAModuleAbstract
-from util import is_key_in_dict, get_just_type
+from utils import is_key_in_dict, get_just_type
 from exceptions import BOAModuleException
-import auxiliary_modules.pycparser_util as pycutil
+import auxiliary_modules.pycparser_utils as pycutil
 import auxiliary_modules.pycparser_cfg as pycfg
 
 # 3rd libs

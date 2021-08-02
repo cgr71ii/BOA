@@ -41,6 +41,9 @@ class ArgsManager:
                                  help="Show the version and exit")
         self.parser.add_argument("--no-fail", action="store_true",
                                  help="Continue the execution even if some user module could not be loaded")
+        ## Debug
+        self.parser.add_argument("--print-traceback", action="store_true",
+                                 help="Print traceback when an exception is raised")
         ## Logging
         self.parser.add_argument("--logging-level", metavar="N", type=int, default=20,
                                  help="Logging level. Default value is 30, which is INFO")
