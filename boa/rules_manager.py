@@ -429,40 +429,41 @@ class RulesManager:
                 number of rules or when a concrete rule is not
                 found.
         """
-        # Check if main tag is defined
-        is_key_in_dict(self.rules, "boa_rules", split=".",
-                       raise_exception=BOARulesIncomplete,
-                       exception_args="'boa_rules'")
+        mandatory_rules = ("boa_rules", "boa_rules.@analysis", "boa_rules.parser",
+                           "boa_rules.modules", "boa_rules.report")
+        optional_rules = ("boa_rules.env_vars",)
+        total_optional_rules = 0
 
-        # Check if there are the expected #elements in the main element
-        if len(self.rules["boa_rules"]) != 4:
+        # Check mandatory rules
+        for rule in mandatory_rules:
+            is_key_in_dict(self.rules, rule, split=".",
+                           raise_exception=BOARulesIncomplete,
+                           exception_args=f"'{rule}'")
+
+        # Check optional rules
+        for rule in optional_rules:
+            if is_key_in_dict(self.rules, rule, split="."):
+                total_optional_rules += 1
+            else:
+                # Set None to optional rules which were not set
+                keys = rule.split(".")
+                value = self.rules
+
+                for key in keys:
+                    try:
+                        value = value[key]
+                    except KeyError:
+                        value[key] = None
+
+        # Check if the number of rules are the expected
+        if len(self.rules["boa_rules"]) != len(mandatory_rules) - 1 + total_optional_rules:
             raise BOARulesIncomplete("'boa_rules' has not the expected #elements")
-        
-        # Check if is defined the analysis attribute
-        is_key_in_dict(self.rules, "boa_rules.@analysis", split=".",
-                       raise_exception=BOARulesIncomplete,
-                       exception_args="'boa_rules.@analysis'")
+
 
         # Check if the analysis attribute contains a valid value
         if self.rules["boa_rules"]["@analysis"] not in Other.other_valid_analysis:
             raise BOARulesUnexpectedFormat("unexpected value in 'boa_rules.@analysis'. "
                                            f"Valid values are: {str(Other.other_valid_analysis)[1:-1]}")
-
-        # Check if is defined the parser tag
-        is_key_in_dict(self.rules, "boa_rules.parser", split=".",
-                       raise_exception=BOARulesIncomplete,
-                       exception_args="'boa_rules.parser'")
-
-        # Check if is defined the modules tag
-        is_key_in_dict(self.rules, "boa_rules.modules", split=".",
-                       raise_exception=BOARulesIncomplete,
-                       exception_args="'boa_rules.modules'")
-
-        # Check if is defined the report tab
-        is_key_in_dict(self.rules, "boa_rules.report", split=".",
-                       raise_exception=BOARulesIncomplete,
-                       exception_args="'boa_rules.report'")
-
 
     def check_rules_parser(self):
         """It makes the checks relative to the parser.
@@ -474,7 +475,7 @@ class RulesManager:
                 found.
         """
         # Check if there are the expected #elements in the parser element
-        if len(self.rules["boa_rules"]["parser"]) != 6:
+        if len(self.rules["boa_rules"]["parser"]) != 5:
             raise BOARulesIncomplete("'boa_rules.parser' has not the expected #elements")
 
         # Check if the expected elements are in the parser element
@@ -496,17 +497,10 @@ class RulesManager:
         is_key_in_dict(self.rules, "boa_rules.parser.callback.method", split=".",
                        raise_exception=BOARulesIncomplete,
                        exception_args="'boa_rules.parser.callback.method'")
-        is_key_in_dict(self.rules, "boa_rules.parser.env_vars", split=".",
-                       raise_exception=BOARulesIncomplete,
-                       exception_args="'boa_rules.parser.env_vars'")
 
         # Check concrete restrictions about the elements of the parser element
         if len(self.rules["boa_rules"]["parser"]["callback"]) != 1:
             raise BOARulesIncomplete("'boa_rules.parser.callback' has not"
-                                     " the expected #elements")
-        if (self.rules["boa_rules"]["parser"]["env_vars"] and
-                len(self.rules["boa_rules"]["parser"]["env_vars"]) != 1):
-            raise BOARulesIncomplete("'boa_rules.parser.env_vars' has not"
                                      " the expected #elements")
 
         is_key_in_dict(self.rules, "boa_rules.parser.callback.method", split=".",

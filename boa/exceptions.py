@@ -162,6 +162,13 @@ class BOAModulesImporterException(Exception):
     *ModulesImporter* class.
     """
 
+class BOAEnvvarException(Exception):
+    """BOAEnvvarException exception.
+
+    This exception should be raised when something related to envvars
+    cannot be skipped (e.g. mandatory envvar not defined).
+    """
+
 class BOAFlowException(Exception):
     """BOAFlowException exception.
 

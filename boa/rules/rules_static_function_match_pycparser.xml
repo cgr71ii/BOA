@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <boa_rules analysis="static">
+    <env_vars>
+        <env_var mandatory="true">PYCPARSER_FAKE_LIBC_INCLUDE_PATH</env_var>
+        <env_var>PYCPARSER_CPP_ARGS</env_var>
+        <env_var>PYCPARSER_CPP_ARGS_SPLIT_CHAR</env_var>
+    </env_vars>
     <parser>
         <name>pycparser</name>
         <lang_objective>C</lang_objective>
@@ -9,11 +14,6 @@
         <callback>
             <method name="ast" callback="get_ast" />
         </callback>
-        <env_vars> 
-            <env_var>PYCPARSER_FAKE_LIBC_INCLUDE_PATH</env_var>
-            <env_var>PYCPARSER_CPP_ARGS</env_var>
-            <env_var>PYCPARSER_CPP_ARGS_SPLIT_CHAR</env_var>
-        </env_vars>
     </parser>
     <modules>
         <module>
@@ -27,7 +27,6 @@
                         References
 
                         https://security.web.cern.ch/security/recommendations/en/codetools/c.shtml
-                        
                     -->
                     <list name="methods">
                         <dict>

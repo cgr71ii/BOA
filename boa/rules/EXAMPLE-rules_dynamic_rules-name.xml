@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<boa_rules analysis="static"> <!-- Mandatory -->
+    <env_vars>  <!-- Optional -->
+        <env_var>ENV_VAR_1</env_var> <!-- Optional -->
+        <env_var>ENV_VAR_N</env_var>
+    </env_vars>
+    <parser>    <!-- Mandatory -->
+        <name>pycparser</name>  <!-- Mandatory
+                                     Metadata -->
+        <lang_objective>C</lang_objective>  <!-- Mandatory
+                                                 Metadata -->
+        <module_name>module name in "parser_modules" directory</module_name>    <!-- Mandatory -->
+        <class_name>class name in the module</class_name>   <!-- Mandatory -->
+        <callback>  <!-- Mandatory -->
+            <method name="ast" callback="get_ast" />    <!-- Mandatory: at least 1
+                                                             Mandatory 'name' and 'callback' attributes -->
+            <method name="cfg" callback="get_cfg" />
+        </callback>
+    </parser>
+    <modules>   <!-- Mandatory -->
+        <module>    <!-- Mandatory: at least 1 -->
+            <module_name>module name in "modules" directory</module_name>   <!-- Mandatory -->
+            <class_name>class name in the module</class_name>   <!-- Mandatory -->
+            <severity_enum></severity_enum> <!-- Optional
+                                                 Default value: severity_syslog.SeveritySyslog
+                                                 Allowed values: module name from 
+                                                    /path/to/BOA/enumerations/"severity enum"."class name"
+                                                 It allows the user to select a different way to
+                                                    show and sort the found threats through an
+                                                    enumeration defined by the own user. The enumeration
+                                                    has to inherit from /path/to/BOA/enumerations
+                                                    /severity/severity_base.SeverityBase to work -->
+            <args_sorting>true</args_sorting> <!--  Optional
+                                                    Default value: false
+                                                    Allowed values: true, false
+                                                    Other values: default value
+                                                    It makes a PARTIAL sorting: when combining elements, 
+                                                        elements of the same type will be group depending 
+                                                        on the element that first was parsed.
+                                                        Example:
+                                                            element1 | list1 | element2 | dict1 | list2
+
+                                                            Without partial sorting:
+                                                                dict1 | list1 | list2 | element1 | element2
+                                                            With partial sorting:
+                                                                element1 | element2 | list1 | list2 | dict1
+                                                    If you want the elements totally sorted combining them:
+                                                        combine elements, enable this option and write the
+                                                        elements without jumps (first all the "dict", "list"
+                                                        or "element" elements, ...) -->
+            <lifecycle_handler></lifecycle_handler> <!-- Optional
+                                                         Default value: boalc_basic.BOALCBasic
+                                                         Allowed values: module name from 
+                                                            /path/to/BOA/lifecycles/"boalc_module"."class_name"
+                                                         It allows the user to select a different lifecycle
+                                                            to execute a concrete module. The lifecycle
+                                                            has to inherit from /path/to/BOA/lifecycles
+                                                            /boalc_abstract.BOALifeCycleAbstract to work -->
+            <dependencies>  <!-- Optional
+                                 It allows to write other module dependencies which this module needs -->
+                <dependency>    <!-- Madatory: at least 1 -->
+                    <module_name>module which exists</module_name>  <!-- Mandatory -->
+                    <class_name>class which exists</class_name> <!-- Mandatory -->
+                    <callback>  <!-- Mandatory -->
+                        <method name="arg1" callback="get_arg1" />  <!-- Mandatory: at least 1
+                                                                         Mandatory 'name' and 'callback' attributes -->
+                        <method name="arg2" callback="get_arg2" />
+                    </callback>
+                </dependency>
+                <dependency>
+                    <module_name>mod_dep2</module_name>
+                    <class_name>class_dep2</class_name>
+                    <callback>
+                        <method name="arg3" callback="get_arg3" />
+                    </callback>
+                </dependency>
+            </dependencies>
+            <args>  <!--    Mandatory
+                            If you use 'list', 'dict' and 'element' in combination at the same deepness, the result will not be sorted in the same way you wrote the rules
+                            If you no use these elements in combination, the result will be sorted
+                            Default sorting: 1st dicts; 2nd lists; 3rd elements -->
+                <dict>  <!--    Optional
+                                *** Mandatory and unique element (only because is the first arg) ***
+                                Mandatory 'name' attribute in direct childs -->
+                    <element name="var1" value="val1" />    <!-- Mandatory 'value' attribute -->
+                    <element name="var2" value="val2" />
+
+                    <list name="list1">  <!-- Optional -->
+                        <element value="list1_val1" />  <!-- 'name' attribute only is mandatory if direct parent is a 'dict' -->
+                        <element value="list1_val2" />
+                    </list>
+
+                    <dict name="dict">
+                        <list name="list2">
+                            <element value="list2_val1" />
+                        </list>
+                    </dict>
+
+                    <list name="list3">
+                        <element value="list3_val1" />
+                        
+                        <list>
+                            <element value="list_val1" />
+
+                            <dict>
+                                <dict name="dict">
+                                    <element name="var1" value="val1" />
+                                </dict>
+                            </dict>
+                        </list>
+
+                        <element value="list3_val2" />
+                    </list>
+                </dict>
+            </args>
+        </module>
+        <module>
+            <module_name>Other module</module_name>
+            <class_name>Other class</class_name>
+            <args>
+                <dict>
+                    <element name="dict_element" value="dict_value" />
+
+                    <list name="dict_list_element">
+                        <element value="list_element" />
+                        
+                        <list>
+                            <list>
+
+                            </list>
+                            <dict>
+
+                            </dict>
+                        </list>
+                    </list>
+                </dict>
+            </args>
+        </module>
+        <module>
+            <module_name>Other module with args_sorting</module_name>
+            <class_name>Other class with args_sorting</class_name>
+            <args_sorting>true</args_sorting>
+            <args>
+                <dict>
+                    <element name="dict_element" value="dict_value" />
+
+                    <list name="dict_list_element">
+                        <element value="list_element" />
+                        
+                        <list>
+                            <list>
+
+                            </list>
+                            <dict>
+
+                            </dict>
+                        </list>
+                    </list>
+                </dict>
+            </args>
+        </module>
+    </modules>
+    <report>    <!-- Mandatory -->
+        <module_name></module_name> <!-- Optional; Mandatory if you define <class_name> -->
+        <class_name></class_name>   <!-- Optional; Mandatory if you define <module_name> -->
+        <args_sorting></args_sorting> <!-- IMPORTANT: check 'args_sorting' in 'module' tag
+                                                      for information about the use of this
+                                                      tag -->
+        <args>  <!-- IMPORTANT: check 'args' in 'module' tag for
+                                information about the use of this
+                                tag -->
+            <dict>
+                <element name="n1" value="v1" />    <!-- Mandatory 'value' attribute -->
+                <element name="path" value="/home/boa/reports" />
+                <element name="filename" value="report.html" />
+                <list name="opt">
+                    <dict>
+                    </dict>
+                    <element value="opt_value" />
+                </list>
+            </dict>
+        </args>
+    </report>
+</boa_rules>

@@ -4,7 +4,9 @@ and more readable.
 """
 
 # Std libs
+import os
 import logging
+from collections import OrderedDict
 
 # Own libs
 from args_manager import ArgsManager
@@ -372,7 +374,7 @@ def manage_lifecycles(instances, reports, lifecycle_args, lifecycles, analysis):
 
     return lifecycle_manager
 
-def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
+def handle_boapm(boapm_instance, parser_rules):
     """It handles the BOAParserModule instance.
 
     It will call the base methods and the callbacks defined in the rules file.
@@ -382,10 +384,6 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
             BOAParserModuleAbstract.
         parser_rules (OrderedDict): rules which contains the necessary information
             for the parser module in order to be initialized.
-        environment_variable_names (list): environment variables which will be
-            loaded and used in the parser modules. It is the only way to give
-            information from outside to the parser module. The default value
-            is *None*, which means nothing of information to be given.
 
     Raises:
         BOAFlowException: could not finish the expected behaviour of
@@ -395,7 +393,7 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
         callback results (boa_rules.parser.callback.method) of *boapm_instance*.
     """
     # Initialize the instance and other necessary information
-    boapm_instance = boapm_instance(ArgsManager.args.code_file, environment_variable_names)
+    boapm_instance = boapm_instance(ArgsManager.args.code_file)
     boapm_instance_name = utils.get_name_from_class_instance(boapm_instance)
     callbacks = parser_rules["callback"]["method"]
     names = []
@@ -456,23 +454,22 @@ def handle_boapm(boapm_instance, parser_rules, environment_variable_names=None):
 
     return boapm_results
 
-def get_parser_env_vars(parser_rules):
+def get_env_vars(rules):
     """It gets the environment variables from the rules file.
 
     Arguments:
-        parser_rules (OrderedDict): rules which contains the necessary information
-            for the parser module in order to be initialized.
+        rules (OrderedDict): rules
 
     Returns:
         list: environment variable names
     """
-    env_vars = parser_rules["env_vars"]
+    env_vars = rules["env_vars"]
 
     if not env_vars:
         # No environment variable was defined
         return []
 
-    env_vars = parser_rules["env_vars"]["env_var"]
+    env_vars = rules["env_vars"]["env_var"]
 
     if not env_vars:
         return []
@@ -483,6 +480,70 @@ def get_parser_env_vars(parser_rules):
                       " but actually is '%s'", type(env_vars))
 
     return env_vars
+
+def handle_env_vars(rules):
+    """It handles the environment variables from the rules file.
+    It checks if the envvars are defined, raise exception if the non-defined
+    envvars are mandatory and sets the values if the defined envvars have
+    provided one definition.
+
+    Arguments:
+        rules (OrderedDict): rules
+
+    Raises:
+        BOAEnvvarException: unexpected type of envvar from *rules* or mandatory
+            envvar not defined and without assigned value.
+    """
+    env_vars = rules["env_vars"]
+
+    if not env_vars:
+        # No environment variable was defined
+        return
+
+    env_vars = rules["env_vars"]["env_var"]
+    optional_env_vars = []
+    mandatory_env_vars = []
+
+    for env_var in env_vars:
+        if isinstance(env_var, OrderedDict):
+            env_var_name = env_var["#text"]
+
+            if "@mandatory" in env_var:
+                value = env_var["@mandatory"].lower()
+
+                if value == "true":
+                    mandatory_env_vars.append(env_var_name)
+                elif value == "false":
+                    optional_env_vars.append(env_var_name)
+                else:
+                    logging.warning(f"unexpected 'mandatory' value for envvar '{env_var_name}': skipping")
+                    continue
+            if "@value" in env_var:
+                value = env_var["@value"]
+
+                if env_var_name in os.environ:
+                    logging.warning("envvar '%s' is already defined in the environment and has been overwritten")
+
+                os.environ[env_var_name] = value
+        elif isinstance(env_var, str):
+            optional_env_vars.append(env_var)
+        else:
+            raise exceptions.BOAEnvvarException("unexpected type from rules file of the"
+                                                f" environment variables (type: {str(type(env_var))})")
+
+    utils.get_environment_varibles(optional_env_vars, verbose_on_failure=True,
+                                   failure_message="optional envvar is not defined")
+
+    not_defined_mandatory_envvars = []
+
+    # Check which mandatory envvars are not defined
+    for env_var in mandatory_env_vars:
+        if env_var not in os.environ:
+            not_defined_mandatory_envvars.append(env_var)
+
+    if len(not_defined_mandatory_envvars) != 0:
+        str_env_vars = "', '".join(not_defined_mandatory_envvars)
+        raise exceptions.BOAEnvvarException(f"the following mandatory envvars are not defined: '{str_env_vars}'")
 
 def get_boar_instance(module_name, class_name, filename=None):
     """It attempts to load a BOAR module and get an

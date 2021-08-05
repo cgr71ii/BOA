@@ -25,16 +25,12 @@ class BOAParserModuleAbstract:
     here.
     """
 
-    def __init__(self, path_to_file, environment_variable_names=None):
+    def __init__(self, path_to_file):
         """Init method which initializes the general variables which
         will be available from all the classes that inherits from this one.
 
         Arguments:
             path_to_file (str): path to the file which is going to be analyzed.
-            environment_variable_names (list): list that should contain strings
-                that are the names of the environment variables that should be
-                loaded for a concrete parser module. If a single string is given,
-                this one is used as a list, so is ok.
 
         Note:
             Is not guaranteed that all the given environment variables are loaded,
@@ -43,21 +39,8 @@ class BOAParserModuleAbstract:
             variables not found or a default behaviour.
         """
         self.path_to_file = path_to_file
-        self.environment_variable_names = environment_variable_names
         self.environment_variables = {}
         self.who_i_am = get_name_from_class_instance(self)
-
-        if self.environment_variable_names is not None:
-            if isinstance(environment_variable_names, (list, str)):
-                self.environment_variables = get_environment_varibles(environment_variable_names,
-                                                                      True,
-                                                                      "could not load an "
-                                                                      "environment variable in "
-                                                                      f"'{self.who_i_am}'")
-            else:
-                logging.warning("any environment variable will not be loaded"
-                                " because not a list nor a string were given in "
-                                "'%s'", get_name_from_class_instance(self))
 
     @abstractmethod
     def initialize(self):

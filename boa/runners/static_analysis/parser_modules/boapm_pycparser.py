@@ -14,6 +14,7 @@ from pycparser import parse_file
 from boapm_abstract import BOAParserModuleAbstract
 from utils import is_key_in_dict
 from exceptions import ParseError, BOAPMParseError
+from utils import get_environment_varibles
 
 class BOAPMPycparser(BOAParserModuleAbstract):
     """BOAPMPycparser class.
@@ -26,19 +27,21 @@ class BOAPMPycparser(BOAParserModuleAbstract):
         self.pycparser_fake_libc_include_ev = None
         self.compiler_args = []
 
-        if is_key_in_dict(self.environment_variables, "PYCPARSER_FAKE_LIBC_INCLUDE_PATH"):
-            self.pycparser_fake_libc_include_ev = self.environment_variables["PYCPARSER_FAKE_LIBC_INCLUDE_PATH"]
-        if is_key_in_dict(self.environment_variables, "PYCPARSER_CPP_ARGS"):
-            self.compiler_args = self.environment_variables["PYCPARSER_CPP_ARGS"]
+        env_vars = get_environment_varibles(["PYCPARSER_FAKE_LIBC_INCLUDE_PATH", "PYCPARSER_CPP_ARGS",
+                                             "PYCPARSER_CPP_ARGS_SPLIT_CHAR"])
 
+        if "PYCPARSER_FAKE_LIBC_INCLUDE_PATH" in env_vars:
+            self.pycparser_fake_libc_include_ev = env_vars["PYCPARSER_FAKE_LIBC_INCLUDE_PATH"]
+        if "PYCPARSER_CPP_ARGS" in env_vars:
             split_char = ";"
+            self.compiler_args = env_vars["PYCPARSER_CPP_ARGS"]
 
-            if is_key_in_dict(self.environment_variables, "PYCPARSER_CPP_ARGS_SPLIT_CHAR"):
-                if len(self.environment_variables["PYCPARSER_CPP_ARGS_SPLIT_CHAR"]) != 1:
+            if "PYCPARSER_CPP_ARGS_SPLIT_CHAR" in env_vars:
+                if len(env_vars["PYCPARSER_CPP_ARGS_SPLIT_CHAR"]) != 1:
                     logging.warning("environment variable 'PYCPARSER_CPP_ARGS_SPLIT_CHAR'"
                                     " has to contain only 1 character when defined")
                 else:
-                    split_char = self.environment_variables["PYCPARSER_CPP_ARGS_SPLIT_CHAR"]
+                    split_char = env_vars["PYCPARSER_CPP_ARGS_SPLIT_CHAR"]
 
             self.compiler_args = self.compiler_args.split(split_char)
 

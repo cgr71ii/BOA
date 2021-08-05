@@ -111,17 +111,19 @@ def main():
         # Apply execution order
         boa_utilities.apply_execution_order(execution_order, modules, classes, reports, lifecycles)
 
-        # Parser module
+        # Rules
+        rules = rules_manager.get_rules("boa_rules")
         parser_rules = rules_manager.get_rules("boa_rules.parser")
 
         # Get parser module instance
         boapm_instance = boa_utilities.get_boapm_instance(parser_rules['module_name'], parser_rules['class_name'])
 
-        # Get environment variables for the parser module
-        parser_env_vars = boa_utilities.get_parser_env_vars(parser_rules)
+        # Handle environment variables
+        #env_vars = boa_utilities.get_env_vars(rules)
+        boa_utilities.handle_env_vars(rules)
 
         # Handle parser module and get the result for the lifecycle
-        lifecycle_args = boa_utilities.handle_boapm(boapm_instance, parser_rules, parser_env_vars)
+        lifecycle_args = boa_utilities.handle_boapm(boapm_instance, parser_rules)
 
         # Load modules
         rtn = boa_utilities.load_modules(modules, analysis)
