@@ -6,7 +6,7 @@ This file handles the higher level interaction with BOA.
 
 Main tasks:\n
 * It handles args.\n
-* It handles parser modules.\n
+* It handles runners modules.\n
 * It handles code modules (BOA's goal).\n
 * It handles the general flow.\n
 """
@@ -111,19 +111,23 @@ def main():
         # Apply execution order
         boa_utilities.apply_execution_order(execution_order, modules, classes, reports, lifecycles)
 
-        # Rules
-        rules = rules_manager.get_rules("boa_rules")
-        parser_rules = rules_manager.get_rules("boa_rules.parser")
+        # Handle environment variables
+        boa_utilities.handle_env_vars(rules_manager.get_rules("boa_rules"))
 
         # Get parser module instance
+        parser_rules = rules_manager.get_rules("boa_rules.runners.parser")
         boapm_instance = boa_utilities.get_boapm_instance(parser_rules['module_name'], parser_rules['class_name'])
 
-        # Handle environment variables
-        #env_vars = boa_utilities.get_env_vars(rules)
-        boa_utilities.handle_env_vars(rules)
+        # Get args for BOAModuleAbstract modules
+        lifecycle_args = {}
 
-        # Handle parser module and get the result for the lifecycle
-        lifecycle_args = boa_utilities.handle_boapm(boapm_instance, parser_rules)
+        if analysis == "static":
+            lifecycle_args = boa_utilities.handle_boapm(boapm_instance, parser_rules)
+        elif analysis == "dynamic":
+            # TODO
+            pass
+        else:
+            raise BOAFlowException(f"unexpected analysis value: {analysis}")
 
         # Load modules
         rtn = boa_utilities.load_modules(modules, analysis)
@@ -156,8 +160,6 @@ def main():
         report = lifecycle_handler.get_final_report()
 
         if report:
-            # Blank line and display
-            #print()
             report.display_all()
     except BOAFlowException as e:
         # Error in some internal function.

@@ -429,7 +429,7 @@ class RulesManager:
                 number of rules or when a concrete rule is not
                 found.
         """
-        mandatory_rules = ("boa_rules", "boa_rules.@analysis", "boa_rules.parser",
+        mandatory_rules = ("boa_rules", "boa_rules.@analysis", "boa_rules.runners",
                            "boa_rules.modules", "boa_rules.report")
         optional_rules = ("boa_rules.env_vars",)
         total_optional_rules = 0
@@ -462,8 +462,8 @@ class RulesManager:
 
         # Check if the analysis attribute contains a valid value
         if self.rules["boa_rules"]["@analysis"] not in Other.other_valid_analysis:
-            raise BOARulesUnexpectedFormat("unexpected value in 'boa_rules.@analysis'. "
-                                           f"Valid values are: {str(Other.other_valid_analysis)[1:-1]}")
+            raise BOARulesUnexpectedFormat("unexpected value in 'boa_rules.@analysis': "
+                                           f"valid values are: {str(Other.other_valid_analysis)[1:-1]}")
 
     def check_rules_parser(self):
         """It makes the checks relative to the parser.
@@ -475,39 +475,39 @@ class RulesManager:
                 found.
         """
         # Check if there are the expected #elements in the parser element
-        if len(self.rules["boa_rules"]["parser"]) != 5:
-            raise BOARulesIncomplete("'boa_rules.parser' has not the expected #elements")
+        if len(self.rules["boa_rules"]["runners"]["parser"]) != 5:
+            raise BOARulesIncomplete("'boa_rules.runners.parser' has not the expected #elements")
 
         # Check if the expected elements are in the parser element
-        is_key_in_dict(self.rules, "boa_rules.parser.name", split=".",
+        is_key_in_dict(self.rules, "boa_rules.runners.parser.name", split=".",
                        raise_exception=BOARulesIncomplete,
-                       exception_args="'boa_rules.parser.name'")
-        is_key_in_dict(self.rules, "boa_rules.parser.lang_objective", split=".",
+                       exception_args="'boa_rules.runners.parser.name'")
+        is_key_in_dict(self.rules, "boa_rules.runners.parser.lang_objective", split=".",
                        raise_exception=BOARulesIncomplete,
-                       exception_args="'boa_rules.parser.lang_objective'")
-        is_key_in_dict(self.rules, "boa_rules.parser.module_name", split=".",
+                       exception_args="'boa_rules.runners.parser.lang_objective'")
+        is_key_in_dict(self.rules, "boa_rules.runners.parser.module_name", split=".",
                        raise_exception=BOARulesIncomplete,
-                       exception_args="'boa_rules.parser.module_name'")
-        is_key_in_dict(self.rules, "boa_rules.parser.class_name", split=".",
+                       exception_args="'boa_rules.runners.parser.module_name'")
+        is_key_in_dict(self.rules, "boa_rules.runners.parser.class_name", split=".",
                        raise_exception=BOARulesIncomplete,
-                       exception_args="'boa_rules.parser.class_name'")
-        is_key_in_dict(self.rules, "boa_rules.parser.callback", split=".",
+                       exception_args="'boa_rules.runners.parser.class_name'")
+        is_key_in_dict(self.rules, "boa_rules.runners.parser.callback", split=".",
                        raise_exception=BOARulesIncomplete,
-                       exception_args="'boa_rules.parser.callback'")
-        is_key_in_dict(self.rules, "boa_rules.parser.callback.method", split=".",
+                       exception_args="'boa_rules.runners.parser.callback'")
+        is_key_in_dict(self.rules, "boa_rules.runners.parser.callback.method", split=".",
                        raise_exception=BOARulesIncomplete,
-                       exception_args="'boa_rules.parser.callback.method'")
+                       exception_args="'boa_rules.runners.parser.callback.method'")
 
         # Check concrete restrictions about the elements of the parser element
-        if len(self.rules["boa_rules"]["parser"]["callback"]) != 1:
-            raise BOARulesIncomplete("'boa_rules.parser.callback' has not"
+        if len(self.rules["boa_rules"]["runners"]["parser"]["callback"]) != 1:
+            raise BOARulesIncomplete("'boa_rules.runners.parser.callback' has not"
                                      " the expected #elements")
 
-        is_key_in_dict(self.rules, "boa_rules.parser.callback.method", split=".",
+        is_key_in_dict(self.rules, "boa_rules.runners.parser.callback.method", split=".",
                        raise_exception=BOARulesIncomplete,
-                       exception_args="'boa_rules.parser.callback.method'")
+                       exception_args="'boa_rules.runners.parser.callback.method'")
 
-        methods = self.rules["boa_rules"]["parser"]["callback"]["method"]
+        methods = self.rules["boa_rules"]["runners"]["parser"]["callback"]["method"]
 
         if not isinstance(methods, list):
             methods = [methods]
@@ -515,15 +515,27 @@ class RulesManager:
         # Check parser callback elements
         for method in methods:
             if len(method) != 2:
-                raise BOARulesIncomplete("'boa_rules.parser.callback.method'"
+                raise BOARulesIncomplete("'boa_rules.runners.parser.callback.method'"
                                          " has not the expected #elements")
 
             is_key_in_dict(method, "@name",
                            raise_exception=BOARulesIncomplete,
-                           exception_args="'boa_rules.parser.callback.method@name'")
+                           exception_args="'boa_rules.runners.parser.callback.method@name'")
             is_key_in_dict(method, "@callback",
                            raise_exception=BOARulesIncomplete,
-                           exception_args="'boa_rules.parser.callback.method@callback'")
+                           exception_args="'boa_rules.runners.parser.callback.method@callback'")
+
+    def check_rules_caller(self):
+        # TODO
+        pass
+
+    def check_rules_inputs(self):
+        # TODO
+        pass
+
+    def check_rules_fails(self):
+        # TODO
+        pass
 
     def check_rules_arg_high_level(self, dict_tag, parent_tag_name, tag_prefix, save_args):
         """This is the method that should be invoked when
@@ -874,8 +886,19 @@ class RulesManager:
             # It makes the initial checks about the main tags
             self.check_rules_init()
 
-            # It makes the checks relative to the parser
-            self.check_rules_parser()
+            # Analysis (we are sure we can access, since the initial tests passed)
+            analysis = self.rules["boa_rules"]["@analysis"]
+
+            if analysis == "static":
+                # It makes the checks relative to the parser
+                self.check_rules_parser()
+            elif analysis == "dynamic":
+                # It makes the checks relative to dynamic analysis modules
+                self.check_rules_caller()
+                self.check_rules_inputs()
+                self.check_rules_fails()
+            else:
+                raise Exception(f"unexpected analysis attribute value: {analysis}")
 
             # It makes the checks relative to the modules
             self.check_rules_modules(save_args)

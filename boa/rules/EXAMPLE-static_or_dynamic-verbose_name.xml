@@ -1,23 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<boa_rules analysis="static"> <!-- Mandatory -->
-    <parser>    <!-- Mandatory -->
-        <name>pycparser</name>  <!-- Mandatory
-                                     Metadata -->
-        <lang_objective>C</lang_objective>  <!-- Mandatory
-                                                 Metadata -->
-        <module_name>module name in "parser_modules" directory</module_name>    <!-- Mandatory -->
-        <class_name>class name in the module</class_name>   <!-- Mandatory -->
-        <callback>  <!-- Mandatory -->
-            <method name="ast" callback="get_ast" />    <!-- Mandatory: at least 1
-                                                             Mandatory 'name' and 'callback' attributes -->
-            <method name="cfg" callback="get_cfg" />
-        </callback>
-        <env_vars>  <!-- Mandatory -->
-            <env_var>ENV_VAR_1</env_var> <!-- Optional -->
-            <env_var>ENV_VAR_N</env_var>
-        </env_vars>
-    </parser>
+<boa_rules analysis="static"> <!-- Mandatory
+                                   Mandatory 'analysis' attribute
+                                   Allowed values for 'analysis' attribute: "static" or "dynamic" -->
+    <env_vars>  <!-- Optional -->
+        <env_var mandatory="true">ENV_VAR_1</env_var> <!-- Optional
+                                                           Optional 'mandatory' and 'value' attributes
+                                                           If 'mandatory' is 'true', the envvar will have
+                                                            to be defined
+                                                           If 'value' is defined, the envvar will have that
+                                                            value for the current process and children, but
+                                                            not for the user environment -->
+        <env_var value="value of envvar">ENV_VAR_N</env_var>
+    </env_vars>
+    <runners>   <!-- Mandatory -->
+        <!-- Mandatory if boa_rules.@analysis == "static" -->
+        <parser>    <!-- Mandatory -->
+            <name>pycparser</name>  <!-- Mandatory
+                                         Metadata -->
+            <lang_objective>C</lang_objective>  <!-- Mandatory
+                                                     Metadata -->
+            <module_name>module name in "parser_modules" directory</module_name>    <!-- Mandatory -->
+            <class_name>class name in the module</class_name>   <!-- Mandatory -->
+            <callback>  <!-- Mandatory -->
+                <method name="ast" callback="get_ast" />    <!-- Mandatory: at least 1
+                                                                 Mandatory 'name' and 'callback' attributes -->
+                <method name="cfg" callback="get_cfg" />
+            </callback>
+        </parser>
+        <!-- Mandatory if boa_rules.@analysis == "dynamic" -->
+        <caller>    <!-- Mandatory -->
+
+        </caller>
+        <inputs>    <!-- Mandatory -->
+
+        </inputs>
+        <fails> <!-- Mandatory -->
+
+        </fails>
+    </runners>
     <modules>   <!-- Mandatory -->
         <module>    <!-- Mandatory: at least 1 -->
             <module_name>module name in "modules" directory</module_name>   <!-- Mandatory -->
@@ -78,8 +99,8 @@
             </dependencies>
             <args>  <!--    Mandatory
                             If you use 'list', 'dict' and 'element' in combination at the same deepness, the result will not be sorted in the same way you wrote the rules
-                            If you no use these elements in combination, the result will be sorted
-                            Default sorting: 1st dicts; 2nd lists; 3rd elements -->
+                            If you do not use these elements in combination, the result will be sorted
+                            Default sorting: 1st, dicts; 2nd, lists; 3rd, elements -->
                 <dict>  <!--    Optional
                                 *** Mandatory and unique element (only because is the first arg) ***
                                 Mandatory 'name' attribute in direct childs -->

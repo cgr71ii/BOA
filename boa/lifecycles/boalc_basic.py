@@ -37,16 +37,16 @@ class BOALCBasic(BOALifeCycleAbstract):
         has been stopped on purpose (*stop* property).
         """
         # Initialize
-        self.execute_method(self.instance, "initialize", "initialize", None, False)
+        self.execute_method(self.instance, "initialize", None, False)
 
         # Process
-        self.execute_method(self.instance, "process", "process", self.args, False)
+        self.execute_method(self.instance, "process", self.args, False)
 
         # Clean
-        self.execute_method(self.instance, "clean", "clean", None, False)
+        self.execute_method(self.instance, "clean", None, False)
 
         # Save
-        self.execute_method(self.instance, "save", "save (report)", self.report, False)
+        self.execute_method(self.instance, "save", self.report, False)
 
         # Finish
-        self.execute_method(self.instance, "finish", "finish", None, True)
+        self.execute_method(self.instance, "finish", None, True)

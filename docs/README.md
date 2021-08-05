@@ -76,7 +76,7 @@ There are different parameters in order to achieve different behaviours:
 Different modules are available and they achieve specific goals. General modules are:
 
 * `LifeCycle`: general modules which define the main flow of execution (i.e. order and information provided to the different modules). These modules might be used either for static or dynamic analysis, but there might be lifecycle modules which only support a specific analysis (this may be set).
-* `Vulnerability Modules`: general modules which should contain the behaviour of a specific technique in order to look for vulnerabilities (e.g. detect calls to dangerous functions).
+* `Security Modules`: general modules which should contain the behaviour of a specific technique in order to look for vulnerabilities (e.g. detect calls to dangerous functions).
 * `Report`: general modules which define the way the results are generated (e.g. terminal output, HTML).
 * `Runner`: general modules which analyze or run the provided code or binary. These modules might be totally dependent of the analysis, so different modules have been defined (check [static analysis](#static-analysis) and [dynamic analysis](#dynamic-analysis) modules).
 * `[Enumerations] Severity`: this is not exactly a module, but an enumeration. Anyway, this module behaves like the others but only contain data, not behaviour. The data of these modules contain different values of severity which may be used by the other modules in order to report vulnerabilities and assign them a specific vulnerability.

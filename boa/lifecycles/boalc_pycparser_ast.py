@@ -41,16 +41,13 @@ class BOALCPycparserAST(BOALifeCycleAbstract):
         execution will be stopped.
         """
         # Initialize
-        self.execute_method(self.instance, "initialize", "initialize", None, False)
+        self.execute_method(self.instance, "initialize", None, False)
 
         # Process
         if not is_key_in_dict(self.args, "ast"):
             logging.warning("'%s' needs to have 'ast' in the given arguments to work. Skipping lifecycle", self.who_i_am)
 
-            self.execute_method(self.instance,
-                                "set_stop_execution",
-                                "stop the execution",
-                                True, False)
+            self.execute_method(self.instance, "set_stop_execution", True, False)
         else:
             ast = self.args["ast"]
 
@@ -61,13 +58,13 @@ class BOALCPycparserAST(BOALifeCycleAbstract):
         # If the execution was stopped above, the next methods will not be executed
 
         # Clean
-        self.execute_method(self.instance, "clean", "clean", None, False)
+        self.execute_method(self.instance, "clean", None, False)
 
         # Save
-        self.execute_method(self.instance, "save", "save (report)", self.report, False)
+        self.execute_method(self.instance, "save", self.report, False)
 
         # Finish
-        self.execute_method(self.instance, "finish", "finish", None, True)
+        self.execute_method(self.instance, "finish", None, True)
 
     def process_each_ast_node(self, node):
         """This method will be invoked as a callback while the
@@ -80,4 +77,4 @@ class BOALCPycparserAST(BOALifeCycleAbstract):
         Arguments:
             node: AST node to be processed by *process* method.
         """
-        self.execute_method(self.instance, "process", "process", node, False)
+        self.execute_method(self.instance, "process", node, False)

@@ -254,6 +254,9 @@ def manage_rules_file():
     """It handles the rules file (parsing, checking and processing)
     through RulesManager class.
 
+    Arguments:
+        analysis (str): information about which analysis we are running.
+
     Raises:
         BOAFlowException: could not finish the expected behaviour of
             the function.
@@ -390,15 +393,19 @@ def handle_boapm(boapm_instance, parser_rules):
             the function.
 
     Returns:
-        callback results (boa_rules.parser.callback.method) of *boapm_instance*.
+        callback results (boa_rules.runners.parser.callback.method) of *boapm_instance*.
     """
     # Initialize the instance and other necessary information
     boapm_instance = boapm_instance(ArgsManager.args.code_file)
     boapm_instance_name = utils.get_name_from_class_instance(boapm_instance)
+    parser_name = parser_rules["name"]
+    parser_lang = parser_rules["lang_objective"]
     callbacks = parser_rules["callback"]["method"]
     names = []
     methods = []
     boapm_results = {}
+
+    logging.info("parser which is being loaded: %s (language: %s)", parser_name, parser_lang)
 
     # Call initialization methods defined in
     try:
@@ -424,10 +431,10 @@ def handle_boapm(boapm_instance, parser_rules):
 
         if (not name or not method):
             logging.warning("attributes 'name' ('%s') and 'callback' ('%s') in"
-                            " 'boa_rules.parser.callback.method' cannot be empty: skipping", name, method)
+                            " 'boa_rules.runners.parser.callback.method' cannot be empty: skipping", name, method)
         elif name in names:
             logging.warning("attribute 'name' ('%s') cannot be duplicated in"
-                            " 'boa_rules.parser.callback.method': skipping", name)
+                            " 'boa_rules.runners.parser.callback.method': skipping", name)
         else:
             names.append(callback_dict["@name"])
             methods.append(callback_dict["@callback"])
@@ -437,7 +444,7 @@ def handle_boapm(boapm_instance, parser_rules):
     for name, method in zip(names, methods):
         result = utils.invoke_by_name(boapm_instance, method)
 
-        # Checking is made with "is" becase we want to check the reference, not the value!
+        # Checking is made with "is" because we want to check the reference, not the value!
         # Check function "utils.invoke_by_name" in order to understand the following checking
         if result is not Other.other_util_invoke_by_name_error_return:
             boapm_results[name] = result

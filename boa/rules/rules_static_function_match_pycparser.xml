@@ -6,15 +6,17 @@
         <env_var>PYCPARSER_CPP_ARGS</env_var>
         <env_var>PYCPARSER_CPP_ARGS_SPLIT_CHAR</env_var>
     </env_vars>
-    <parser>
-        <name>pycparser</name>
-        <lang_objective>C</lang_objective>
-        <module_name>boapm_pycparser</module_name>
-        <class_name>BOAPMPycparser</class_name>
-        <callback>
-            <method name="ast" callback="get_ast" />
-        </callback>
-    </parser>
+    <runners>
+        <parser>
+            <name>pycparser</name>
+            <lang_objective>C</lang_objective>
+            <module_name>boapm_pycparser</module_name>
+            <class_name>BOAPMPycparser</class_name>
+            <callback>
+                <method name="ast" callback="get_ast" />
+            </callback>
+        </parser>
+    </runners>
     <modules>
         <module>
             <module_name>boam_function_match</module_name>

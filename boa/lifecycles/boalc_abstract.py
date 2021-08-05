@@ -21,6 +21,14 @@ class BOALifeCycleAbstract:
 
     def __init__(self, instance, report, lifecycle_args, execute_method_callback, analysis):
         """It initializes the class.
+
+        Arguments:
+            instance: initialized instance to be invoked.
+            report (BOAReportAbstract): report where add found threats.
+            lifecycle_args (dict): args to be used by the lifecycle.
+            execute_method_callback (func): function which will be executed
+                in order to execute *instance*.
+            analysis (str): information about which analysis we are running.
         """
         self.instance = instance
         self.report = report

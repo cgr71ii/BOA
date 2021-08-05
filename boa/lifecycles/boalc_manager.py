@@ -30,7 +30,7 @@ class BOALifeCycleManager:
         the other methods.
 
         Arguments:
-            instances: module instances that are going to be saved.
+            instances (list): module instances that are going to be saved.
             reports (list): list of Report instances.
             lifecycle_args (dict): args to be used by the lifecycles.
             lifecycle_instances (list): instances of lifecycles to
@@ -138,15 +138,13 @@ class BOALifeCycleManager:
 
         return self.rtn_code
 
-    # TODO remove parameter 'error_verb'
-    def execute_instance_method(self, instance, method_name, error_verb, args, force_invocation):
+    def execute_instance_method(self, instance, method_name, args, force_invocation):
         """It attempts to execute a method of a concrete instance.
 
         Arguments:
             instance: initialized instance which a method is going
                 to be invoked if possible.
             method_name (str): method which is going to be invoked.
-            error_verb (str): verb to error displaying.
             args: args to be given to the invoked method.
             force_invocation (bool): force a method invokation
                 despite something failed in the past (if *False*, when

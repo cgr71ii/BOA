@@ -491,7 +491,7 @@ def get_deepness_level(initial_instr, parents, rec_instr, top_reference):
 def get_function_decl_parameters(func_def):
     """It returns the Decl statements of the parameters of a function.
 
-    Parameters:
+    Arguments:
         func_def (pycparser.c_ast.FuncDef): definition of the function.
 
     Returns:
@@ -584,7 +584,7 @@ def is_variable_decl(instruction):
 def get_function_decl_variables(func_def):
     """It returns the Decl statements of the variables of a function.
 
-    Parameters:
+    Arguments:
         func_def (pycparser.c_ast.FuncDef): definition of the function.
 
     Returns:
