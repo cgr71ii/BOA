@@ -10,6 +10,21 @@ There are different type of modules, and due to these modules, the main features
 * Granularity might differ depending on the specific modules.
 * **Static** and **dynamic** analysis support.
 
+## Requirements
+
+In order to install and run `BOA` successfully, you will need, at least, python>=3.8.5. If you have another version, you can use [Miniconda](https://docs.conda.io/en/latest/miniconda.html):
+
+```bash
+# Install Miniconda3 (x86_64)
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+
+# Create new environment
+conda create -n your_environment_name python=3.8.5
+# Activate environment
+conda activate your_environment_name
+```
+
 ## Installation
 
 To install `BOA`, first clone the repository:
@@ -48,7 +63,7 @@ The different parameters are:
 ```bash
 usage: boa.py [-h] [-v] [--no-fail] [--print-traceback] [--logging-level N]
               [--log-file PATH] [--log-display]
-              code-file rules-file
+              target rules-file
 ```
 
 ### Parameters
@@ -92,7 +107,6 @@ There are modules which can only be used when the analysis is static analysis:
 There are modules which can only be used when the analysis is dynamic analysis:
 
 TODO
-* `Caller`: 
 * `Input`: 
 * `Fail`: 
 

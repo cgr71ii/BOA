@@ -34,7 +34,8 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
         every time that a new AST token is processed.
 
         Raises:
-            BOAModuleException: when a module is imported more than once.
+            BOAModuleException: when a method is defined more than once
+                in the arguments.
         """
         self.all_methods_name = []
         self.all_methods_reference = []
@@ -116,10 +117,10 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
 
             if append:
                 self.threats.append((self.who_i_am,
-                                        description,
-                                        severity,
-                                        advice,
-                                        int(row),
-                                        int(col)))
+                                     description,
+                                     severity,
+                                     advice,
+                                     int(row),
+                                     int(col)))
             else:
                 logging.warning("could not append a threat in '%s'", self.who_i_am)

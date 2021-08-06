@@ -24,10 +24,14 @@ class BOAFailModuleAbstract:
     methods defined here.
     """
 
-    def __init__(self):
+    def __init__(self, args):
         """Init method which initializes the general variables which
         will be available from all the classes that inherits from this one.
+
+        Arguments:
+            args (dict): arguments.
         """
+        self.args = args
         self.who_i_am = get_name_from_class_instance(self)
 
     @abstractmethod
@@ -36,7 +40,7 @@ class BOAFailModuleAbstract:
         """
 
     @abstractmethod
-    def execution_have_failed(self, execution_status):
+    def execution_has_failed(self, execution_status):
         """Method which returns *True* if a specific execution have failed
         or *False* otherwise.
 

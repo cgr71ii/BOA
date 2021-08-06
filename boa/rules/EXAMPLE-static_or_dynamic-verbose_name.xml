@@ -20,7 +20,7 @@
                                          Metadata -->
             <lang_objective>C</lang_objective>  <!-- Mandatory
                                                      Metadata -->
-            <module_name>module name in "parser_modules" directory</module_name>    <!-- Mandatory -->
+            <module_name>module name in "runners/static_analysis/parser_modules" directory</module_name>    <!-- Mandatory -->
             <class_name>class name in the module</class_name>   <!-- Mandatory -->
             <callback>  <!-- Mandatory -->
                 <method name="ast" callback="get_ast" />    <!-- Mandatory: at least 1
@@ -29,19 +29,18 @@
             </callback>
         </parser>
         <!-- Mandatory if boa_rules.@analysis == "dynamic" -->
-        <caller>    <!-- Mandatory -->
-
-        </caller>
         <inputs>    <!-- Mandatory -->
-
+            <module_name>module name in "runners/dynamic_analysis/inputs_modules" directory</module_name>    <!-- Mandatory -->
+            <class_name>class name in the module</class_name>   <!-- Mandatory -->
         </inputs>
         <fails> <!-- Mandatory -->
-
+            <module_name>module name in "runners/dynamic_analysis/fails_modules" directory</module_name>    <!-- Mandatory -->
+            <class_name>class name in the module</class_name>   <!-- Mandatory -->
         </fails>
     </runners>
     <modules>   <!-- Mandatory -->
         <module>    <!-- Mandatory: at least 1 -->
-            <module_name>module name in "modules" directory</module_name>   <!-- Mandatory -->
+            <module_name>module name in "modules/[static|dynamic]_analysis" directory</module_name>   <!-- Mandatory -->
             <class_name>class name in the module</class_name>   <!-- Mandatory -->
             <severity_enum></severity_enum> <!-- Optional
                                                  Default value: severity_syslog.SeveritySyslog
@@ -185,14 +184,14 @@
     <report>    <!-- Mandatory -->
         <module_name></module_name> <!-- Optional; Mandatory if you define <class_name> -->
         <class_name></class_name>   <!-- Optional; Mandatory if you define <module_name> -->
-        <args_sorting></args_sorting> <!-- IMPORTANT: check 'args_sorting' in 'module' tag
+        <args_sorting>false</args_sorting> <!-- IMPORTANT: check 'args_sorting' in 'module' tag
                                                       for information about the use of this
                                                       tag -->
         <args>  <!-- IMPORTANT: check 'args' in 'module' tag for
                                 information about the use of this
                                 tag -->
             <dict>
-                <element name="n1" value="v1" />    <!-- Mandatory 'value' attribute -->
+                <element name="n1" value="v1" />
                 <element name="path" value="/home/boa/reports" />
                 <element name="filename" value="report.html" />
                 <list name="opt">

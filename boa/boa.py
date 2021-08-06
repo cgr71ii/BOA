@@ -82,9 +82,11 @@ def main():
                        display_when_file=ArgsManager.args.log_display)
 
         # Check if lang. file exists
-        if not file_exists(ArgsManager.args.code_file):
-            raise BOAFlowException(f"file '{ArgsManager.args.code_file}' not found",
+        if not file_exists(ArgsManager.args.target):
+            raise BOAFlowException(f"file '{ArgsManager.args.target}' not found",
                                    Error.error_file_not_found)
+
+        logging.info("target file: '%s'", ArgsManager.args.target)
 
         # Manage rules file
         rules_manager = boa_utilities.manage_rules_file()
@@ -112,20 +114,26 @@ def main():
         boa_utilities.apply_execution_order(execution_order, modules, classes, reports, lifecycles)
 
         # Handle environment variables
-        boa_utilities.handle_env_vars(rules_manager.get_rules("boa_rules"))
-
-        # Get parser module instance
-        parser_rules = rules_manager.get_rules("boa_rules.runners.parser")
-        boapm_instance = boa_utilities.get_boapm_instance(parser_rules['module_name'], parser_rules['class_name'])
+        boa_utilities.handle_env_vars(rules_manager.get_rules("boa_rules.env_vars"))
 
         # Get args for BOAModuleAbstract modules
         lifecycle_args = {}
 
         if analysis == "static":
-            lifecycle_args = boa_utilities.handle_boapm(boapm_instance, parser_rules)
+            # Get and handle parser module instance
+            parser_rules = rules_manager.get_rules("boa_rules.runners.parser")
+            boapm_instance = boa_utilities.get_boapm_instance(parser_rules['module_name'], parser_rules['class_name'])
+            lifecycle_args["parser"] = boa_utilities.handle_boapm(boapm_instance, parser_rules)
         elif analysis == "dynamic":
-            # TODO
-            pass
+            # Get and handler input and fail module instances
+            inputs_rules = rules_manager.get_rules("boa_rules.runners.inputs")
+            fails_rules = rules_manager.get_rules("boa_rules.runners.fails")
+            boaim_instance = boa_utilities.get_boaim_instance(inputs_rules['module_name'], inputs_rules['class_name'])
+            boafm_instance = boa_utilities.get_boafm_instance(fails_rules['module_name'], fails_rules['class_name'])
+
+            lifecycle_args["inputs"] = boa_utilities.handle_dynamic_analysis_runner(boaim_instance, rules_manager.get_runner_args("inputs"))
+            lifecycle_args["fails"] = boa_utilities.handle_dynamic_analysis_runner(boafm_instance, rules_manager.get_runner_args("fails"))
+            lifecycle_args["binary"] = ArgsManager.args.target
         else:
             raise BOAFlowException(f"unexpected analysis value: {analysis}")
 

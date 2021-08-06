@@ -31,25 +31,25 @@ class BOALCPycparserAST(BOALifeCycleAbstract):
         """It invokes the next methods:
 
             1. *initialize()*
-            2. *process(self.args["ast"])*: it will be invoked
+            2. *process(self.args["parser"]["ast"])*: it will be invoked
                token by token.
             3. *clean()*
             4. *save(self.report)*
             5. *finish()*
 
-        If the key "ast" is not found in *self.args*, the
+        If the key "parser", "ast" is not found in *self.args*, the
         execution will be stopped.
         """
         # Initialize
         self.execute_method(self.instance, "initialize", None, False)
 
         # Process
-        if not is_key_in_dict(self.args, "ast"):
-            logging.warning("'%s' needs to have 'ast' in the given arguments to work. Skipping lifecycle", self.who_i_am)
+        if not is_key_in_dict(self.args, "parser.ast", split="."):
+            logging.warning("'%s' needs to have 'ast' in the provided arguments to work: skipping lifecycle", self.who_i_am)
 
             self.execute_method(self.instance, "set_stop_execution", True, False)
         else:
-            ast = self.args["ast"]
+            ast = self.args["parser"]["ast"]
 
             visitor = PreorderVisitor(self.process_each_ast_node)
 

@@ -51,6 +51,7 @@ class RulesManager:
         self.args = None
         self.dependencies = None
         self.report_args = None
+        self.runner_args = {"inputs": None, "fails": None}
 
     def open(self):
         """It opens the rules file, checking if exists first.
@@ -432,7 +433,6 @@ class RulesManager:
         mandatory_rules = ("boa_rules", "boa_rules.@analysis", "boa_rules.runners",
                            "boa_rules.modules", "boa_rules.report")
         optional_rules = ("boa_rules.env_vars",)
-        total_optional_rules = 0
 
         # Check mandatory rules
         for rule in mandatory_rules:
@@ -442,9 +442,7 @@ class RulesManager:
 
         # Check optional rules
         for rule in optional_rules:
-            if is_key_in_dict(self.rules, rule, split="."):
-                total_optional_rules += 1
-            else:
+            if not is_key_in_dict(self.rules, rule, split="."):
                 # Set None to optional rules which were not set
                 keys = rule.split(".")
                 value = self.rules
@@ -456,7 +454,7 @@ class RulesManager:
                         value[key] = None
 
         # Check if the number of rules are the expected
-        if len(self.rules["boa_rules"]) != len(mandatory_rules) - 1 + total_optional_rules:
+        if len(self.rules["boa_rules"]) != len(mandatory_rules) - 1 + len(optional_rules):
             raise BOARulesIncomplete("'boa_rules' has not the expected #elements")
 
 
@@ -525,17 +523,81 @@ class RulesManager:
                            raise_exception=BOARulesIncomplete,
                            exception_args="'boa_rules.runners.parser.callback.method@callback'")
 
-    def check_rules_caller(self):
-        # TODO
-        pass
+    def check_rules_dynamic_analysis_runner(self, save_args, runner_module):
+        """It makes the checks relative to the runner modules which
+        are used in the dynamic analysis.
 
-    def check_rules_inputs(self):
-        # TODO
-        pass
+        Arguments:
+            save_args (bool): it indicates that the arguments
+                have to be saved while they are being checked.
+            runner_module (str): runner which is going to be processed
+                in order to check the rules.
 
-    def check_rules_fails(self):
-        # TODO
-        pass
+        Raises:
+            BOARulesIncomplete: when the number of expected
+                mandatory rules does not match with the actual
+                number of rules or when a concrete rule is not
+                found.
+            BOARulesError: when a semantic rule is broken.
+                You have to follow the rules documentation to
+                avoid this exception.
+            KeyError: if *runner_module* is not an expected runner.
+        """
+        # Check if there are the expected #elements in the modules element
+        runner = self.rules["boa_rules"]["runners"][runner_module]
+        total_tags_found = 0
+
+        if is_key_in_dict(runner, "module_name"):
+            total_tags_found += 1
+
+        if is_key_in_dict(runner, "class_name"):
+            total_tags_found += 1
+
+        if is_key_in_dict(runner, "args_sorting"):
+            total_tags_found += 1
+
+        if is_key_in_dict(runner, "args"):
+            total_tags_found += 1
+
+        if len(runner) != total_tags_found:
+            raise BOARulesIncomplete(f"'boa_rules.runners.{runner_module}' has not the expected #elements")
+
+        # Args checking
+        arg_reference = {}
+
+        try:
+            arg_reference = self.check_rules_arg_high_level(runner,
+                                                            runner_module,
+                                                            f"boa_rules.runners.{runner_module}",
+                                                            save_args)
+        except BOARulesError as e:
+            raise BOARulesError(f"rules error in 'boa_rules.runners.{runner_module}'") from e
+
+        # Set the report args
+        self.runner_args[runner_module] = arg_reference
+
+    def get_runner_args(self, runner_module):
+        """It returns the args of a runner module.
+
+        Arguments:
+            runner_module (str): key of *self.runner_args* which is where
+                the parameters are stored.
+
+        Returns:
+            dict: args if they exist, but empty dict and logging warning
+            if does not
+        """
+        if runner_module in self.runner_args:
+            if not isinstance(self.runner_args[runner_module], dict):
+                logging.warning("runner module is not a dict (returning empty dict): %s", str(type(self.runner_args[runner_module])))
+
+                return {}
+            else:
+                return self.runner_args[runner_module]
+
+        logging.warning("runner module is not defined (returning empty dict): %s", runner_module)
+
+        return {}
 
     def check_rules_arg_high_level(self, dict_tag, parent_tag_name, tag_prefix, save_args):
         """This is the method that should be invoked when
@@ -551,8 +613,6 @@ class RulesManager:
                 is not the expected.
             BOARulesError: when an non-specific error happens.
         """
-        args_sorting_defined_test = False
-
         is_key_in_dict(dict_tag, "args",
                        raise_exception=BOARulesIncomplete,
                        exception_args=f"'{tag_prefix}.args'")
@@ -560,10 +620,7 @@ class RulesManager:
         args = dict_tag["args"]
         sort_args = False
 
-        if (not is_key_in_dict(dict_tag, "args_sorting") and args_sorting_defined_test):
-            raise BOARulesIncomplete(f"'{tag_prefix}' has not the"
-                                     " expected #elements")
-        if args_sorting_defined_test:
+        if is_key_in_dict(dict_tag, "args_sorting"):
             if dict_tag["args_sorting"].lower() == "true":
                 sort_args = True
             elif dict_tag["args_sorting"].lower() != "false":
@@ -625,7 +682,6 @@ class RulesManager:
 
             # <args_sorting> checking
             if is_key_in_dict(module, "args_sorting"):
-                args_sorting_defined_test = True
                 total_tags_found += 1
             # <severity_enum> checking
             if is_key_in_dict(module, "severity_enum"):
@@ -811,8 +867,12 @@ class RulesManager:
                 raise BOARulesError("'boa_rules.modules.module.dependencies' is not correct "
                                     f"('{module_name}.{class_name}' already set?)")
 
-    def check_rules_report(self):
+    def check_rules_report(self, save_args):
         """It makes the checks relative to the report.
+
+        Arguments:
+            save_args (bool): it indicates that the arguments
+                have to be saved while they are being checked.
 
         Raises:
             BOARulesIncomplete: when the number of expected
@@ -825,9 +885,7 @@ class RulesManager:
         """
         # Check if there are the expected #elements in the modules element
         report = self.rules["boa_rules"]["report"]
-        save_args = True
         total_tags_found = 0
-
 
         # The 'report' tag can have [1, 4] #elements
         if (len(report) == 0 or len(report) > 4):
@@ -860,7 +918,7 @@ class RulesManager:
                                                             "boa_rules.report",
                                                             save_args)
         except BOARulesError as e:
-            raise BOARulesError("rules error") from e
+            raise BOARulesError("rules error in 'boa_rules.report'") from e
 
         # Set the report args
         self.report_args = arg_reference
@@ -894,9 +952,8 @@ class RulesManager:
                 self.check_rules_parser()
             elif analysis == "dynamic":
                 # It makes the checks relative to dynamic analysis modules
-                self.check_rules_caller()
-                self.check_rules_inputs()
-                self.check_rules_fails()
+                self.check_rules_dynamic_analysis_runner(save_args, "inputs")
+                self.check_rules_dynamic_analysis_runner(save_args, "fails")
             else:
                 raise Exception(f"unexpected analysis attribute value: {analysis}")
 
@@ -904,7 +961,7 @@ class RulesManager:
             self.check_rules_modules(save_args)
 
             # It makes the checks relative to the report
-            self.check_rules_report()
+            self.check_rules_report(save_args)
 
         except BOARulesUnexpectedFormat as e:
             logging.error("wrong format: %s", str(e))
@@ -1011,8 +1068,8 @@ class RulesManager:
             return self.args
 
         if (self.args is not None and
-                isinstance(self.args, dict) and
-                is_key_in_dict(self.args, module)):
+            isinstance(self.args, dict) and
+            is_key_in_dict(self.args, module)):
             return self.args[module]
 
         logging.warning("could not get the args for module '%s'", module)

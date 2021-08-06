@@ -168,22 +168,92 @@ def get_boapm_instance(module_name, class_name, filename=None):
     Returns:
         loaded instance
     """
+    return get_boa_runner_instance(module_name, class_name, "parser", Other.runners_static_analysis_directory,
+                                   Other.parser_modules_directory, Other.abstract_parser_module_name,
+                                   Other.abstract_parser_module_class_name, Other.abstract_parser_module_filename,
+                                   filename=filename)
+
+def get_boaim_instance(module_name, class_name, filename=None):
+    """It attempts to load a BOAIM module and get an
+    instance of it.
+
+    It checks that the loaded BOAIM class is subclass of
+    the BOAIM abstract class.
+
+    Arguments:
+        module_name (str): BOAIM module name.
+        class_name (str): BOAIM class name.
+
+    Raises:
+        BOAFlowException: if could not load the abstract
+            instance or the file does not exist.
+
+    Returns:
+        loaded instance
+    """
+    return get_boa_runner_instance(module_name, class_name, "input", Other.runners_dynamic_analysis_directory,
+                                   Other.input_modules_directory, Other.abstract_input_module_name,
+                                   Other.abstract_input_module_class_name, Other.abstract_input_module_filename,
+                                   filename=filename)
+
+def get_boafm_instance(module_name, class_name, filename=None):
+    """It attempts to load a BOAFM module and get an
+    instance of it.
+
+    It checks that the loaded BOAFM class is subclass of
+    the BOAFM abstract class.
+
+    Arguments:
+        module_name (str): BOAFM module name.
+        class_name (str): BOAFM class name.
+
+    Raises:
+        BOAFlowException: if could not load the abstract
+            instance or the file does not exist.
+
+    Returns:
+        loaded instance
+    """
+    return get_boa_runner_instance(module_name, class_name, "fail", Other.runners_dynamic_analysis_directory,
+                                   Other.fail_modules_directory, Other.abstract_fail_module_name,
+                                   Other.abstract_fail_module_class_name, Other.abstract_fail_module_filename,
+                                   filename=filename)
+
+def get_boa_runner_instance(module_name, class_name, runner_module, analysis_dir, modules_dir, abstract_mod_name,
+                            abstract_class_name, abstract_mod_filename, filename=None):
+    """It attempts to load a runner BOA module and get an
+    instance of it.
+
+    It checks that the loaded runner BOA class is subclass of
+    the BOA abstract class.
+
+    Arguments:
+        module_name (str): BOA runner module name.
+        class_name (str): BOA runner class name.
+
+    Raises:
+        BOAFlowException: if could not load the abstract
+            instance or the file does not exist.
+
+    Returns:
+        loaded instance
+    """
     if filename is None:
         filename = f"{module_name}.py"
 
-    file_path = f'{utils.get_current_path(__file__)}/{Other.runners_static_analysis_directory}/{Other.parser_modules_directory}'
-    abstract_instance = ModulesImporter.load_and_get_instance(Other.abstract_parser_module_name,
-                                                              f'{file_path}/{Other.abstract_parser_module_filename}',
-                                                              Other.abstract_parser_module_class_name)
+    file_path = f'{utils.get_current_path(__file__)}/{analysis_dir}/{modules_dir}'
+    abstract_instance = ModulesImporter.load_and_get_instance(abstract_mod_name,
+                                                              f'{file_path}/{abstract_mod_filename}',
+                                                              abstract_class_name)
     file_path = f'{file_path}/{filename}'
 
     if not abstract_instance:
         raise BOAFlowException("could not load and get an instance of "
-                               f"'{Other.abstract_parser_module_name}.{Other.abstract_parser_module_class_name}'",
-                               Error.error_parser_module_abstract_not_loaded)
+                               f"'{abstract_mod_name}.{abstract_class_name}'",
+                               Error.error_runner_module_abstract_not_loaded)
     if not utils.file_exists(file_path):
         raise BOAFlowException(f"file '{file_path}' not found",
-                               Error.error_parser_module_not_found)
+                               Error.error_runner_module_not_found)
 
     instance = ModulesImporter.load_and_get_instance(
         module_name,
@@ -191,15 +261,15 @@ def get_boapm_instance(module_name, class_name, filename=None):
         class_name)
 
     if not instance:
-        raise BOAFlowException(f"could not load the parser module '{module_name}.{class_name}'",
-                               Error.error_parser_module_not_loaded)
+        raise BOAFlowException(f"could not load the {runner_module} module '{module_name}.{class_name}'",
+                               Error.error_runner_module_not_loaded)
 
     if (not issubclass(instance, abstract_instance) or
             instance is abstract_instance):
         raise BOAFlowException(f"instance '{module_name}.{class_name}' has not the expected"
-                               f" type (does it inherit from '{Other.abstract_parser_module_name}."
-                               f"{Other.abstract_parser_module_class_name}'?)",
-                               Error.error_parser_module_abstract_not_expected_type)
+                               f" type (does it inherit from '{abstract_mod_name}."
+                               f"{abstract_class_name}'?)",
+                               Error.error_runner_module_abstract_not_expected_type)
 
     return instance
 
@@ -393,10 +463,10 @@ def handle_boapm(boapm_instance, parser_rules):
             the function.
 
     Returns:
-        callback results (boa_rules.runners.parser.callback.method) of *boapm_instance*.
+        dict: callback results (boa_rules.runners.parser.callback.method) of *boapm_instance*.
     """
     # Initialize the instance and other necessary information
-    boapm_instance = boapm_instance(ArgsManager.args.code_file)
+    boapm_instance = boapm_instance(ArgsManager.args.target)
     boapm_instance_name = utils.get_name_from_class_instance(boapm_instance)
     parser_name = parser_rules["name"]
     parser_lang = parser_rules["lang_objective"]
@@ -413,13 +483,13 @@ def handle_boapm(boapm_instance, parser_rules):
         boapm_instance.parse()
     except exceptions.BOAPMInitializationError as e:
         raise BOAFlowException(f"'{boapm_instance_name}.initialize()'",
-                               Error.error_parser_module_failed_in_initialization) from e
+                               Error.error_runner_module_failed_in_initialization) from e
     except exceptions.BOAPMParseError as e:
         raise BOAFlowException(f"'{boapm_instance_name}.parse()'",
-                               Error.error_parser_module_failed_in_parsing) from e
+                               Error.error_runner_module_failed_in_parsing) from e
     except Exception as e:
         raise BOAFlowException(f"'{boapm_instance_name}'",
-                               Error.error_parser_module_failed_in_execution) from e
+                               Error.error_runner_module_failed_in_execution) from e
 
     if not isinstance(callbacks, list):
         callbacks = [callbacks]
@@ -454,12 +524,40 @@ def handle_boapm(boapm_instance, parser_rules):
     if error:
         if len(boapm_results) == 0:
             raise BOAFlowException("parser modules: no callback was executed",
-                                   Error.error_parser_module_no_callback_executed)
+                                   Error.error_runner_module_no_callback_executed)
 
         raise BOAFlowException("parser modules: some callbacks were not executed",
-                               Error.error_parser_module_some_callback_not_executed)
+                               Error.error_runner_module_some_callback_not_executed)
 
     return boapm_results
+
+def handle_dynamic_analysis_runner(module_instance, module_args):
+    """ It handles the runner instances from dynamic analysis.
+
+    Arguments:
+        module_instance: runner instance.
+        module_args (dict): args to initilize the instance.
+
+    Raises:
+        BOAFlowException: the initialization of the runner instance failed.
+
+    Returns:
+        dict: runner instance.
+    """
+    # Initialize the instance and other necessary information
+    instance = module_instance(module_args)
+    instance_name = utils.get_name_from_class_instance(instance)
+    results = {"instance": instance}
+
+    # Call initialization methods defined in
+    try:
+        instance.initialize()
+    except Exception as e:
+        raise BOAFlowException(f"'{instance_name}'",
+                               Error.error_runner_module_failed_in_execution) from e
+
+    return results
+
 
 def get_env_vars(rules):
     """It gets the environment variables from the rules file.
@@ -488,26 +586,24 @@ def get_env_vars(rules):
 
     return env_vars
 
-def handle_env_vars(rules):
+def handle_env_vars(env_vars_rules):
     """It handles the environment variables from the rules file.
     It checks if the envvars are defined, raise exception if the non-defined
     envvars are mandatory and sets the values if the defined envvars have
     provided one definition.
 
     Arguments:
-        rules (OrderedDict): rules
+        env_vars_rules (OrderedDict): rules
 
     Raises:
         BOAEnvvarException: unexpected type of envvar from *rules* or mandatory
             envvar not defined and without assigned value.
     """
-    env_vars = rules["env_vars"]
-
-    if not env_vars:
+    if not env_vars_rules:
         # No environment variable was defined
         return
 
-    env_vars = rules["env_vars"]["env_var"]
+    env_vars = env_vars_rules["env_var"]
     optional_env_vars = []
     mandatory_env_vars = []
 

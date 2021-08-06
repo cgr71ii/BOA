@@ -13,7 +13,6 @@ from exceptions import BOAReportException
 from utils import is_key_in_dict
 from reports.boar_abstract import BOAReportAbstract
 
-# TODO finish
 class BOARBasicHTML(BOAReportAbstract):
     """BOARBasicHTML class.
 

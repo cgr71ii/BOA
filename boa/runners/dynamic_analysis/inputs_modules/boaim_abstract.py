@@ -21,19 +21,14 @@ class BOAInputModuleAbstract:
     to invoke the methods defined here.
     """
 
-    def __init__(self, inputs_examples=None, inputs_status=None):
+    def __init__(self, args):
         """Init method which initializes the general variables which
         will be available from all the classes that inherits from this one.
 
         Arguments:
-            inputs_examples (list): list of inputs which are examples
-            inputs_status (list): list of the status which the execution
-                should return which the input of *input_examples* in the
-                same position. The allowed values are *True*, *False* and
-                *None*
+            args (dict): arguments.
         """
-        self.inputs_examples = inputs_examples
-        self.inputs_status = inputs_status
+        self.args = args
         self.who_i_am = get_name_from_class_instance(self)
 
     @abstractmethod

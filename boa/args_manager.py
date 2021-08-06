@@ -31,8 +31,8 @@ class ArgsManager:
         """It creates the list of arguments.
         """
         # Mandatory
-        self.parser.add_argument("code_file", metavar="code-file",
-                                 help="Code file to analyze")
+        self.parser.add_argument("target",
+                                 help="Target file to analyze, which should be either a code file (e.g. /path/to/file.c) or a binary (e.g. /usr/bin/pwd)")
         self.parser.add_argument("rules_file", metavar="rules-file",
                                  help="Rules file")
 

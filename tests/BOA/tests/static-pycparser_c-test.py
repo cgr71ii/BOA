@@ -1,7 +1,7 @@
 
 # Std libs
-import unittest
 import os
+import unittest
 import subprocess
 
 def get_script_dir():
@@ -18,11 +18,11 @@ class BOAStaticPycparserC(unittest.TestCase):
         return env
 
     def test_functions_basic_overflow_1(self):
-        c_file = f"{get_script_dir()}/../../C/synthetic/test_basic_buffer_overflow.c"
-        rules_file = f"{get_script_dir()}/../../../boa/rules/rules_static_function_match_pycparser.xml"
+        target = f"{get_script_dir()}/../../C/synthetic/test_basic_buffer_overflow.c"
+        rules_file = f"{get_script_dir()}/../../../boa/rules/rules-static-function_match_pycparser.xml"
         env = self.get_env()
 
-        actual = subprocess.run([f"{get_script_dir()}/../../../boa/boa.py", c_file, rules_file], check=False, capture_output=True, text=True, env=env)
+        actual = subprocess.run([f"{get_script_dir()}/../../../boa/boa.py", target, rules_file], check=False, capture_output=True, text=True, env=env)
         actual_stdout_grep = subprocess.run(["egrep", "\\s*\\+ Threat|\\s*Severity:|\\s*Advice:"], input=actual.stdout, capture_output=True, check=False, text=True)
 
         expected_stdout = \

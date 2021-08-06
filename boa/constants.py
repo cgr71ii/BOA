@@ -99,16 +99,16 @@ class Error:
     error_report_severity_enum_module_not_found = 512
     error_report_severity_enum_module_not_loaded = 513
 
-    # Parser module errors
-    error_parser_module_not_found = 60
-    error_parser_module_not_loaded = 61
-    error_parser_module_abstract_not_loaded = 62
-    error_parser_module_abstract_not_expected_type = 63
-    error_parser_module_some_callback_not_executed = 64
-    error_parser_module_no_callback_executed = 64
-    error_parser_module_failed_in_initialization = 65
-    error_parser_module_failed_in_parsing = 66
-    error_parser_module_failed_in_execution = 67
+    # Runner modules errors
+    error_runner_module_not_found = 60
+    error_runner_module_not_loaded = 61
+    error_runner_module_abstract_not_loaded = 62
+    error_runner_module_abstract_not_expected_type = 63
+    error_runner_module_some_callback_not_executed = 64
+    error_runner_module_no_callback_executed = 64
+    error_runner_module_failed_in_initialization = 65
+    error_runner_module_failed_in_parsing = 66
+    error_runner_module_failed_in_execution = 67
 
 
     # Other errors
@@ -156,11 +156,6 @@ class Other:
     abstract_parser_module_name = "boapm_abstract"
     abstract_parser_module_class_name = "BOAParserModuleAbstract"
     ## Dynamic analysis
-    ### Caller modules
-    caller_modules_directory = "caller_modules"
-    abstract_caller_module_filename = "boacm_abstract.py"
-    abstract_caller_module_name = "boacm_abstract"
-    abstract_caller_module_class_name = "BOACallerModuleAbstract"
     ### Fail modules
     fail_modules_directory = "fails_modules"
     abstract_fail_module_filename = "boafm_abstract.py"
