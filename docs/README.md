@@ -71,8 +71,8 @@ usage: boa.py [-h] [-v] [--no-fail] [--print-traceback] [--logging-level N]
 There are different parameters in order to achieve different behaviours:
 
 * Mandatory/Positional:
-  1. `code-file`: 
-  2. `rules-file`: 
+  1. `target`: TODO
+  2. `rules-file`: TODO
 * Optional:
   * Meta:
     * `-h, --help`: help message and exit.

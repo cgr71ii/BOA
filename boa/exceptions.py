@@ -112,6 +112,13 @@ class BOAPMParseError(Exception):
     module.
     """
 
+class BOARunnerModuleError(Exception):
+    """BOARunnerModuleError exception.
+
+    This exception should be raised when something related to a
+    runner module failed when initialized/executed.
+    """
+
 class BOACMInitializationError(Exception):
     """BOACMInitializationError exception.
 

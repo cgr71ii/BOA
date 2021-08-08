@@ -1,0 +1,17 @@
+start: expr
+// NUM: /[0-9]+/
+NUM: /[0-9]{2,3}/
+ADD: "+"
+SUB: "-"
+MUL: "*"
+DIV: "/"
+expr: NUM
+    | NUM ADD expr
+    | NUM SUB expr
+    | NUM MUL expr
+    | NUM DIV expr
+
+// BOA will ignore this comment due to # after //
+// BOA will process comments with # after //
+// Likelihood of a rule -> BOA:non-terminal_rule:index:likelihood_of_rule
+//# BOA:expr:0:0.005

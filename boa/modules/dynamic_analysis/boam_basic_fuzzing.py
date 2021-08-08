@@ -6,6 +6,7 @@ from terminal.
 # Std libs
 import logging
 import subprocess
+from sys import stdin
 
 # Own libs
 from boam_abstract import BOAModuleAbstract
@@ -24,6 +25,15 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         """
         self.threats = []
         self.iterations = 1 if not is_key_in_dict(self.args, "iterations") else int(self.args["iterations"])
+        self.pipe = False
+
+        if "pipe" in self.args:
+            pipe = self.args["pipe"].lower().strip()
+
+            if pipe == "true":
+                self.pipe = True
+
+                logging.debug("providing input through pipe")
 
         logging.debug("iterations: %d", self.iterations)
 
@@ -37,12 +47,27 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
 
         for iteration in range(self.iterations):
             input = runners_args["inputs"]["instance"].generate_input()
-            run = subprocess.run(f"{binary_path} {input}", shell=True)
-            fail = runners_args["fails"]["instance"].execution_has_failed(run.returncode)
+            return_code = 0
+
+            if not self.pipe:
+                run = subprocess.run(f"{binary_path} {input}", shell=True)
+                return_code = run.returncode
+            else:
+                # TODO add additional args when pipe
+                # TODO fix
+                run = subprocess.Popen([binary_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                cat = subprocess.Popen(["cat"], stdin=subprocess.PIPE, stdout=run.stdin)
+
+                cat.communicate(input.encode())
+
+                #output = run.stdout.read1().decode("utf-8")
+                return_code = cat.returncode
+
+            fail = runners_args["fails"]["instance"].execution_has_failed(return_code)
 
             if fail:
                 self.threats.append((self.who_i_am,
-                                     f"the input '{input}' returned the status code {run.returncode}",
+                                     f"the input '{input}' returned the status code {return_code}",
                                      "FAILED",
                                      "check if the fail is not a false positive",
                                      None, None))

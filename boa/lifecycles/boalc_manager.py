@@ -193,10 +193,10 @@ class BOALifeCycleManager:
             else:
                 getattr(instance, method_name)(args)
         except BOAModuleException as e:
-            logging.error("BOALifeCycleManager: %s", e.message)
+            logging.error("BOALifeCycleManager: '%s': %s", instance_method_name, e.message)
             exception = True
         except Exception as e:
-            logging.error("BOALifeCycleManager: %s", str(e))
+            logging.error("BOALifeCycleManager: '%s': %s", instance_method_name, str(e))
             exception = True
 
         # Something failed. Warn about this in the future

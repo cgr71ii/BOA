@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<boa_rules analysis="dynamic">
+    <!--
+    <env_vars>
+    </env_vars>
+    -->
+    <runners>
+        <inputs>
+            <module_name>boaim_grammar_lark</module_name>
+            <class_name>BOAIMGrammarLark</class_name>
+            <args>
+                <dict>
+                    <element name="lark_grammar" value="basic_math_operations.lark" />
+                    <element name="soft_limit_rules" value="10" />
+                    <element name="soft_limit_depth" value="2" />
+                    <element name="hard_limit_rules" value="100" />
+                </dict>
+            </args>
+        </inputs>
+        <fails>
+            <module_name>boafm_exit_status</module_name>
+            <class_name>BOAFMExitStatus</class_name>
+            <args>
+                <dict>
+                </dict>
+            </args>
+        </fails>
+    </runners>
+    <modules>
+        <module>
+            <module_name>boam_basic_fuzzing</module_name>
+            <class_name>BOAModuleBasicFuzzing</class_name>
+            <severity_enum>severity_fuzzing.SeverityFuzzing</severity_enum>
+            <lifecycle_handler>boalc_basic.BOALCBasic</lifecycle_handler>
+            <args>
+                <dict>
+                    <element name="iterations" value="2" />
+                    <element name="pipe" value="true" />
+                </dict>
+            </args>
+        </module>
+    </modules>
+    <report>
+        <!--
+        <module_name></module_name>
+        <class_name></class_name>
+        -->
+        <args>
+            <dict>
+            </dict>
+        </args>
+    </report>
+</boa_rules>

@@ -87,6 +87,7 @@ def main():
                                    Error.error_file_not_found)
 
         logging.info("target file: '%s'", ArgsManager.args.target)
+        logging.info("rules file: '%s'", ArgsManager.args.rules_file)
 
         # Manage rules file
         rules_manager = boa_utilities.manage_rules_file()

@@ -552,6 +552,9 @@ def handle_dynamic_analysis_runner(module_instance, module_args):
     # Call initialization methods defined in
     try:
         instance.initialize()
+    except exceptions.BOARunnerModuleError as e:
+        raise BOAFlowException(f"runner module '{instance_name}' failed when was"
+                               " initialized") from e
     except Exception as e:
         raise BOAFlowException(f"'{instance_name}'",
                                Error.error_runner_module_failed_in_execution) from e
