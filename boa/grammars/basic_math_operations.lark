@@ -1,6 +1,5 @@
 start: expr
-// NUM: /[0-9]+/
-NUM: /[0-9]{2,3}/
+NUM: /[0-9]+/
 ADD: "+"
 SUB: "-"
 MUL: "*"

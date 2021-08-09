@@ -45,29 +45,34 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         """
         binary_path = runners_args["binary"]
 
-        for iteration in range(self.iterations):
+        for _ in range(self.iterations):
             input = runners_args["inputs"]["instance"].generate_input()
             return_code = 0
+
+            # TODO add option to add new line to the input (there are too many programs which expect this new line)
+            ## TODO add \n by default and add option to DO NOT add the new line
+            input += "\n"
 
             if not self.pipe:
                 run = subprocess.run(f"{binary_path} {input}", shell=True)
                 return_code = run.returncode
             else:
                 # TODO add additional args when pipe
-                # TODO fix
                 run = subprocess.Popen([binary_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-                cat = subprocess.Popen(["cat"], stdin=subprocess.PIPE, stdout=run.stdin)
 
-                cat.communicate(input.encode())
+                output = run.communicate(input=input.encode())
 
-                #output = run.stdout.read1().decode("utf-8")
-                return_code = cat.returncode
+                # Output without decoding in order to avoid the backslashes preprocessing
+                logging.debug("(input, output): (%s, %s)", input.encode(), output[0])
+
+                return_code = run.returncode
 
             fail = runners_args["fails"]["instance"].execution_has_failed(return_code)
 
             if fail:
+                # The input is encoded in order to avoid backslashes interpretation
                 self.threats.append((self.who_i_am,
-                                     f"the input '{input}' returned the status code {return_code}",
+                                     f"the input {input.encode()} returned the status code {return_code}",
                                      "FAILED",
                                      "check if the fail is not a false positive",
                                      None, None))
