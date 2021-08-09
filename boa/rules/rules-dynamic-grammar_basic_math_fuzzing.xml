@@ -11,6 +11,7 @@
             <class_name>BOAIMGrammarLark</class_name>
             <args>
                 <dict>
+                    <!-- <element name="suffix" value="\n" /> -->
                     <element name="lark_grammar" value="basic_math_operations.lark" />
                     <element name="soft_limit_rules" value="10" />
                     <element name="soft_limit_depth" value="2" />
@@ -37,6 +38,7 @@
                 <dict>
                     <element name="iterations" value="2" />
                     <element name="pipe" value="true" />
+                    <!-- <element name="additional_args" value="-v" /> -->
                 </dict>
             </args>
         </module>

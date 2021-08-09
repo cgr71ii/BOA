@@ -6,6 +6,7 @@ is generating inputs.
 
 # Std libs
 from abc import abstractmethod
+import logging
 
 # Own libs
 from utils import get_name_from_class_instance
@@ -30,6 +31,15 @@ class BOAInputModuleAbstract:
         """
         self.args = args
         self.who_i_am = get_name_from_class_instance(self)
+        self.suffix = "\n"
+
+        if "suffix" in self.args:
+            self.suffix = self.args["suffix"]
+
+            if "\\" in self.suffix:
+                self.suffix = self.suffix.encode("utf-8").decode("unicode-escape")
+
+        logging.debug("suffix for the generated inputs: %s", self.suffix.encode())
 
     @abstractmethod
     def initialize(self):
@@ -39,4 +49,18 @@ class BOAInputModuleAbstract:
     @abstractmethod
     def generate_input(self):
         """Method which will be invoked to generate an input.
+
+        Returns:
+            str: generated input.
         """
+
+    def get_another_input(self):
+        """This method is the one that actually has to be invoked
+        by other modules in order to get a generated input.
+
+        This method should not be overwritten.
+
+        Returns:
+            str: result of *self.generate_input*.
+        """
+        return f"{self.generate_input()}{self.suffix}"

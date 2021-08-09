@@ -4,13 +4,13 @@ from terminal.
 """
 
 # Std libs
+import re
 import logging
 import subprocess
-from sys import stdin
 
 # Own libs
 from boam_abstract import BOAModuleAbstract
-from constants import Meta
+from constants import Meta, Regex
 from utils import is_key_in_dict
 
 class BOAModuleBasicFuzzing(BOAModuleAbstract):
@@ -37,6 +37,11 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
 
         logging.debug("iterations: %d", self.iterations)
 
+        self.additional_args = []
+
+        if "additional_args" in self.args:
+            self.additional_args = re.findall(Regex.regex_which_respect_quotes_params, self.args["additional_args"])
+
     def process(self, runners_args):
         """It implements a basic fuzzing technique.
 
@@ -46,33 +51,29 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         binary_path = runners_args["binary"]
 
         for _ in range(self.iterations):
-            input = runners_args["inputs"]["instance"].generate_input()
-            return_code = 0
+            input = runners_args["inputs"]["instance"].get_another_input()
 
-            # TODO add option to add new line to the input (there are too many programs which expect this new line)
-            ## TODO add \n by default and add option to DO NOT add the new line
-            input += "\n"
+            # TODO parametrize the adding of the additional args (default value: True)?
+            # TODO check that the calls to subprocess are working
 
             if not self.pipe:
-                run = subprocess.run(f"{binary_path} {input}", shell=True)
-                return_code = run.returncode
+                binary_args = re.findall(Regex.regex_which_respect_quotes_params, input)
+                run = subprocess.run([binary_path] + binary_args + self.additional_args)
             else:
-                # TODO add additional args when pipe
-                run = subprocess.Popen([binary_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                run = subprocess.Popen([binary_path] + self.additional_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
-                output = run.communicate(input=input.encode())
+                run.communicate(input=input.encode())
 
                 # Output without decoding in order to avoid the backslashes preprocessing
-                logging.debug("(input, output): (%s, %s)", input.encode(), output[0])
+                #output = run.communicate(input=input.encode())
+                #logging.debug("(input, output): (%s, %s)", input.encode(), output[0])
 
-                return_code = run.returncode
-
-            fail = runners_args["fails"]["instance"].execution_has_failed(return_code)
+            fail = runners_args["fails"]["instance"].execution_has_failed(run.returncode)
 
             if fail:
                 # The input is encoded in order to avoid backslashes interpretation
                 self.threats.append((self.who_i_am,
-                                     f"the input {input.encode()} returned the status code {return_code}",
+                                     f"the input {input.encode()} returned the status code {run.returncode}",
                                      "FAILED",
                                      "check if the fail is not a false positive",
                                      None, None))

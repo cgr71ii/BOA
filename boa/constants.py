@@ -120,7 +120,8 @@ class Regex:
     This class contains the regex which are used by
     other BOA modules.
     """
-    regex_general_module_class_name = "^[a-zA-Z0-9_]+[.][a-zA-Z0-9_]+$"
+    regex_general_module_class_name = r'^[a-zA-Z0-9_]+[.][a-zA-Z0-9_]+$'
+    regex_which_respect_quotes_params = r'(?:[^\s,"]|"(?:\\.|[^"])*")+'
 
 class Other:
     """Other class.
