@@ -88,7 +88,7 @@ class ModulesImporter:
                     continue
 
                 # Check if the actual file path does exist
-                if file_exists(file_path) is False:
+                if not file_exists(file_path):
                     logging.warning("file '%s' does not exist: skipping current module", file_path)
                     index += 1
                     continue
@@ -150,10 +150,10 @@ class ModulesImporter:
             Module if loaded; *None* otherwise
         """
         try:
-            if self.is_module_loaded(module_name) == False:
+            if not self.is_module_loaded(module_name):
                 raise BOAModuleNotLoaded()
             # It should not happen
-            if is_key_in_dict(sys.modules, module_name) == False:
+            if not is_key_in_dict(sys.modules, module_name):
                 raise Exception()
 
             return sys.modules[module_name]

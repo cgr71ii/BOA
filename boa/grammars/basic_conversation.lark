@@ -1,0 +1,14 @@
+start: s
+s: HI ". " QUESTION " " ANSWER " " s
+ | HI
+HI: "Hello, \"" FULL_NAME "\""
+QUESTION: "How are you?"
+ANSWER: MOOD ", and you?"
+MOOD: "happy"
+    | "well"
+    | "bad"
+    | "very bad"
+FULL_NAME: NAME " " NAME
+NAME: /[A-Z][a-z]+/
+
+//~ BOA:s:0:0.6

@@ -41,8 +41,7 @@
                 <dict>
                     <element name="suffix" value="\n" />    <!-- Optional
                                                                  General arg for the input modules which defines
-                                                                    a suffix to add to the generated inputs. The
-                                                                    default value if not defined is "\n"
+                                                                    a suffix to add to the generated inputs
                                                                  Note: backslashes are interpreted (if you want a
                                                                     literal backslash, you will need to insert "\\") -->
                 </dict>

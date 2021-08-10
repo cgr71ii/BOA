@@ -24,6 +24,7 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
         self.soft_limit_rules = 100
         self.soft_limit_depth = 1
         self.hard_limit_rules = 200
+        self.exrex_limit = None
 
         if "soft_limit_rules" in self.args:
             self.soft_limit_rules = int(self.args["soft_limit_rules"])
@@ -44,10 +45,19 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
                             "limit to soft limit: from %d to %d", self.hard_limit_rules, self.soft_limit_rules)
 
             self.hard_limit_rules = self.soft_limit_rules
+        if "exrex_limit" in self.args:
+            self.exrex_limit = int(self.args["exrex_limit"])
 
         logging.debug("soft limit of recursive rules: %d", self.soft_limit_rules)
         logging.debug("soft limit depth: %d", self.soft_limit_depth)
         logging.debug("hard limit of recursive rules: %d", self.hard_limit_rules)
+
+        if self.exrex_limit is not None:
+            logging.debug("exrex limit: %d", self.exrex_limit)
+
+        # Warning about the support of Lark
+        # TODO more support to Lark
+        logging.warning("be aware that the support to Lark is not complete (e.g. %ignore is not supported)")
 
         # Initialization of the grammar parser
         self.grammar, self.likelihood = self.get_grammar()
@@ -185,7 +195,13 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
 
                 if self.index["terminals_is_re"][graph_node_name]:
                     # regex -> generate from regex
-                    input += exrex.getone(pattern)
+                    kwargs = {}
+
+                    if self.exrex_limit is not None:
+                        kwargs["limit"] = self.exrex_limit
+
+                    # WARNING: exrex works pretty well but is not perfect for the generarion from regex
+                    input += exrex.getone(pattern, **kwargs)
                 else:
                     # No regex
                     input += pattern
@@ -252,7 +268,7 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
                 if line == "":
                     continue
                 if line[0:2] == "//":
-                    if (len(line) >= 2 and line[2] == "#"):
+                    if (len(line) >= 2 and line[2] == "~"):
                         # BOA line to process -> likelihood
                         line = line[line.index("BOA"):]
                         line = line.split(":")

@@ -26,6 +26,8 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         self.threats = []
         self.iterations = 1 if not is_key_in_dict(self.args, "iterations") else int(self.args["iterations"])
         self.pipe = False
+        self.log_input_and_output = False
+        self.add_additional_args = True
 
         if "pipe" in self.args:
             pipe = self.args["pipe"].lower().strip()
@@ -34,6 +36,20 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
                 self.pipe = True
 
                 logging.debug("providing input through pipe")
+        if "log_input_and_output" in self.args:
+            log_input_and_output = self.args["log_input_and_output"].lower().strip()
+
+            if log_input_and_output == "true":
+                self.log_input_and_output = True
+
+                logging.debug("logging input and output (every iteration will be displayed as debug)")
+        if "add_additional_args" in self.args:
+            add_additional_args = self.args["add_additional_args"].lower().strip()
+
+            if add_additional_args == "false":
+                self.add_additional_args = False
+
+                logging.debug("additional args will be added (if defined any)")
 
         logging.debug("iterations: %d", self.iterations)
 
@@ -41,6 +57,9 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
 
         if "additional_args" in self.args:
             self.additional_args = re.findall(Regex.regex_which_respect_quotes_params, self.args["additional_args"])
+
+            if not self.add_additional_args:
+                logging.warning("there are additional args defined, but will not be added since 'add_additional_args' is 'false'")
 
     def process(self, runners_args):
         """It implements a basic fuzzing technique.
@@ -50,24 +69,40 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         """
         binary_path = runners_args["binary"]
 
+        # TODO multiprocessing (self.iterations)
+
         for _ in range(self.iterations):
             input = runners_args["inputs"]["instance"].get_another_input()
+            additional_args = self.additional_args
 
-            # TODO parametrize the adding of the additional args (default value: True)?
-            # TODO check that the calls to subprocess are working
+            if not self.add_additional_args:
+                additional_args = []
+
+            # TODO better process of quotes, backslashes and arguments splitting
 
             if not self.pipe:
+                # Split taking into account quotes (doing this we avoid using "shell=True", which is not safe and
+                #  might end up in unexpected behaviour; e.g. '|' as argument might be interpreted as pipe)
                 binary_args = re.findall(Regex.regex_which_respect_quotes_params, input)
-                run = subprocess.run([binary_path] + binary_args + self.additional_args)
+
+                # Remove quotes: this behaviour might change if Regex.regex_which_respect_quotes_params is modified
+                binary_args = list(map(lambda arg: arg[1:-1] if (arg[0] == "\"" and arg[-1] == "\"") else arg, binary_args))
+
+                run = subprocess.run([binary_path] + binary_args + additional_args,
+                                     capture_output=self.log_input_and_output)
+
+                output = (run.stdout, run.stderr)
             else:
-                run = subprocess.Popen([binary_path] + self.additional_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                run = subprocess.Popen([binary_path] + additional_args, stdin=subprocess.PIPE,
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-                run.communicate(input=input.encode())
+                output = run.communicate(input=input.encode())
 
-                # Output without decoding in order to avoid the backslashes preprocessing
-                #output = run.communicate(input=input.encode())
-                #logging.debug("(input, output): (%s, %s)", input.encode(), output[0])
+            # Output without decoding in order to avoid the backslashes preprocessing
+            if self.log_input_and_output:
+                logging.debug("(input, (stdout, stderr)): (%s, %s)", input.encode(), output)
 
+            # Has the execution failed?
             fail = runners_args["fails"]["instance"].execution_has_failed(run.returncode)
 
             if fail:

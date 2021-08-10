@@ -31,11 +31,12 @@ class BOAInputModuleAbstract:
         """
         self.args = args
         self.who_i_am = get_name_from_class_instance(self)
-        self.suffix = "\n"
+        self.suffix = ""
 
         if "suffix" in self.args:
             self.suffix = self.args["suffix"]
 
+            # Backslashes are encoded, do we need to decode?
             if "\\" in self.suffix:
                 self.suffix = self.suffix.encode("utf-8").decode("unicode-escape")
 

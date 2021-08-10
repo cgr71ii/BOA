@@ -610,6 +610,10 @@ def handle_env_vars(env_vars_rules):
     optional_env_vars = []
     mandatory_env_vars = []
 
+    if not isinstance(env_vars, list):
+        # Fix if there was only one defined envvar
+        env_vars = [env_vars]
+
     for env_var in env_vars:
         if isinstance(env_var, OrderedDict):
             env_var_name = env_var["#text"]
