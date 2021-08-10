@@ -20,17 +20,17 @@ class BOADynamicBasicFuzzing(unittest.TestCase):
 
         expected_stdout = \
 """\
- + Threat (-1, -1): the input '' returned the status code 1.
+ + Threat (-1, -1): the input b'' returned the status code 1.
    Severity: FAILED.
    Advice: check if the fail is not a false positive.
- + Threat (-1, -1): the input '' returned the status code 1.
+ + Threat (-1, -1): the input b'' returned the status code 1.
    Severity: FAILED.
    Advice: check if the fail is not a false positive.
 """
 
         # Remove the dynamic input
         actual_stdout_grep_stdout = actual_stdout_grep.stdout
-        actual_stdout_grep_stdout_after = re.sub(r'the input \'[^\']*\' returned', 'the input \'\' returned', actual_stdout_grep_stdout)
+        actual_stdout_grep_stdout_after = re.sub(r'the input b\'[^\']*\' returned', 'the input b\'\' returned', actual_stdout_grep_stdout)
 
         self.assertEqual(expected_stdout, actual_stdout_grep_stdout_after)
 
