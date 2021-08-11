@@ -2,6 +2,7 @@
 
 <boa_rules analysis="dynamic">
     <env_vars>
+        <env_var mandatory="true">PIN_BIN</env_var>
         <env_var value="10000">BC_LINE_LENGTH</env_var> <!-- Avoid line breaks with /usr/bin/bc -->
     </env_vars>
     <runners>
@@ -40,7 +41,8 @@
                     <element name="pipe" value="true" />
                     <element name="log_input_and_output" value="true" />
                     <element name="add_additional_args" value="false" />    <!-- additional args will not be added -->
-                    <element name="additional_args" value="-v" />   <!-- test -->
+                    <!-- <element name="additional_args" value="-v" /> -->
+                    <element name="pintool" value="obj-intel64/inscount.so" />
                 </dict>
             </args>
         </module>

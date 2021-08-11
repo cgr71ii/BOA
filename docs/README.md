@@ -25,6 +25,17 @@ conda create -n your_environment_name python=3.8.5
 conda activate your_environment_name
 ```
 
+The following dependencies might also be installed in a conda environment (is so, you will need to look for the dependencies in the [Anacoda Repository](https://anaconda.org/anaconda/repo)), but we will use an apt-like package manager:
+
+```bash
+# general dependencies
+sudo apt install git
+
+# skip those that you expect to do not use
+## dynamic analysis
+sudo apt install make cmake
+```
+
 ## Installation
 
 To install `BOA`, first clone the repository:

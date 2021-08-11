@@ -175,8 +175,6 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
 
             graph_node_name, graph_node_type = stack.pop()
 
-            #print(graph_node)
-
             if graph_node_type == "NonTerminal":
                 # Rule -> recursive
 

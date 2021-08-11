@@ -5,13 +5,15 @@ from terminal.
 
 # Std libs
 import re
+import os
 import logging
+import tempfile
 import subprocess
 
 # Own libs
 from boam_abstract import BOAModuleAbstract
 from constants import Meta, Regex
-from utils import is_key_in_dict
+import utils
 
 class BOAModuleBasicFuzzing(BOAModuleAbstract):
     """BOAModuleBasicFuzzing class. It implements the class BOAModuleAbstract.
@@ -24,10 +26,13 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         """It initializes the module.
         """
         self.threats = []
-        self.iterations = 1 if not is_key_in_dict(self.args, "iterations") else int(self.args["iterations"])
+        self.iterations = 1 if not utils.is_key_in_dict(self.args, "iterations") else int(self.args["iterations"])
         self.pipe = False
         self.log_input_and_output = False
         self.add_additional_args = True
+        self.path_to_pin_binary = None
+        self.pintool = None
+        self.instrumentation = False
 
         if "pipe" in self.args:
             pipe = self.args["pipe"].lower().strip()
@@ -60,6 +65,25 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
 
             if not self.add_additional_args:
                 logging.warning("there are additional args defined, but will not be added since 'add_additional_args' is 'false'")
+        if "path_to_pin_binary" in self.args:
+            self.path_to_pin_binary = self.args["path_to_pin_binary"]
+        else: # Alternative method to get PIN path
+            envvar = utils.get_environment_varibles("PIN_BIN")
+
+            if "PIN_BIN" in envvar:
+                self.path_to_pin_binary = envvar["PIN_BIN"]
+        if "pintool" in self.args:
+            self.pintool = self.args["pintool"]
+
+        if ((self.path_to_pin_binary is None) ^ (self.pintool is None)):
+            logging.warning("if you want to apply instrumentation, 'path_to_pin_binary' (or 'PIN_BIN' envvar) and 'pintool' have to be both defined")
+
+            self.path_to_pin_binary = None
+            self.pintool = None
+        if (self.path_to_pin_binary is not None and self.pintool is not None):
+            self.instrumentation = True
+
+            logging.debug("using instrumentation (path: '%s') with pintool '%s'", self.path_to_pin_binary, self.pintool)
 
     def process(self, runners_args):
         """It implements a basic fuzzing technique.
@@ -71,8 +95,15 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
 
         # TODO multiprocessing (self.iterations)
 
-        for _ in range(self.iterations):
+        for iteration in range(self.iterations):
+            logging.info("iteration %d of %d: %.2f completed", iteration + 1, self.iterations, (iteration / self.iterations) * 100.0)
+
             input = runners_args["inputs"]["instance"].get_another_input()
+            instrumentation_tmp_file = tempfile.NamedTemporaryFile().name if self.instrumentation else None
+            instrumentation = [ self.path_to_pin_binary, "-t",
+                                f"{utils.get_current_path(path=__file__)}/instrumentation/PIN/{self.pintool}",
+                                "-o", instrumentation_tmp_file, "--"] \
+                              if self.instrumentation else []
             additional_args = self.additional_args
 
             if not self.add_additional_args:
@@ -88,12 +119,12 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
                 # Remove quotes: this behaviour might change if Regex.regex_which_respect_quotes_params is modified
                 binary_args = list(map(lambda arg: arg[1:-1] if (arg[0] == "\"" and arg[-1] == "\"") else arg, binary_args))
 
-                run = subprocess.run([binary_path] + binary_args + additional_args,
+                run = subprocess.run(instrumentation + [binary_path] + binary_args + additional_args,
                                      capture_output=self.log_input_and_output)
 
                 output = (run.stdout, run.stderr)
             else:
-                run = subprocess.Popen([binary_path] + additional_args, stdin=subprocess.PIPE,
+                run = subprocess.Popen(instrumentation + [binary_path] + additional_args, stdin=subprocess.PIPE,
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
                 output = run.communicate(input=input.encode())
@@ -101,6 +132,18 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             # Output without decoding in order to avoid the backslashes preprocessing
             if self.log_input_and_output:
                 logging.debug("(input, (stdout, stderr)): (%s, %s)", input.encode(), output)
+            
+            # Instrumentation results
+            if instrumentation_tmp_file is not None:
+                result = 0.0
+
+                with open(instrumentation_tmp_file) as f:
+                    result = float(f.read().strip())
+
+                logging.debug("instrumentation result: %.2f", result)
+
+                # Remove file
+                os.remove(instrumentation_tmp_file)
 
             # Has the execution failed?
             fail = runners_args["fails"]["instance"].execution_has_failed(run.returncode)
@@ -112,6 +155,8 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
                                      "FAILED",
                                      "check if the fail is not a false positive",
                                      None, None))
+
+        logging.info("100.00% completed")
 
     def clean(self):
         """It does nothing.
