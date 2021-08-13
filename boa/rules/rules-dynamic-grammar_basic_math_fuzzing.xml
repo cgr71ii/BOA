@@ -37,7 +37,7 @@
             <lifecycle_handler>boalc_basic.BOALCBasic</lifecycle_handler>
             <args>
                 <dict>
-                    <element name="iterations" value="10" />
+                    <element name="iterations" value="2" />
                     <element name="pipe" value="true" />
                     <element name="log_args_and_input_and_output" value="true" />
                     <element name="add_additional_args" value="false" />    <!-- additional args will not be added -->

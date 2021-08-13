@@ -141,7 +141,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             args = instrumentation + [binary_path] + binary_args + additional_args
             args = ' '.join(args) if self.subprocess_shell else args    # Str if shell=True
 
-            run = subprocess.run(args, capture_output=self.log_input_and_output, shell=self.subprocess_shell)
+            run = subprocess.run(args, capture_output=self.log_args_and_input_and_output, shell=self.subprocess_shell)
 
             output = (run.stdout, run.stderr)
         else:

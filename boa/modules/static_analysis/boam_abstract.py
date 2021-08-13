@@ -56,6 +56,7 @@ class BOAModuleAbstract:
         self._args = args
         self._who_i_am = get_name_from_class_instance(self)
         self._stop = False
+        self._threats = []
 
         if self._dependencies is None:
             self._dependencies = {}
@@ -162,6 +163,14 @@ class BOAModuleAbstract:
         threats in the report. The default value is *False*.
         """
         return self._stop
+
+    @property
+    def threats(self):
+        """Threats property. Read and write.
+
+        This property will contain the threats which later will be reported.
+        """
+        return self._threats
 
     @stop.setter
     def stop(self, value):
