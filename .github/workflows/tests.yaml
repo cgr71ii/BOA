@@ -4,11 +4,13 @@ on:
       paths-ignore:
          - '**.md'
          - 'docs/**'
+         - 'media/**'
          - 'boa/docs/**'
    pull_request:
       paths-ignore:
          - '**.md'
          - 'docs/**'
+         - 'media/**'
          - 'boa/docs/**'
 
 jobs:
