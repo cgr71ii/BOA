@@ -37,12 +37,14 @@
             <lifecycle_handler>boalc_basic.BOALCBasic</lifecycle_handler>
             <args>
                 <dict>
-                    <element name="iterations" value="2" />
+                    <element name="iterations" value="10" />
                     <element name="pipe" value="true" />
-                    <element name="log_input_and_output" value="true" />
+                    <element name="log_args_and_input_and_output" value="true" />
                     <element name="add_additional_args" value="false" />    <!-- additional args will not be added -->
                     <!-- <element name="additional_args" value="-v" /> -->
                     <element name="pintool" value="obj-intel64/inscount.so" />
+                    <element name="subprocess_shell" value="false" />
+                    <element name="processes" value="1" />
                 </dict>
             </args>
         </module>

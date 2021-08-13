@@ -9,6 +9,7 @@ import os
 import logging
 import tempfile
 import subprocess
+from multiprocessing import Pool
 
 # Own libs
 from boam_abstract import BOAModuleAbstract
@@ -28,11 +29,15 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         self.threats = []
         self.iterations = 1 if not utils.is_key_in_dict(self.args, "iterations") else int(self.args["iterations"])
         self.pipe = False
-        self.log_input_and_output = False
+        self.log_args_and_input_and_output = False
         self.add_additional_args = True
         self.path_to_pin_binary = None
         self.pintool = None
         self.instrumentation = False
+        self.subprocess_shell = False
+        self.processes = 1 if not utils.is_key_in_dict(self.args, "processes") else min(int(self.args["processes"]), self.iterations)
+
+        logging.debug("using %d processes", self.processes)
 
         if "pipe" in self.args:
             pipe = self.args["pipe"].lower().strip()
@@ -41,11 +46,11 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
                 self.pipe = True
 
                 logging.debug("providing input through pipe")
-        if "log_input_and_output" in self.args:
-            log_input_and_output = self.args["log_input_and_output"].lower().strip()
+        if "log_args_and_input_and_output" in self.args:
+            log_args_and_input_and_output = self.args["log_args_and_input_and_output"].lower().strip()
 
-            if log_input_and_output == "true":
-                self.log_input_and_output = True
+            if log_args_and_input_and_output == "true":
+                self.log_args_and_input_and_output = True
 
                 logging.debug("logging input and output (every iteration will be displayed as debug)")
         if "add_additional_args" in self.args:
@@ -74,6 +79,13 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
                 self.path_to_pin_binary = envvar["PIN_BIN"]
         if "pintool" in self.args:
             self.pintool = self.args["pintool"]
+        if "subprocess_shell" in self.args:
+            subprocess_shell = self.args["subprocess_shell"].lower().strip()
+
+            if subprocess_shell == "true":
+                self.subprocess_shell = True
+
+                logging.debug("using subprocess shell=True")
 
         if ((self.path_to_pin_binary is None) ^ (self.pintool is None)):
             logging.warning("if you want to apply instrumentation, 'path_to_pin_binary' (or 'PIN_BIN' envvar) and 'pintool' have to be both defined")
@@ -85,6 +97,77 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
 
             logging.debug("using instrumentation (path: '%s') with pintool '%s'", self.path_to_pin_binary, self.pintool)
 
+    def process_worker(self, return_id, input, binary_path):
+        """
+        """
+        instrumentation_tmp_file = tempfile.NamedTemporaryFile().name if self.instrumentation else None
+        instrumentation = [ self.path_to_pin_binary, "-t",
+                            f"{utils.get_current_path(path=__file__)}/instrumentation/PIN/{self.pintool}",
+                            "-o", instrumentation_tmp_file, "--"] \
+                            if self.instrumentation else []
+        additional_args = self.additional_args
+
+        # TODO better process of quotes, backslashes and arguments splitting
+
+        if not self.add_additional_args:
+            additional_args = []
+
+        if not self.pipe:
+            # Split taking into account quotes (doing this we avoid using "shell=True", which is not safe and
+            #  might end up in unexpected behaviour; e.g. '|' as argument might be interpreted as pipe)
+            binary_args = re.findall(Regex.regex_which_respect_quotes_params, input)
+
+            if not self.subprocess_shell:
+                # Remove quotes: this behaviour might change if Regex.regex_which_respect_quotes_params is modified
+                binary_args = list(map(lambda arg: arg[1:-1] if (arg[0] == "\"" and arg[-1] == "\"") else arg, binary_args))
+
+            args = instrumentation + [binary_path] + binary_args + additional_args
+            args = ' '.join(args) if self.subprocess_shell else args    # Str if shell=True
+
+            run = subprocess.run(args, capture_output=self.log_input_and_output, shell=self.subprocess_shell)
+
+            output = (run.stdout, run.stderr)
+        else:
+            args = instrumentation + [binary_path] + additional_args
+            args = ' '.join(args) if self.subprocess_shell else args    # Str if shell=True
+            run = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   shell=self.subprocess_shell)
+
+            output = run.communicate(input=input.encode())
+
+        # Output without decoding in order to avoid the backslashes preprocessing
+        if self.log_args_and_input_and_output:
+            logging.debug("args: %s", args)
+            logging.debug("(input, (stdout, stderr)): (%s, %s)", input.encode(), output)
+
+        # Instrumentation results
+        if instrumentation_tmp_file is not None:
+            result = 0.0
+
+            with open(instrumentation_tmp_file) as f:
+                result = float(f.read().strip())
+
+            logging.debug("instrumentation result: %.2f", result)
+
+            # Remove file
+            os.remove(instrumentation_tmp_file)
+
+        return return_id, run.returncode
+
+    def process_worker_results(self, fails_instance, worker_return_list, worker_args):
+        for multiprocessing_idx, return_code in worker_return_list:
+            # Has the execution failed?
+            fail = fails_instance.execution_has_failed(return_code)
+
+            if fail:
+                input = worker_args[multiprocessing_idx][1].encode() # Encoded in order to avoid backslashes interpretation
+
+                self.threats.append((self.who_i_am,
+                                        f"the input {input} returned the status code {return_code}",
+                                        "FAILED",
+                                        "check if the fail is not a false positive",
+                                        None, None))
+
     def process(self, runners_args):
         """It implements a basic fuzzing technique.
 
@@ -92,69 +175,36 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             runners_args (dict): dict with runners arguments.
         """
         binary_path = runners_args["binary"]
-
-        # TODO multiprocessing (self.iterations)
+        fails_instance = runners_args["fails"]["instance"]
+        workers = self.processes
+        pool = Pool(processes=self.processes)
+        worker_args = []
 
         for iteration in range(self.iterations):
-            logging.info("iteration %d of %d: %.2f completed", iteration + 1, self.iterations, (iteration / self.iterations) * 100.0)
-
             input = runners_args["inputs"]["instance"].get_another_input()
-            instrumentation_tmp_file = tempfile.NamedTemporaryFile().name if self.instrumentation else None
-            instrumentation = [ self.path_to_pin_binary, "-t",
-                                f"{utils.get_current_path(path=__file__)}/instrumentation/PIN/{self.pintool}",
-                                "-o", instrumentation_tmp_file, "--"] \
-                              if self.instrumentation else []
-            additional_args = self.additional_args
 
-            if not self.add_additional_args:
-                additional_args = []
+            worker_args.append((iteration % workers, input, binary_path,))
 
-            # TODO better process of quotes, backslashes and arguments splitting
+            if len(worker_args) >= workers:
+                results = pool.starmap(self.process_worker, worker_args)
 
-            if not self.pipe:
-                # Split taking into account quotes (doing this we avoid using "shell=True", which is not safe and
-                #  might end up in unexpected behaviour; e.g. '|' as argument might be interpreted as pipe)
-                binary_args = re.findall(Regex.regex_which_respect_quotes_params, input)
+                # Process threats
+                self.process_worker_results(fails_instance, results, worker_args)
 
-                # Remove quotes: this behaviour might change if Regex.regex_which_respect_quotes_params is modified
-                binary_args = list(map(lambda arg: arg[1:-1] if (arg[0] == "\"" and arg[-1] == "\"") else arg, binary_args))
+                worker_args = []
 
-                run = subprocess.run(instrumentation + [binary_path] + binary_args + additional_args,
-                                     capture_output=self.log_input_and_output)
-
-                output = (run.stdout, run.stderr)
+                logging.info("iteration %d of %d: %.2f completed", iteration + 1, self.iterations, (iteration / self.iterations) * 100.0)
             else:
-                run = subprocess.Popen(instrumentation + [binary_path] + additional_args, stdin=subprocess.PIPE,
-                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                logging.info("iteration %d of %d: multiprocessing", iteration + 1, self.iterations)
 
-                output = run.communicate(input=input.encode())
+        if len(worker_args) != 0:
+            # Only when self.iterations % self.processes != 0
+            results = pool.starmap(self.process_worker, worker_args)
 
-            # Output without decoding in order to avoid the backslashes preprocessing
-            if self.log_input_and_output:
-                logging.debug("(input, (stdout, stderr)): (%s, %s)", input.encode(), output)
-            
-            # Instrumentation results
-            if instrumentation_tmp_file is not None:
-                result = 0.0
+            # Process threats
+            self.process_worker_results(fails_instance, results, worker_args)
 
-                with open(instrumentation_tmp_file) as f:
-                    result = float(f.read().strip())
-
-                logging.debug("instrumentation result: %.2f", result)
-
-                # Remove file
-                os.remove(instrumentation_tmp_file)
-
-            # Has the execution failed?
-            fail = runners_args["fails"]["instance"].execution_has_failed(run.returncode)
-
-            if fail:
-                # The input is encoded in order to avoid backslashes interpretation
-                self.threats.append((self.who_i_am,
-                                     f"the input {input.encode()} returned the status code {run.returncode}",
-                                     "FAILED",
-                                     "check if the fail is not a false positive",
-                                     None, None))
+            worker_args = []
 
         logging.info("100.00% completed")
 
