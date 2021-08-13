@@ -1,2 +1,3 @@
-tests/C/* linguist-vendored
-tests/Java/* linguist-vendored
+tests/C/** linguist-vendored
+tests/BOA/pycparser-2.20/** linguist-vendored
+tests/Java/** linguist-vendored
