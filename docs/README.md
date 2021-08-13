@@ -32,7 +32,7 @@ The following dependencies might also be installed in a conda environment (is so
 sudo apt install git
 ```
 
-# TODO Intel PIN
+TODO Intel PIN
 
 ## Installation
 
