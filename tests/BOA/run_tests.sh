@@ -6,6 +6,8 @@ export PYTHONPATH="$DIR/../../boa"
 
 echo "PYTHONPATH set to: $PYTHONPATH"
 
+exit_status="0"
+
 for test_file in $DIR/tests/*.py; do
     test_name=$(basename $test_file)
     test_name_length=$(expr ${#test_name} + 0)
@@ -16,7 +18,12 @@ for test_file in $DIR/tests/*.py; do
     echo ""
 
     python $test_file
+
+    status=$(echo $?)
+    exit_status=$(echo "${exit_status}+${status}" | bc)
 done
 
 export PYTHONPATH="$OLDPYTHONPATH"
 echo -e "\nPYTHONPATH restored."
+
+exit $exit_status
