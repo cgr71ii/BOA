@@ -9,7 +9,7 @@ import os
 import logging
 import tempfile
 import subprocess
-from multiprocessing import Pool
+import multiprocessing
 
 # Own libs
 from boam_abstract import BOAModuleAbstract
@@ -38,6 +38,14 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         self.processes = 1 if not utils.is_key_in_dict(self.args, "processes") else min(int(self.args["processes"]), self.iterations)
 
         logging.debug("using %d processes", self.processes)
+
+        cores_available = multiprocessing.cpu_count()
+
+        if self.processes > cores_available:
+            logging.warning("you set a number of processes higher than the available cores (%d): the best value should be %d,"
+                            " not %d since it might achieve even a worse performance", cores_available, cores_available, self.iterations)
+        if (self.processes > 1 and cores_available > 1):
+            logging.warning("multiprocessing might lead to unordered messages")
 
         if "pipe" in self.args:
             pipe = self.args["pipe"].lower().strip()
@@ -137,8 +145,8 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
 
         # Output without decoding in order to avoid the backslashes preprocessing
         if self.log_args_and_input_and_output:
-            logging.debug("args: %s", args)
-            logging.debug("(input, (stdout, stderr)): (%s, %s)", input.encode(), output)
+            logging.debug("process %s: args: %s", os.getpid(), args)
+            logging.debug("process %s: (input, (stdout, stderr)): (%s, %s)", os.getpid(), input.encode(), output)
 
         # Instrumentation results
         if instrumentation_tmp_file is not None:
@@ -147,7 +155,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             with open(instrumentation_tmp_file) as f:
                 result = float(f.read().strip())
 
-            logging.debug("instrumentation result: %.2f", result)
+            logging.debug("process %s: instrumentation result: %.2f", os.getpid(), result)
 
             # Remove file
             os.remove(instrumentation_tmp_file)
@@ -177,7 +185,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         binary_path = runners_args["binary"]
         fails_instance = runners_args["fails"]["instance"]
         workers = self.processes
-        pool = Pool(processes=self.processes)
+        pool = multiprocessing.Pool(processes=self.processes)
         worker_args = []
 
         for iteration in range(self.iterations):
