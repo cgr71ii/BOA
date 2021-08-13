@@ -1,0 +1,31 @@
+name: Execute BOA tests
+on:
+   push:
+      paths-ignore:
+         - '**.md'
+         - 'docs/**'
+         - 'boa/docs/**'
+   pull_request:
+      paths-ignore:
+         - '**.md'
+         - 'docs/**'
+         - 'boa/docs/**'
+
+jobs:
+   testing:
+      name: Build and testing
+      runs-on: ubuntu-20.04
+      timeout-minutes: 60
+      steps:
+      -  name: Set up Python3
+         uses: actions/setup-python@v2
+         with:
+            python-version: '3.8.5'
+            architecture: 'x64'
+      -  name: Install python requirements
+         run: |
+            pip3 install -r requirements.txt
+            pip3 install -r requirements-static-analyzer.txt
+            pip3 install -r requirements-dynamic-analyzer.txt
+      -  name: Run tests
+         run: ./tests/BOA/run_tests.sh
