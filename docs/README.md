@@ -30,11 +30,9 @@ The following dependencies might also be installed in a conda environment (is so
 ```bash
 # general dependencies
 sudo apt install git
-
-# skip those that you expect to do not use
-## dynamic analysis
-sudo apt install make cmake
 ```
+
+# TODO Intel PIN
 
 ## Installation
 

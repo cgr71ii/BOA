@@ -13,7 +13,7 @@ on:
 
 jobs:
    testing:
-      name: Build and testing
+      name: Install and testing
       runs-on: ubuntu-20.04
       timeout-minutes: 60
       steps:
@@ -22,6 +22,7 @@ jobs:
          with:
             python-version: '3.8.5'
             architecture: 'x64'
+      -  uses: actions/checkout@v2
       -  name: Install python requirements
          run: |
             pip3 install -r requirements.txt
