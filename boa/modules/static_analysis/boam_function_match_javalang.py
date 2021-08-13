@@ -39,7 +39,6 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
         """
         self.all_methods_name = []
         self.all_methods_reference = []
-        self.threats = []
 
         for method in self.args["methods"]:
             method_name = method["method"]
@@ -68,28 +67,6 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
     def clean(self):
         """It does nothing.
         """
-
-    def save(self, report):
-        """It appends the found threats.
-
-        Arguments:
-            report: Report instante to save all the found threats.
-        """
-        index = 0
-
-        for threat in self.threats:
-            severity = report.get_severity_enum_instance_by_who(self.who_i_am)
-
-            if severity is None:
-                logging.error("could not append the threat record #%d in '%s': wrong severity enum instance", index, self.who_i_am)
-            else:
-                severity = severity[threat[2]]
-                rtn_code = report.add(threat[0], threat[1], severity, threat[3], threat[4], threat[5])
-
-                if rtn_code != Meta.ok_code:
-                    logging.error("could not append the threat record #%d (status code: %d) in '%s'", index, rtn_code, self.who_i_am)
-
-            index += 1
 
     def finish(self):
         """It does nothing.

@@ -17,7 +17,7 @@ import logging
 
 # Own libs
 from utils import get_name_from_class_instance
-from constants import Other
+from constants import Other, Meta
 
 # This  file name has to match with constants.Meta.abstract_module_name
 # This class name has to match with constants.Meta.abstract_module_class_name
@@ -82,7 +82,7 @@ class BOAModuleAbstract:
 
     # This method will be invoked after all tokens have been processed
     # This method has the responsibility of update the records in the given report
-    @abstractmethod
+    #@abstractmethod
     def save(self, report):
         """It saves the security threads found in a report.
         This method will be invoked after all tokens have been processed.
@@ -90,6 +90,17 @@ class BOAModuleAbstract:
         Arguments:
             report: report which will contain the threats records.
         """
+        for idx, threat in enumerate(self.threats):
+            severity = report.get_severity_enum_instance_by_who(self.who_i_am)
+
+            if severity is None:
+                logging.error("could not append the threat record #%d in '%s': wrong severity enum instance", idx, self.who_i_am)
+            else:
+                severity = severity[threat[2]]
+                rtn_code = report.add(threat[0], threat[1], severity, threat[3], threat[4], threat[5])
+
+                if rtn_code != Meta.ok_code:
+                    logging.error("could not append the threat record #%d (status code: %d) in '%s'", idx, rtn_code, self.who_i_am)
 
     # This method will be invoked when all the tokens have been processed
     @abstractmethod
@@ -107,6 +118,14 @@ class BOAModuleAbstract:
             value (bool): value to set to the *stop* property.
         """
         self.stop = value
+
+    def get_instance(self):
+        """It returns *self*.
+
+        Returns:
+            object: instance object.
+        """
+        return self
 
     @property
     def args(self):

@@ -3,6 +3,8 @@
 from terminal.
 """
 
+# TODO finish and check docstrings
+
 # Std libs
 import re
 import os
@@ -26,7 +28,6 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
     def initialize(self):
         """It initializes the module.
         """
-        self.threats = []
         self.iterations = 1 if not utils.is_key_in_dict(self.args, "iterations") else int(self.args["iterations"])
         self.pipe = False
         self.log_args_and_input_and_output = False
@@ -36,6 +37,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         self.instrumentation = False
         self.subprocess_shell = False
         self.processes = 1 if not utils.is_key_in_dict(self.args, "processes") else min(int(self.args["processes"]), self.iterations)
+        self.skip_process = False
 
         logging.debug("using %d processes", self.processes)
 
@@ -94,6 +96,13 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
                 self.subprocess_shell = True
 
                 logging.debug("using subprocess shell=True")
+        if "skip_process" in self.args:
+            skip_process = self.args["skip_process"].lower().strip()
+
+            if skip_process == "true":
+                self.skip_process = True
+
+                logging.debug("skipping process")
 
         if ((self.path_to_pin_binary is None) ^ (self.pintool is None)):
             logging.warning("if you want to apply instrumentation, 'path_to_pin_binary' (or 'PIN_BIN' envvar) and 'pintool' have to be both defined")
@@ -148,22 +157,26 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             logging.debug("process %s: args: %s", os.getpid(), args)
             logging.debug("process %s: (input, (stdout, stderr)): (%s, %s)", os.getpid(), input.encode(), output)
 
+        instrumentation_result = 0.0
+
         # Instrumentation results
         if instrumentation_tmp_file is not None:
-            result = 0.0
-
             with open(instrumentation_tmp_file) as f:
-                result = float(f.read().strip())
+                instrumentation_result = float(f.read().strip())
 
-            logging.debug("process %s: instrumentation result: %.2f", os.getpid(), result)
+            logging.debug("process %s: instrumentation result: %.2f", os.getpid(), instrumentation_result)
 
             # Remove file
             os.remove(instrumentation_tmp_file)
 
-        return return_id, run.returncode
+        return return_id, run.returncode, instrumentation_result
 
     def process_worker_results(self, fails_instance, worker_return_list, worker_args):
-        for multiprocessing_idx, return_code in worker_return_list:
+        """
+        """
+        fails = []
+
+        for multiprocessing_idx, return_code, instrumentation_result in worker_return_list:
             # Has the execution failed?
             fail = fails_instance.execution_has_failed(return_code)
 
@@ -176,11 +189,12 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
                                         "check if the fail is not a false positive",
                                         None, None))
 
-    def process(self, runners_args):
-        """It implements a basic fuzzing technique.
+            fails.append((multiprocessing_idx, fail))
 
-        Arguments:
-            runners_args (dict): dict with runners arguments.
+        return fails
+
+    def process_wrapper(self, runners_args):
+        """
         """
         binary_path = runners_args["binary"]
         fails_instance = runners_args["fails"]["instance"]
@@ -197,7 +211,9 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
                 results = pool.starmap(self.process_worker, worker_args)
 
                 # Process threats
-                self.process_worker_results(fails_instance, results, worker_args)
+                fails = self.process_worker_results(fails_instance, results, worker_args)
+
+                yield worker_args, results, fails
 
                 worker_args = []
 
@@ -210,37 +226,31 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             results = pool.starmap(self.process_worker, worker_args)
 
             # Process threats
-            self.process_worker_results(fails_instance, results, worker_args)
+            fails = self.process_worker_results(fails_instance, results, worker_args)
+
+            yield worker_args, results, fails
 
             worker_args = []
 
         logging.info("100.00% completed")
 
+        yield
+
+    def process(self, runners_args):
+        """It implements a basic fuzzing technique.
+
+        Arguments:
+            runners_args (dict): dict with runners arguments.
+        """
+        if self.skip_process:
+            return
+
+        for _ in self.process_wrapper(runners_args):
+            pass
+
     def clean(self):
         """It does nothing.
         """
-
-    def save(self, report):
-        """It appends the found threats.
-
-        Arguments:
-            report: Report instante to save all the found threats.
-        """
-        index = 0
-
-        for threat in self.threats:
-            severity = report.get_severity_enum_instance_by_who(self.who_i_am)
-
-            if severity is None:
-                logging.error("could not append the threat record #%d in '%s': wrong severity enum instance", index, self.who_i_am)
-            else:
-                severity = severity[threat[2]]
-                rtn_code = report.add(threat[0], threat[1], severity, threat[3], threat[4], threat[5])
-
-                if rtn_code != Meta.ok_code:
-                    logging.error("could not append the threat record #%d (status code: %d) in '%s'", index, rtn_code, self.who_i_am)
-
-            index += 1
 
     def finish(self):
         """It does nothing.

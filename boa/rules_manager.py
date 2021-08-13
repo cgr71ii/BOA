@@ -777,7 +777,7 @@ class RulesManager:
                                                        ".dependencies.dependency' cannot be"
                                                        f" empty ('{module_name}.{class_name}')")
                     if len(dependency) != 3:
-                        raise BOARulesIncomplete("'boa_rules.modules.module.dependencies."
+                        raise BOARulesIncomplete("'boa_rules.modules.module.dependencies"
                                                  ".dependency' has not the expected #elements"
                                                  f" in '{module_name}.{class_name}'")
 
