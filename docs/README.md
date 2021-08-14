@@ -32,7 +32,9 @@ The following dependencies might also be installed in a conda environment (is so
 sudo apt install git
 ```
 
-TODO Intel PIN
+### Dynamic analysis
+
+For dynamic analysis, the main requirement is [Intel PIN](https://software.intel.com/content/www/us/en/develop/articles/pin-a-binary-instrumentation-tool-downloads.html), a tool for binary instrumentation. All you will need to do is download the latest kit (BOA have been tested with kit [version 3.20](https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.20-98437-gf02b61307-gcc-linux.tar.gz)). Once it is downloaded, depending on the module you will use, you will need to provide the path to the kit.
 
 ## Installation
 
@@ -115,9 +117,8 @@ There are modules which can only be used when the analysis is static analysis:
 
 There are modules which can only be used when the analysis is dynamic analysis:
 
-TODO
-* `Input`: 
-* `Fail`: 
+* `Input`: modules whose goal is generate random inputs. Specific modules might be coded, but general ones are provided (e.g. module which you can provide a grammar and likelihoods of each rule).
+* `Fail`: modules whose goal is detect when an execution failed. The most basic way is check out the exit status, but more semantic ways might be coded (e.g. check if a software which generates images generated the image you were expecting).
 
 ## Input file format
 
