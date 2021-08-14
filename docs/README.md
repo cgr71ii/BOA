@@ -34,7 +34,7 @@ sudo apt install git
 
 ### Dynamic analysis
 
-For dynamic analysis, the main requirement is [Intel PIN](https://software.intel.com/content/www/us/en/develop/articles/pin-a-binary-instrumentation-tool-downloads.html), a tool for binary instrumentation. All you will need to do is download the latest kit (BOA have been tested with kit [version 3.20](https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.20-98437-gf02b61307-gcc-linux.tar.gz)). Once it is downloaded, depending on the module you will use, you will need to provide the path to the kit.
+For dynamic analysis, the main requirement is [Intel PIN](https://software.intel.com/content/www/us/en/develop/articles/pin-a-binary-instrumentation-tool-downloads.html), a tool for binary instrumentation. All you will need to do is download the latest kit (BOA has been tested with kit [version 3.20](https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.20-98437-gf02b61307-gcc-linux.tar.gz)). Once it is downloaded, depending on the module you will use, you will need to provide the path to the kit.
 
 ## Installation
 
@@ -82,8 +82,8 @@ usage: boa.py [-h] [-v] [--no-fail] [--print-traceback] [--logging-level N]
 There are different parameters in order to achieve different behaviours:
 
 * Mandatory/Positional:
-  1. `target`: TODO
-  2. `rules-file`: TODO
+  1. `target`: path to source code file (static analysis) or full path to binary (dynamic analysis) which is the target of the analysis.
+  2. `rules-file`: path to rules file where all the directives of the analysis are defined (you may find these files at `boa/rules`). This file is the configuration for a specific analysis.
 * Optional:
   * Meta:
     * `-h, --help`: help message and exit.
