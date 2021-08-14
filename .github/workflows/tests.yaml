@@ -25,6 +25,9 @@ jobs:
             python-version: '3.8.5'
             architecture: 'x64'
       -  uses: actions/checkout@v2
+      -  name: Install requirements
+         run: |
+            sudo apt install --assume-yes firejail
       -  name: Install python requirements
          run: |
             pip3 install -r requirements.txt
