@@ -184,16 +184,16 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
                 input = worker_args[multiprocessing_idx][1].encode() # Encoded in order to avoid backslashes interpretation
 
                 self.threats.append((self.who_i_am,
-                                        f"the input {input} returned the status code {return_code}",
-                                        "FAILED",
-                                        "check if the fail is not a false positive",
-                                        None, None))
+                                     f"the input {input} returned the status code {return_code}",
+                                     "FAILED",
+                                     "check if the fail is not a false positive",
+                                     None, None))
 
             fails.append((multiprocessing_idx, fail))
 
         return fails
 
-    def process_wrapper(self, runners_args):
+    def process_wrapper(self, runners_args, input_list=None):
         """
         """
         binary_path = runners_args["binary"]
@@ -202,8 +202,19 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         pool = multiprocessing.Pool(processes=self.processes)
         worker_args = []
 
-        for iteration in range(self.iterations):
-            input = runners_args["inputs"]["instance"].get_another_input()
+        if (input_list is not None and len(input_list) != self.iterations):
+            if len(input_list) < self.iterations:
+                logging.warning("not enought inputs were provided: %d inputs were provided, so %d inputs"
+                                " are going to be generated", len(input_list), self.iterations - len(input_list))
+            else:
+                logging.warning("too many inputs were provided, and not all of them are going to be used:"
+                                " only the %d first elements are going to be used", self.iterations)
+
+        for idx, iteration in enumerate(range(self.iterations)):
+            if (input_list is not None and idx < len(input_list)):
+                input = input_list[idx]
+            else:
+                input = runners_args["inputs"]["instance"].get_another_input()
 
             worker_args.append((iteration % workers, input, binary_path,))
 

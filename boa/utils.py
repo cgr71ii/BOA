@@ -11,6 +11,7 @@ This file does not have a concrete goal.
 import os
 import re
 import sys
+import random
 import logging
 
 # Own libs
@@ -349,3 +350,76 @@ def set_up_logging(filename=None, level=logging.INFO, format_str=Other.other_log
             handlers[0] = logging.FileHandler(filename)
 
     logging.basicConfig(handlers=handlers, level=level, format=format_str)
+
+def get_random_utf8_seq(length, force_printable=True, regex="^.$", regex_max_tries=1000000):
+    """It generates a random sequence coded in UTF-8.
+
+    Arguments:
+        length (int): length of the sequence.
+        force_printable (bool): UTF-8 character printable.
+        regex (str): regex which every char. of the sequence has to pass.
+        regex_max_tries (int): max. tries to attempt to pass *regex*.
+
+    Returns:
+        str: UTF-8 sequence.
+    """
+    def get_random_utf8_char():
+        valid = False
+        char = ""
+        tries = 0
+        regex_obj = re.compile(regex)
+
+        while not valid:
+            try:
+                r = random.randint(0, 0x10FFFF - 1)
+                chr(r).encode("utf-8").decode("utf-8")
+
+                if (not force_printable or (force_printable and chr(r).isprintable())):
+                    char = chr(r)
+                    
+                    if (tries >= regex_max_tries or regex_obj.match(char) is not None):
+                        valid = True
+
+                    tries += 1
+            except:
+                pass
+
+        return char
+
+    seq = ""
+
+    for _ in range(length):
+        seq += get_random_utf8_char()
+
+    return seq
+
+def roulette_wheel_selection(rewards):
+    """Roulette wheel selection algorithm.
+
+    Arguments:
+        rewards (list): list of rewards.
+
+    Returns:
+        int: index of the provided *rewards*.
+    """
+    likelihood = sorted(zip(range(len(rewards)), rewards), key=lambda item: item[1]) # <
+    acummulated = 0.0
+    index = likelihood[-1][0]
+
+    # Update likelihood in order to obtain the acummulated values
+    for idx, (l_idx, l_l) in enumerate(likelihood):
+        acummulated += l_l
+        likelihood[idx] = (l_idx, acummulated)
+
+    # Normalize
+    likelihood = map(lambda item: (item[0], item[1] / acummulated), likelihood)
+
+    # Obtain index with higher likelihood
+    random_number = random.random()
+
+    for l_idx, l_l in likelihood:
+        if l_l >= random_number:
+            index = l_idx
+            break
+
+    return index

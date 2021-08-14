@@ -72,6 +72,9 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
         """
 
     def pycparser_funccall(self, token):
+        """
+        """
+        # TODO docstring
         # Get the calling function name
         function_name = token.name.name
 

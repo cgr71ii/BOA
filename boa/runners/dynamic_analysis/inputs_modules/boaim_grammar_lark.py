@@ -11,7 +11,7 @@ import exrex
 
 # Own libs
 from boaim_abstract import BOAInputModuleAbstract
-from utils import get_current_path
+import utils
 
 class BOAIMGrammarLark(BOAInputModuleAbstract):
     """
@@ -72,43 +72,6 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
         if "start" not in self.index["rules_names"]:
             raise BOAInputModuleAbstract("rule 'start' not found in the provided grammar")
 
-    def get_random_rule(self, rule):
-        """Obtain a random rule from the provided *rule*.
-        We use the roulette wheel selection algorithm to select the rule
-        with the higher likelihood.
-
-        Arguments:
-            rule (str): rule to start from the graph.
-
-        Returns:
-            tuple: 
-        """
-        n_rules = len(self.index["graph"][rule])
-
-        if n_rules == 0:
-            raise BOAInputModuleAbstract(f"there was 0 dependencies in the graph for the rule '{rule}'")
-
-        likelihood = sorted(self.likelihood[rule].items(), key=lambda item: item[1]) # <
-        acummulated = 0.0
-        index = likelihood[-1][0]
-
-        # Update likelihood in order to obtain the acummulated values
-        for idx, (l_idx, l_l) in enumerate(likelihood):
-            acummulated += l_l
-            likelihood[idx] = (l_idx, acummulated)
-
-        # Obtain index with higher likelihood
-        random_number = random.random()
-
-        for l_idx, l_l in likelihood:
-            if l_l >= random_number:
-                index = l_idx
-                break
-
-#        index = random.randint(0, n_rules - 1)
-
-        return self.index["graph"][rule][index]
-
     def minimize_non_terminals_from_rule(self, rule, depth=0, first_call=True):
         """It iterates the childs in depth of the *rule* and minimizes the
         number of *NonTerminal* symbols.
@@ -154,6 +117,10 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
         # First call
         return self.index["graph"][rule][rules_non_terminal_symbols.index(min(rules_non_terminal_symbols))]
 
+    def check_there_are_rules(self, rule):
+        if len(self.index["graph"][rule]) == 0:
+            raise BOAInputModuleAbstract(f"there was 0 dependencies in the graph for the rule '{rule}'")
+
     def generate_input(self):
         """
         """
@@ -162,7 +129,10 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
         recursive_rules = 0
         soft_limit = False
 
-        new_selected_rule = self.get_random_rule("start")
+        self.check_there_are_rules("start")
+
+        new_selected_rule = self.index["graph"]["start"]\
+                                      [utils.roulette_wheel_selection(self.likelihood["start"].values())]
         stack.extend(list(reversed(new_selected_rule)))
 
         while len(stack) != 0:
@@ -181,7 +151,10 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
                 if soft_limit:
                     new_selected_rule = self.minimize_non_terminals_from_rule(graph_node_name, depth=self.soft_limit_depth)
                 else:
-                    new_selected_rule = self.get_random_rule(graph_node_name)
+                    self.check_there_are_rules(graph_node_name)
+
+                    new_selected_rule = self.index["graph"][graph_node_name]\
+                                                  [utils.roulette_wheel_selection(self.likelihood[graph_node_name].values())]
 
                 # Add the new rules to the stack
                 stack.extend(list(reversed(new_selected_rule)))
@@ -255,7 +228,7 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
             raise BOAInputModuleAbstract("'lark_grammar' has not been provided in the arguments")
 
         # TODO better way to reference the grammar file?
-        path = f"{get_current_path(path=__file__).rsplit('/', 1)[0]}/../../grammars/{self.args['lark_grammar']}"
+        path = f"{utils.get_current_path(path=__file__).rsplit('/', 1)[0]}/../../grammars/{self.args['lark_grammar']}"
         grammar = ""
         likelihood = {}
 
