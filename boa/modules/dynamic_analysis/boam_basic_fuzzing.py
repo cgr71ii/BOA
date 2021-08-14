@@ -15,7 +15,7 @@ import multiprocessing
 
 # Own libs
 from boam_abstract import BOAModuleAbstract
-from constants import Meta, Regex
+from constants import Regex, Other
 import utils
 
 class BOAModuleBasicFuzzing(BOAModuleAbstract):
@@ -74,12 +74,15 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         logging.debug("iterations: %d", self.iterations)
 
         self.additional_args = []
+        self.sandboxing_command = Other.modules_dynamic_analysis_sandboxing
 
         if "additional_args" in self.args:
             self.additional_args = re.findall(Regex.regex_which_respect_quotes_params, self.args["additional_args"])
 
             if not self.add_additional_args:
                 logging.warning("there are additional args defined, but will not be added since 'add_additional_args' is 'false'")
+        if "sandboxing_command" in self.args:
+            self.sandboxing_command = re.findall(Regex.regex_which_respect_quotes_params, self.args["sandboxing_command"])
         if "path_to_pin_binary" in self.args:
             self.path_to_pin_binary = self.args["path_to_pin_binary"]
         else: # Alternative method to get PIN path
@@ -123,6 +126,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
                             "-o", instrumentation_tmp_file, "--"] \
                             if self.instrumentation else []
         additional_args = self.additional_args
+        sandboxing_command = self.sandboxing_command
 
         # TODO better process of quotes, backslashes and arguments splitting
 
@@ -137,15 +141,17 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             if not self.subprocess_shell:
                 # Remove quotes: this behaviour might change if Regex.regex_which_respect_quotes_params is modified
                 binary_args = list(map(lambda arg: arg[1:-1] if (arg[0] == "\"" and arg[-1] == "\"") else arg, binary_args))
+                additional_args = list(map(lambda arg: arg[1:-1] if (arg[0] == "\"" and arg[-1] == "\"") else arg, additional_args))
+                sandboxing_command = list(map(lambda arg: arg[1:-1] if (arg[0] == "\"" and arg[-1] == "\"") else arg, sandboxing_command))
 
-            args = instrumentation + [binary_path] + binary_args + additional_args
+            args = sandboxing_command + instrumentation + [binary_path] + binary_args + additional_args
             args = ' '.join(args) if self.subprocess_shell else args    # Str if shell=True
 
             run = subprocess.run(args, capture_output=self.log_args_and_input_and_output, shell=self.subprocess_shell)
 
             output = (run.stdout, run.stderr)
         else:
-            args = instrumentation + [binary_path] + additional_args
+            args = sandboxing_command + instrumentation + [binary_path] + additional_args
             args = ' '.join(args) if self.subprocess_shell else args    # Str if shell=True
             run = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    shell=self.subprocess_shell)

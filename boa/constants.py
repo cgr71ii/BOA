@@ -146,6 +146,7 @@ class Other:
     modules_static_analysis_subdir = "static_analysis"
     ## Dynamic analysis
     modules_dynamic_analysis_subdir = "dynamic_analysis"
+    modules_dynamic_analysis_sandboxing = ["firejail", "--quiet", "--noprofile"]
 
     # Runners
     runners_static_analysis_directory = "runners/static_analysis"

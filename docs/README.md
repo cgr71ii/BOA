@@ -34,7 +34,14 @@ sudo apt install git
 
 ### Dynamic analysis
 
-For dynamic analysis, the main requirement is [Intel PIN](https://software.intel.com/content/www/us/en/develop/articles/pin-a-binary-instrumentation-tool-downloads.html), a tool for binary instrumentation. All you will need to do is download the latest kit (BOA has been tested with kit [version 3.20](https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.20-98437-gf02b61307-gcc-linux.tar.gz)). Once it is downloaded, depending on the module you will use, you will need to provide the path to the kit.
+For dynamic analysis, one requirement is [Intel PIN](https://software.intel.com/content/www/us/en/develop/articles/pin-a-binary-instrumentation-tool-downloads.html), a tool for binary instrumentation. All you will need to do is download the latest kit (BOA has been tested with kit [version 3.20](https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.20-98437-gf02b61307-gcc-linux.tar.gz)). Once it is downloaded, depending on the module you will use, you will need to provide the path to the kit.
+
+Other requirements can be installed using an apt-like package manager:
+
+```bash
+# sandboxing
+sudo apt install firejail
+```
 
 ## Installation
 
