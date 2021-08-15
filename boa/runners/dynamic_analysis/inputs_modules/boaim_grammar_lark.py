@@ -12,6 +12,7 @@ import exrex
 # Own libs
 from boaim_abstract import BOAInputModuleAbstract
 import utils
+from exceptions import BOARunnerModuleError
 
 class BOAIMGrammarLark(BOAInputModuleAbstract):
     """
@@ -70,7 +71,7 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
         self.fix_partial_likelihood()
 
         if "start" not in self.index["rules_names"]:
-            raise BOAInputModuleAbstract("rule 'start' not found in the provided grammar")
+            raise BOARunnerModuleError("rule 'start' not found in the provided grammar")
 
     def minimize_non_terminals_from_rule(self, rule, depth=0, first_call=True):
         """It iterates the childs in depth of the *rule* and minimizes the
@@ -119,7 +120,7 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
 
     def check_there_are_rules(self, rule):
         if len(self.index["graph"][rule]) == 0:
-            raise BOAInputModuleAbstract(f"there was 0 dependencies in the graph for the rule '{rule}'")
+            raise BOARunnerModuleError(f"there was 0 dependencies in the graph for the rule '{rule}'")
 
     def generate_input(self):
         """
@@ -195,7 +196,7 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
                 idx_rules_not_defined = []
                 total_likelihood_set = 0.0
 
-                # Get the acummulated likelihood which has been set
+                # Get the accumulated likelihood which has been set
                 for already_set_likelihood_idx in self.likelihood[rule]:
                     if already_set_likelihood_idx >= n_rr:
                         logging.warning("you defined the likelihood for the index %d of the rule '%s',"
@@ -225,7 +226,7 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
         """
         """
         if "lark_grammar" not in self.args:
-            raise BOAInputModuleAbstract("'lark_grammar' has not been provided in the arguments")
+            raise BOARunnerModuleError("'lark_grammar' has not been provided in the arguments")
 
         # TODO better way to reference the grammar file?
         path = f"{utils.get_current_path(path=__file__).rsplit('/', 1)[0]}/../../grammars/{self.args['lark_grammar']}"
@@ -245,8 +246,8 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
                         line = line.split(":")
 
                         if (len(line) != 4 or line[0] != "BOA"):
-                            raise BOAInputModuleAbstract("unexpected format in the grammar file when specifying"
-                                                         f" the likelihood of the rules: line {idx}")
+                            raise BOARunnerModuleError("unexpected format in the grammar file when specifying"
+                                                       f" the likelihood of the rules: line {idx}")
 
                         _, non_terminal_rule, rule_index, likelihood_of_rule = line
 
@@ -257,8 +258,8 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
                             likelihood[non_terminal_rule] = {}
 
                         if rule_index in likelihood[non_terminal_rule]:
-                            raise BOAInputModuleAbstract(f"the likelihood of the rule '{non_terminal_rule}' was"
-                                                         " multiple times")
+                            raise BOARunnerModuleError(f"the likelihood of the rule '{non_terminal_rule}' was"
+                                                       " multiple times")
 
                         likelihood[non_terminal_rule][rule_index] = likelihood_of_rule
                     else:

@@ -444,16 +444,17 @@ def roulette_wheel_selection(rewards):
         int: index of the provided *rewards*.
     """
     likelihood = sorted(zip(range(len(rewards)), rewards), key=lambda item: item[1]) # <
-    acummulated = 0.0
+    accumulated = 0.0
     index = likelihood[-1][0]
 
-    # Update likelihood in order to obtain the acummulated values
+    # Update likelihood in order to obtain the accumulated values
     for idx, (l_idx, l_l) in enumerate(likelihood):
-        acummulated += l_l
-        likelihood[idx] = (l_idx, acummulated)
+        accumulated += l_l
+        likelihood[idx] = (l_idx, accumulated)
 
-    # Normalize
-    likelihood = map(lambda item: (item[0], item[1] / acummulated), likelihood)
+    # Normalize (check that the accumulated value is not 0 or very close to it)
+    if not -sys.float_info.epsilon < accumulated < sys.float_info.epsilon:
+        likelihood = map(lambda item: (item[0], item[1] / accumulated), likelihood)
 
     # Obtain index with higher likelihood
     random_number = random.random()

@@ -41,6 +41,8 @@ Other requirements can be installed using an apt-like package manager:
 ```bash
 # sandboxing
 sudo apt install firejail
+# support 32-bit execution (tests)
+sudo apt install libc6-i386
 ```
 
 ## Installation

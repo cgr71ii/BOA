@@ -7,16 +7,17 @@
     </env_vars>
     <runners>
         <inputs>
-            <module_name>boaim_grammar_lark</module_name>
-            <class_name>BOAIMGrammarLark</class_name>
+            <module_name>boaim_input_seed</module_name>
+            <class_name>BOAIMInputSeed</class_name>
             <args>
                 <dict>
-                    <element name="suffix" value="\n" />
-                    <element name="lark_grammar" value="basic_math_operations.lark" />
-                    <element name="soft_limit_rules" value="10" />
-                    <element name="soft_limit_depth" value="2" />
-                    <element name="hard_limit_rules" value="100" />
-                    <element name="exrex_limit" value="50" />   <!-- max. limit for regex rules without limit (e.g. [0-9]+) -->
+                    <element name="random_max_length" value="100" />
+                    <element name="random_likelihood" value="0.05" />
+                    <list name="input_seed">
+                        <element value="Q3Jpc3RpYW4gR2FyY8OtYSBSb21lcm8K" />
+                        <element value="Um9zc21lcnkgPDMK" />
+                        <element value="SGFsbyAzIDpECg==" />
+                    </list>
                 </dict>
             </args>
         </inputs>
@@ -37,16 +38,15 @@
             <lifecycle_handler>boalc_basic.BOALCBasic</lifecycle_handler>
             <args>
                 <dict>
-                    <element name="iterations" value="2" />
+                    <element name="iterations" value="50" />
                     <element name="pipe" value="true" />
                     <element name="log_args_and_input_and_output" value="true" />
-                    <element name="add_additional_args" value="false" />
-                    <!-- <element name="additional_args" value="-v" /> -->
-                    <!-- <element name="pintool" value="obj-intel64/inst_count.so" /> -->
-                    <element name="pintool" value="obj-intel64/bb_count_once.so" />
+                    <element name="add_additional_args" value="true" />
+                    <element name="additional_args" value="-d" />
+                    <!-- <element name="pintool" value="obj-intel64/bb_count_once.so" /> -->
                     <element name="subprocess_shell" value="false" />
-                    <element name="processes" value="1" />
-                    <element name="skip_process" value="true" />    <!-- Because this module will be used as dependency -->
+                    <element name="processes" value="4" />
+                    <element name="skip_process" value="true" />
                 </dict>
             </args>
         </module>
@@ -57,11 +57,11 @@
             <lifecycle_handler>boalc_basic.BOALCBasic</lifecycle_handler>
             <args>
                 <dict>
-                    <element name="epochs" value="10" />
+                    <element name="epochs" value="1000" />
                     <element name="elitism" value="2" />
                     <element name="mutation_rate" value="0.05" />
                     <element name="crossover_rate" value="0.95" />
-                    <element name="mutation_regex" value="^[0-9]|\+|-|\*|/$" />
+                    <element name="mutation_regex" value="^[0-9]|[a-z]|[A-Z]$" />
                     <element name="mutation_binary_granularity" value="true" />
                 </dict>
             </args>
