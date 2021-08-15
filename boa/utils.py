@@ -351,6 +351,47 @@ def set_up_logging(filename=None, level=logging.INFO, format_str=Other.other_log
 
     logging.basicConfig(handlers=handlers, level=level, format=format_str)
 
+def get_random_byte_seq(length, regex=b"^.$", regex_max_tries=1000000):
+    """It generates a random sequence of bytes.
+
+    Arguments:
+        length (int): length of the sequence.
+        regex (byte): regex which every byte of the sequence has to pass.
+        regex_max_tries (int): max. tries to attempt to pass *regex*.
+
+    Returns:
+        str: sequence of bytes.
+    """
+    def get_random_byte():
+        valid = False
+        char = None
+        tries = 0
+        regex_obj = re.compile(regex)
+
+        while not valid:
+            try:
+                r = random.randint(0, 0xFF)
+
+                chr(r).encode("charmap").decode("charmap")
+
+                char = chr(r).encode("charmap")
+
+                if (tries >= regex_max_tries or regex_obj.match(char) is not None):
+                    valid = True
+
+                tries += 1
+            except:
+                pass
+
+        return char if char is not None else b"a" # Return default valid value
+
+    seq = b""
+
+    for _ in range(length):
+        seq += get_random_byte()
+
+    return seq
+
 def get_random_utf8_seq(length, force_printable=True, regex="^.$", regex_max_tries=1000000):
     """It generates a random sequence coded in UTF-8.
 
@@ -365,7 +406,7 @@ def get_random_utf8_seq(length, force_printable=True, regex="^.$", regex_max_tri
     """
     def get_random_utf8_char():
         valid = False
-        char = ""
+        char = None
         tries = 0
         regex_obj = re.compile(regex)
 
@@ -376,7 +417,7 @@ def get_random_utf8_seq(length, force_printable=True, regex="^.$", regex_max_tri
 
                 if (not force_printable or (force_printable and chr(r).isprintable())):
                     char = chr(r)
-                    
+
                     if (tries >= regex_max_tries or regex_obj.match(char) is not None):
                         valid = True
 
@@ -384,7 +425,7 @@ def get_random_utf8_seq(length, force_printable=True, regex="^.$", regex_max_tri
             except:
                 pass
 
-        return char
+        return char if char is not None else "a" # Return default valid value
 
     seq = ""
 

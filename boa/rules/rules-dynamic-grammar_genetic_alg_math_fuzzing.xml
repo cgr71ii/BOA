@@ -42,7 +42,8 @@
                     <element name="log_args_and_input_and_output" value="true" />
                     <element name="add_additional_args" value="false" />
                     <!-- <element name="additional_args" value="-v" /> -->
-                    <element name="pintool" value="obj-intel64/inscount.so" />
+                    <!-- <element name="pintool" value="obj-intel64/inst_count.so" /> -->
+                    <element name="pintool" value="obj-intel64/bb_count_once.so" />
                     <element name="subprocess_shell" value="false" />
                     <element name="processes" value="1" />
                     <element name="skip_process" value="true" />
@@ -61,6 +62,7 @@
                     <element name="mutation_rate" value="0.05" />
                     <element name="crossover_rate" value="0.95" />
                     <element name="mutation_regex" value="^[0-9]|\+|-|\*|/$" />
+                    <element name="mutation_binary_granularity" value="true" />
                 </dict>
             </args>
 

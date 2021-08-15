@@ -35,6 +35,20 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
         self.mutation_rate = 0.05 if not utils.is_key_in_dict(self.args, "mutation_rate") else float(self.args["mutation_rate"])
         self.crossover_rate = 0.95 if not utils.is_key_in_dict(self.args, "crossover_rate") else float(self.args["crossover_rate"])
         self.mutation_regex = "^.$" if not utils.is_key_in_dict(self.args, "mutation_regex") else self.args["mutation_regex"]
+        self.mutation_binary_granularity = False
+
+        if "mutation_binary_granularity" in self.args:
+            mutation_binary_granularity = self.args["mutation_binary_granularity"].lower().strip()
+
+            if mutation_binary_granularity == "true":
+                self.mutation_binary_granularity = True
+
+                logging.debug("working with binary instead of char granularity")
+
+            if "mutation_regex" in self.args:
+                logging.warning("provided mutation regex will be treated as binary due to the binary granularity")
+
+                self.mutation_regex = self.mutation_regex.encode() # TODO is correct? check out if it works...
 
         if self.elitism > self.population:
             logging.warning("elitism value (%d) is higher than population (%d): elitism value is "
@@ -80,23 +94,111 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
         return new_population
 
+    def mutation_replace(self, child):
+        """
+        """
+        new_child = b"" if self.mutation_binary_granularity else ""
+
+        for idx in range(len(child)):
+            r = random.random()
+
+            if r < self.mutation_rate:
+                # Mutate
+                if self.mutation_binary_granularity:
+                    new_child += utils.get_random_byte_seq(1, regex=self.mutation_regex)
+                else:
+                    new_child += utils.get_random_utf8_seq(1, regex=self.mutation_regex)
+            else:
+                # Do not mutate
+                new_child += chr(child[idx]).encode("charmap") if self.mutation_binary_granularity else child[idx]
+
+        return new_child
+
+    def mutation_insert(self, child):
+        """
+        """
+        new_child = b"" if self.mutation_binary_granularity else ""
+        no_chars_inserted = 0
+        idx = 0
+
+        while idx < len(child) + no_chars_inserted:
+            r = random.random()
+            child_char = chr(child[idx - no_chars_inserted]).encode("charmap") if self.mutation_binary_granularity \
+                                                                               else child[idx - no_chars_inserted]
+
+            if r < self.mutation_rate:
+                # Mutate
+                if self.mutation_binary_granularity:
+                    new_char = utils.get_random_byte_seq(1, regex=self.mutation_regex)
+                else:
+                    new_char = utils.get_random_utf8_seq(1, regex=self.mutation_regex)
+
+                new_child += child_char + new_char
+                no_chars_inserted += 1
+            else:
+                # Do not mutate
+                new_child += child_char
+
+            idx += 1
+
+        return new_child
+
+    def mutation_swap(self, child):
+        """
+        """
+        new_child = [chr(c).encode("charmap") if self.mutation_binary_granularity else c for c in child] # List of characters
+
+        for idx, char in enumerate(new_child):
+            r = random.random()
+
+            if r < self.mutation_rate:
+                # Mutate
+                swap_idx = random.randint(0, len(new_child) - 1)
+                swap_char = new_child[swap_idx]
+
+                new_child[idx] = swap_char
+                new_child[swap_idx] = char
+            else:
+                # Do not mutate
+                pass
+
+        return (b"" if self.mutation_binary_granularity else "").join(new_child) # Return str
+
+    def mutation_delete(self, child):
+        """
+        """
+        new_child = b"" if self.mutation_binary_granularity else ""
+
+        for idx in range(len(child)):
+            r = random.random()
+
+            if r < self.mutation_rate:
+                # Mutate -> do not add = remove
+                pass
+            else:
+                # Do not mutate
+                new_child += chr(child[idx]).encode("charmap") if self.mutation_binary_granularity else child[idx]
+
+        return new_child
+
     def mutation(self, population):
         """
         """
         new_population = []
+        mutators = [self.mutation_replace,
+                    self.mutation_insert,
+                    self.mutation_swap,
+                    self.mutation_delete]
 
         for child in population:
-            new_child = ""
+            if self.mutation_binary_granularity:
+                child = child.encode("charmap")
 
-            for idx in range(len(child)):
-                r = random.random()
+            new_child = random.choice(mutators)(child)
 
-                if r < self.mutation_rate:
-                    # Mutate
-                    new_child += utils.get_random_utf8_seq(1, regex=self.mutation_regex)
-                else:
-                    # Do not mutate
-                    new_child += child[idx]
+            if self.mutation_binary_granularity:
+                #new_child = new_child.decode("utf-8", "backslashreplace")
+                new_child = new_child.decode("utf-8", "ignore")
 
             new_population.append(new_child)
 
@@ -157,6 +259,8 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
             current_population = self.mutation(current_population)
 
             logging.info("epoch %d of %d: %.2f completed", epoch + 1, self.epochs, (epoch / self.epochs) * 100.0)
+
+        logging.info("100.00% completed")
 
     def clean(self):
         """It does nothing.
