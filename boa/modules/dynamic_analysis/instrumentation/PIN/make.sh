@@ -7,15 +7,18 @@ usage()
   echo "OPTIONS:"
   echo "  -h                Show this help message and exit"
   echo "  -P <pin_path>     Path to PIN installation"
+  echo "  -a <architecture> Target architecture (default is intel64)"
 }
 
 CURRENT_DIR=$(dirname "$0")
 PIN_ROOT=""
+TARGET_ARCH="intel64"
 
-while getopts ":P:h" options
+while getopts ":P:a:h" options
 do
     case "${options}" in
         P) PIN_ROOT="$OPTARG";;
+        a) TARGET_ARCH="$OPTARG";;
         h) usage
             exit 0;;
         \?) usage 1>&2
@@ -33,6 +36,6 @@ if [[ ! -d "$PIN_ROOT" ]] && [[ ! -L "$PIN_ROOT" ]]; then
 fi
 
 for f in $(cat "${CURRENT_DIR}/modules.txt"); do
-    echo "INFO: generating '$f' -> '${CURRENT_DIR}/obj-intel64/${f%.*}.so'"
-    make PIN_ROOT=${PIN_ROOT} ${CURRENT_DIR}/obj-intel64/${f%.*}.so
+    echo "INFO: generating '$f' -> '${CURRENT_DIR}/obj-${TARGET_ARCH}/${f%.*}.so'"
+    make PIN_ROOT=${PIN_ROOT} TARGET=${TARGET_ARCH} ${CURRENT_DIR}/obj-${TARGET_ARCH}/${f%.*}.so
 done
