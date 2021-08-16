@@ -2,7 +2,7 @@
 
 usage()
 {
-  echo "usage: $(basename $0) -P <pin_path>"
+  echo "usage: $(basename $0) -P <pin_path> [-a <architecture>]"
   echo ""
   echo "OPTIONS:"
   echo "  -h                Show this help message and exit"

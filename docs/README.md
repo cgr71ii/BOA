@@ -15,13 +15,13 @@ There are different type of modules, and due to these modules, the main features
 In order to install and run `BOA` successfully, you will need, at least, python>=3.8.5. If you have another version, you can use [Miniconda](https://docs.conda.io/en/latest/miniconda.html):
 
 ```bash
-# Install Miniconda3 (x86_64)
+# install Miniconda3 (x86_64)
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh
 
-# Create new environment
+# create new environment
 conda create -n your_environment_name python=3.8.5
-# Activate environment
+# activate environment
 conda activate your_environment_name
 ```
 
@@ -30,6 +30,14 @@ The following dependencies might also be installed in a conda environment (is so
 ```bash
 # general dependencies
 sudo apt install git
+```
+
+### Static analysis
+
+For static analysis, the requirements may be installed using an apt-like package manager:
+
+```bash
+sudo apt install make gcc g++
 ```
 
 ### Dynamic analysis
@@ -68,6 +76,20 @@ pip3 install -r requirements.txt
 ## skip those that you expect to do not use
 pip3 install -r requirements-static-analyzer.txt
 pip3 install -r requirements-dynamic-analyzer.txt
+```
+
+### Build
+
+#### Dynamic analysis
+
+In order to generate the necessary files for instrumentation, you will need to run the following commands:
+
+```bash
+cd ./boa/modules/dynamic_analysis/instrumentation/PIN
+# generate 64-bit files
+./make.sh -P /path/to/PIN/kit -a intel64
+# generate 32-bit files
+./make.sh -P /path/to/PIN/kit -a ia32
 ```
 
 ## Usage
