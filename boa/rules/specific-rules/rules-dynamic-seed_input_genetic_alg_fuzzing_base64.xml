@@ -11,8 +11,8 @@
             <class_name>BOAIMInputSeed</class_name>
             <args>
                 <dict>
-                    <element name="random_max_length" value="100" />
-                    <element name="random_likelihood" value="0.05" />
+                    <element name="random_max_length" value="50" />
+                    <element name="random_likelihood" value="0.0005" />
                     <list name="input_seed">
                         <element value="Q3Jpc3RpYW4gR2FyY8OtYSBSb21lcm8K" />
                         <element value="Um9zc21lcnkgPDMK" />
@@ -57,12 +57,12 @@
             <lifecycle_handler>boalc_basic.BOALCBasic</lifecycle_handler>
             <args>
                 <dict>
-                    <element name="epochs" value="100" />
+                    <element name="epochs" value="500" />
                     <element name="elitism" value="2" />
                     <element name="mutation_rate" value="0.05" />
                     <element name="crossover_rate" value="0.95" />
-                    <element name="mutation_regex" value="^[0-9]|[a-z]|[A-Z]$" />
-                    <element name="mutation_binary_granularity" value="true" />
+                    <element name="mutation_regex" value="^[0-9]|[a-z]|[A-Z]|=$" />
+                    <element name="mutation_binary_granularity" value="false" />
                 </dict>
             </args>
 

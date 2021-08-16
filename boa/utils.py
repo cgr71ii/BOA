@@ -372,9 +372,9 @@ def get_random_byte_seq(length, regex=b"^.$", regex_max_tries=1000000):
             try:
                 r = random.randint(0, 0xFF)
 
-                chr(r).encode("charmap").decode("charmap")
+                chr(r).encode("utf-8", "ignore").decode()
 
-                char = chr(r).encode("charmap")
+                char = chr(r).encode()
 
                 if (tries >= regex_max_tries or regex_obj.match(char) is not None):
                     valid = True

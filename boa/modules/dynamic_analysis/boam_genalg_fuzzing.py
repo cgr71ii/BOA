@@ -45,10 +45,10 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
                 logging.debug("working with binary instead of char granularity")
 
-            if "mutation_regex" in self.args:
-                logging.warning("provided mutation regex will be treated as binary due to the binary granularity")
+                if "mutation_regex" in self.args:
+                    logging.warning("provided mutation regex will be treated as binary due to the binary granularity")
 
-                self.mutation_regex = self.mutation_regex.encode() # TODO is correct? check out if it works...
+                    self.mutation_regex = self.mutation_regex.encode()
 
         if self.elitism > self.population:
             logging.warning("elitism value (%d) is higher than population (%d): elitism value is "
@@ -104,13 +104,12 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
             if r < self.mutation_rate:
                 # Mutate
-                if self.mutation_binary_granularity:
-                    new_child += utils.get_random_byte_seq(1, regex=self.mutation_regex)
-                else:
-                    new_child += utils.get_random_utf8_seq(1, regex=self.mutation_regex)
+                new_child_tmp = utils.get_random_utf8_seq(1, regex=self.mutation_regex if not self.mutation_binary_granularity
+                                                                                       else self.mutation_regex.decode())
+                new_child += new_child_tmp.encode() if self.mutation_binary_granularity else new_child_tmp
             else:
                 # Do not mutate
-                new_child += chr(child[idx]).encode("charmap") if self.mutation_binary_granularity else child[idx]
+                new_child += chr(child[idx]).encode("utf-8", "ignore") if self.mutation_binary_granularity else child[idx]
 
         return new_child
 
@@ -123,15 +122,14 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
         while idx < len(child) + no_chars_inserted:
             r = random.random()
-            child_char = chr(child[idx - no_chars_inserted]).encode("charmap") if self.mutation_binary_granularity \
+            child_char = chr(child[idx - no_chars_inserted]).encode("utf-8", "ignore") if self.mutation_binary_granularity \
                                                                                else child[idx - no_chars_inserted]
 
             if r < self.mutation_rate:
                 # Mutate
-                if self.mutation_binary_granularity:
-                    new_char = utils.get_random_byte_seq(1, regex=self.mutation_regex)
-                else:
-                    new_char = utils.get_random_utf8_seq(1, regex=self.mutation_regex)
+                new_char = utils.get_random_utf8_seq(1, regex=self.mutation_regex if not self.mutation_binary_granularity
+                                                                                  else self.mutation_regex.decode())
+                new_char = new_char.encode() if self.mutation_binary_granularity else new_char
 
                 new_child += child_char + new_char
                 no_chars_inserted += 1
@@ -146,7 +144,7 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
     def mutation_swap(self, child):
         """
         """
-        new_child = [chr(c).encode("charmap") if self.mutation_binary_granularity else c for c in child] # List of characters
+        new_child = [chr(c).encode("utf-8", "ignore") if self.mutation_binary_granularity else c for c in child] # List of characters
 
         for idx, char in enumerate(new_child):
             r = random.random()
@@ -177,7 +175,7 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                 pass
             else:
                 # Do not mutate
-                new_child += chr(child[idx]).encode("charmap") if self.mutation_binary_granularity else child[idx]
+                new_child += chr(child[idx]).encode("utf-8", "ignore") if self.mutation_binary_granularity else child[idx]
 
         return new_child
 
@@ -192,7 +190,7 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
         for child in population:
             if self.mutation_binary_granularity:
-                child = child.encode("charmap")
+                child = child.encode("utf-8", "ignore")
 
             new_child = random.choice(mutators)(child)
 
