@@ -11,9 +11,9 @@
             <class_name>BOAIMInputSeed</class_name>
             <args>
                 <dict>
-                    <element name="random_max_length" value="50" />
+                    <element name="random_max_length" value="20" />
                     <element name="random_likelihood" value="0.0005" />
-                    <element name="max_random_inputs" value="5" />
+                    <element name="max_random_inputs" value="200" />
                     <list name="input_seed">
                         <element value="Q3Jpc3RpYW4gR2FyY8OtYSBSb21lcm8K" />
                         <element value="Um9zc21lcnkgPDMK" />
@@ -62,8 +62,8 @@
                     <element name="elitism" value="2" />
                     <element name="mutation_rate" value="0.05" />
                     <element name="crossover_rate" value="0.95" />
-                    <element name="mutation_regex" value="^[0-9]|[a-z]|[A-Z]|=$" />
-                    <element name="mutation_binary_granularity" value="false" />
+                    <!-- <element name="mutation_regex" value="^[0-9]|[a-z]|[A-Z]|=$" /> -->
+                    <element name="mutation_binary_granularity" value="true" />
                 </dict>
             </args>
 

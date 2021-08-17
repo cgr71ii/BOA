@@ -42,13 +42,10 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
             if mutation_binary_granularity == "true":
                 self.mutation_binary_granularity = True
+                self.mutation_regex = self.mutation_regex.encode()
 
                 logging.debug("working with binary instead of char granularity")
-
-                if "mutation_regex" in self.args:
-                    logging.warning("provided mutation regex will be treated as binary due to the binary granularity")
-
-                    self.mutation_regex = self.mutation_regex.encode()
+                logging.warning("provided mutation regex will be treated as binary due to the binary granularity")
 
         if self.elitism > self.population:
             logging.warning("elitism value (%d) is higher than population (%d): elitism value is "

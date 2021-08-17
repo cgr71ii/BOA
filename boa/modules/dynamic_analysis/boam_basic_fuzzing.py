@@ -161,7 +161,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         # Output without decoding in order to avoid the backslashes preprocessing
         if self.log_args_and_input_and_output:
             logging.debug("process %s: args: %s", os.getpid(), args)
-            logging.debug("process %s: (input, (stdout, stderr)): (%s, %s)", os.getpid(), input.encode(), output)
+            logging.debug("process %s: (input, (stdout, stderr), return code): (%s, %s, %d)", os.getpid(), input.encode(), output, run.returncode)
 
         instrumentation_result = 0.0
 
