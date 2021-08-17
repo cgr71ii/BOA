@@ -13,6 +13,7 @@
                 <dict>
                     <element name="random_max_length" value="50" />
                     <element name="random_likelihood" value="0.0005" />
+                    <element name="max_random_inputs" value="5" />
                     <list name="input_seed">
                         <element value="Q3Jpc3RpYW4gR2FyY8OtYSBSb21lcm8K" />
                         <element value="Um9zc21lcnkgPDMK" />

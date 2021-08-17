@@ -367,6 +367,14 @@ def get_random_byte_seq(length, regex=b"^.$", regex_max_tries=1000000):
         char = None
         tries = 0
         regex_obj = re.compile(regex)
+        exrex_available = False
+
+        try:
+            import exrex
+
+            return exrex.getone(regex.decode()).encode()
+        except:
+            pass
 
         while not valid:
             try:
@@ -374,9 +382,8 @@ def get_random_byte_seq(length, regex=b"^.$", regex_max_tries=1000000):
 
                 chr(r).encode("utf-8", "ignore").decode()
 
-                char = chr(r).encode()
-
                 if (tries >= regex_max_tries or regex_obj.match(char) is not None):
+                    char = chr(r).encode()
                     valid = True
 
                 tries += 1
@@ -410,9 +417,17 @@ def get_random_utf8_seq(length, force_printable=True, regex="^.$", regex_max_tri
         tries = 0
         regex_obj = re.compile(regex)
 
+        try:
+            import exrex
+
+            return exrex.getone(regex)
+        except:
+            pass
+
         while not valid:
             try:
                 r = random.randint(0, 0x10FFFF - 1)
+
                 chr(r).encode("utf-8").decode("utf-8")
 
                 if (not force_printable or (force_printable and chr(r).isprintable())):
