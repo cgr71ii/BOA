@@ -34,6 +34,8 @@ class BOAIMInputSeed(BOAInputModuleAbstract):
             self.random_likelihood = float(self.args["random_likelihood"])
         if "max_random_inputs" in self.args:
             self.max_random_inputs = int(self.args["max_random_inputs"])
+
+            logging.debug("max. random inputs that will be generated: %d", self.max_random_inputs)
         if "input_seed" in self.args:
             if (isinstance(self.args["input_seed"], list) and len(self.args["input_seed"]) != 0):
                 for seed in self.args["input_seed"]:
@@ -51,7 +53,6 @@ class BOAIMInputSeed(BOAInputModuleAbstract):
 
         logging.debug("random inputs max. length: %d", self.random_max_length)
         logging.debug("random inputs likelihood: %.2f", self.random_likelihood)
-        logging.debug("max. random inputs that will be generated: %d", self.max_random_inputs)
 
     def generate_input(self):
         """It generates random strings.

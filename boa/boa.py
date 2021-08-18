@@ -136,6 +136,7 @@ def main():
             lifecycle_args["fails"] = boa_utilities.handle_dynamic_analysis_runner(boafm_instance, rules_manager.get_runner_args("fails"))
             lifecycle_args["binary"] = ArgsManager.args.target
         else:
+            # TODO add error_code to the following exception?
             raise BOAFlowException(f"unexpected analysis value: {analysis}")
 
         # Load modules

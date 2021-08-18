@@ -8,7 +8,6 @@ from terminal.
 # Std libs
 import re
 import os
-import signal
 import logging
 import tempfile
 import subprocess
@@ -39,6 +38,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         self.subprocess_shell = False
         self.processes = 1 if not utils.is_key_in_dict(self.args, "processes") else min(int(self.args["processes"]), self.iterations)
         self.skip_process = False
+        self.add_input_to_report = True
 
         logging.debug("using %d processes", self.processes)
 
@@ -71,6 +71,13 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
                 self.add_additional_args = False
 
                 logging.debug("additional args will be added (if defined any)")
+        if "add_input_to_report" in self.args:
+            add_input_to_report = self.args["add_input_to_report"].lower().strip()
+
+            if add_input_to_report == "false":
+                self.add_input_to_report = False
+
+                logging.debug("inputs are not going to be added to the report")
 
         logging.debug("iterations: %d", self.iterations)
 
@@ -198,7 +205,10 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             fail = fails_instance.execution_has_failed(return_code)
 
             if fail:
-                input = worker_args[multiprocessing_idx][1].encode() # Encoded in order to avoid backslashes interpretation
+                if self.add_input_to_report:
+                    input = worker_args[multiprocessing_idx][1].encode() # Encoded in order to avoid backslashes interpretation
+                else:
+                    input = "-"
 
                 self.threats.append((self.who_i_am,
                                      f"the input {input} returned the status code {return_code}",
