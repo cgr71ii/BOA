@@ -8,6 +8,7 @@ from terminal.
 # Std libs
 import re
 import os
+import signal
 import logging
 import tempfile
 import subprocess
@@ -74,7 +75,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         logging.debug("iterations: %d", self.iterations)
 
         self.additional_args = []
-        self.sandboxing_command = Other.modules_dynamic_analysis_sandboxing
+        self.sandboxing_command = Other.modules_dynamic_analysis_sandboxing # TODO return code is 255 instead of the real return code when signals finish the execution (issue: https://github.com/netblue30/firejail/issues/4474)
 
         if "additional_args" in self.args:
             self.additional_args = re.findall(Regex.regex_which_respect_quotes_params, self.args["additional_args"])
@@ -156,12 +157,22 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             run = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    shell=self.subprocess_shell)
 
+            #input = chr(6 * 16) + "val" + input # TODO remove (it triggers LAVA-M base64 bug)
+
             output = run.communicate(input=input.encode())
+
+        returncode = run.returncode
+
+        if returncode < 0:
+            # subprocess signals (check man bash and subprocess documentation)
+            ## for bash, if signal, the return code is return_code + n, where n is the signal n
+            ## for subprocess, returns n * -1 when signal
+            returncode = 128 + returncode * -1
 
         # Output without decoding in order to avoid the backslashes preprocessing
         if self.log_args_and_input_and_output:
             logging.debug("process %s: args: %s", os.getpid(), args)
-            logging.debug("process %s: (input, (stdout, stderr), return code): (%s, %s, %d)", os.getpid(), input.encode(), output, run.returncode)
+            logging.debug("process %s: (input, (stdout, stderr), return code): (%s, %s, %d)", os.getpid(), input.encode(), output, returncode)
 
         instrumentation_result = 0.0
 
@@ -175,7 +186,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             # Remove file
             os.remove(instrumentation_tmp_file)
 
-        return return_id, run.returncode, instrumentation_result
+        return return_id, returncode, instrumentation_result
 
     def process_worker_results(self, fails_instance, worker_return_list, worker_args):
         """
@@ -250,6 +261,10 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             worker_args = []
 
         logging.info("100.00% completed")
+
+        # Close pool
+        pool.close()
+        pool.terminate()
 
         yield
 

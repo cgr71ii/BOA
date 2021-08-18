@@ -26,6 +26,7 @@ class BOAIMInputSeed(BOAInputModuleAbstract):
         self.random_likelihood = 0.1
         self.max_random_inputs = None
         self.generated_inputs = 0
+        self.regex = "^.$"
 
         if "random_max_length" in self.args:
             self.random_max_length = int(self.args["random_max_length"])
@@ -40,12 +41,17 @@ class BOAIMInputSeed(BOAInputModuleAbstract):
                         raise BOARunnerModuleError("not all provided inputs are strings")
 
                 self.input_seed = self.args["input_seed"]
+        if "regex" in self.args:
+            self.regex = self.args["regex"]
+
+            logging.debug("regex that will be applied: %s", self.regex.encode())
 
         if len(self.input_seed) == 0:
             raise BOARunnerModuleError("length of seed inputs is 0")
 
         logging.debug("random inputs max. length: %d", self.random_max_length)
         logging.debug("random inputs likelihood: %.2f", self.random_likelihood)
+        logging.debug("max. random inputs that will be generated: %d", self.max_random_inputs)
 
     def generate_input(self):
         """It generates random strings.
@@ -62,7 +68,7 @@ class BOAIMInputSeed(BOAInputModuleAbstract):
             self.max_random_inputs = self.max_random_inputs + 1 if self.max_random_inputs is not None else None
             self.generated_inputs += 1
 
-            return utils.get_random_utf8_seq(length, force_printable=random.random() < 0.5)
+            return utils.get_random_utf8_seq(length, regex=self.regex)
         else:
             idx = random.randint(0, len(self.input_seed) - 1)
 

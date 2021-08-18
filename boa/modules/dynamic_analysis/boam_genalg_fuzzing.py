@@ -75,7 +75,8 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
             if r < self.crossover_rate:
                 # Crossover
-                child = father[:len(father) // 2] + mother[len(mother) // 2:]
+                offset = random.randint(0, max(len(father), len(mother)) - 1)
+                child = father[:offset] + mother[offset:]
 
                 new_population.append(child)
             else:
@@ -114,13 +115,12 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
         """
         """
         new_child = b"" if self.mutation_binary_granularity else ""
-        no_chars_inserted = 0
         idx = 0
 
-        while idx < len(child) + no_chars_inserted:
+        while idx < len(child):
             r = random.random()
-            child_char = chr(child[idx - no_chars_inserted]).encode("utf-8", "ignore") if self.mutation_binary_granularity \
-                                                                               else child[idx - no_chars_inserted]
+            child_char = chr(child[idx]).encode("utf-8", "ignore") if self.mutation_binary_granularity \
+                                                                               else child[idx]
 
             if r < self.mutation_rate:
                 # Mutate
@@ -129,7 +129,6 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                 new_char = new_char.encode() if self.mutation_binary_granularity else new_char
 
                 new_child += child_char + new_char
-                no_chars_inserted += 1
             else:
                 # Do not mutate
                 new_child += child_char
