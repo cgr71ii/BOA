@@ -1,9 +1,13 @@
 
-"""BOA module which uses fuzzing with basic binaries which are managed totally
-from terminal.
-"""
+"""BOA module which implements a genetic algorithm and uses a basic fuzzing module
+as dependency in order to, in last instance, implement a greybox mutation-based fuzzer.
 
-# TODO finish and check docstrings
+Different mutators are implemented and the crossover operation is based on select a
+random point of the two selected elements and from that point, which is an offset,
+part of one element is copied to the new element and the same from the other element.
+
+The main dependency of this module is the module *boam_basic_fuzzing*.
+"""
 
 # Std libs
 import random
@@ -12,18 +16,25 @@ import logging
 # Own libs
 from boam_abstract import BOAModuleAbstract
 import utils
+from exceptions import BOAModuleException
 
 class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
-    """
+    """BOAModuleGenAlgFuzzing class. It implements the class BOAModuleAbstract.
+
+    This class implements the general behaviour necessary to implement a genetic
+    algorithm using a fuzzer module as dependency.
     """
 
     def initialize(self):
         """It initializes the module.
+
+        Moreover, it handles the values which are not compatible based on the
+        provided arguments.
         """
         if "boam_basic_fuzzing.BOAModuleBasicFuzzing" not in self.dependencies:
-            raise BOAModuleAbstract("dependency 'boam_basic_fuzzing.BOAModuleBasicFuzzing' is necessary")
+            raise BOAModuleException("dependency 'boam_basic_fuzzing.BOAModuleBasicFuzzing' is necessary")
         if "instance" not in self.dependencies["boam_basic_fuzzing.BOAModuleBasicFuzzing"]:
-            raise BOAModuleAbstract("callback 'instance' in 'boam_basic_fuzzing.BOAModuleBasicFuzzing' is necessary")
+            raise BOAModuleException("callback 'instance' in 'boam_basic_fuzzing.BOAModuleBasicFuzzing' is necessary")
 
         # Dependency instance
         self.genalg_child_instance = self.dependencies["boam_basic_fuzzing.BOAModuleBasicFuzzing"]["instance"]()
@@ -36,6 +47,8 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
         self.crossover_rate = 0.95 if not utils.is_key_in_dict(self.args, "crossover_rate") else float(self.args["crossover_rate"])
         self.mutation_regex = "^.$" if not utils.is_key_in_dict(self.args, "mutation_regex") else self.args["mutation_regex"]
         self.mutation_binary_granularity = False
+        self.add_input_to_report = True
+        self.elements_from_input_module_new_population = 0 if not utils.is_key_in_dict(self.args, "elements_from_input_module_new_population") else int(self.args["elitism"])
 
         if "mutation_binary_granularity" in self.args:
             mutation_binary_granularity = self.args["mutation_binary_granularity"].lower().strip()
@@ -46,21 +59,61 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
                 logging.debug("working with binary instead of char granularity")
                 logging.warning("provided mutation regex will be treated as binary due to the binary granularity")
+        if "add_input_to_report" in self.args:
+            add_input_to_report = self.args["add_input_to_report"].lower().strip()
+
+            if add_input_to_report == "false":
+                self.add_input_to_report = False
+
+                logging.debug("inputs are not going to be added to the report")
 
         if self.elitism > self.population:
             logging.warning("elitism value (%d) is higher than population (%d): elitism value is "
                             "going to be set to population value", self.elitism, self.population)
 
             self.elitism = self.population
+        if self.elements_from_input_module_new_population > self.population:
+            logging.warning("elements_from_input_module_new_population value (%d) is higher than population (%d): "
+                            "elements_from_input_module_new_population value is going to be set to population value",
+                            self.elements_from_input_module_new_population, self.population)
 
-    def crossover(self, population, rewards):
-        """
+            self.elements_from_input_module_new_population = self.population
+        if self.elitism + self.elements_from_input_module_new_population > self.population:
+            q = self.elitism + self.elements_from_input_module_new_population
+
+            raise BOAModuleException(f"elitism + elements_from_input_module_new_population value ({q}) is higher "
+                                     f"than population ({self.population})")
+        elif self.elitism + self.elements_from_input_module_new_population == self.population:
+            logging.warning("since elitism + elements_from_input_module_new_population (%d) is equal to the population size (%d), "
+                            "there will not be crossover, so the genetic algorithm will just be a 'fair' selection of "
+                            "elements based on rewards and random mutations: it is highly recommended to increase the "
+                            "population size or decrease either elitism or elements_from_input_module_new_population",
+                            self.elitism + self.elements_from_input_module_new_population, self.population)
+
+    def crossover(self, inputs_instance, population, rewards):
+        """It performs the crossover operation using the Roulette Wheel Selection
+        algorithm.
+
+        Arguments:
+            inputs_instance (BOAInputModuleAbstract): input module instance which will be
+                used to generate random inputs if *self.elements_from_input_module_new_population*
+                > 0.
+            population (list): list of children which will be used to select the best children
+                if *self.elitism* > 0.
+            rewards (list): reward which children (i.e. *population*) obtained.
+
+        Returns:
+            list: new population.
         """
         new_population = []
 
+        # Add elements from input module
+        while len(new_population) < self.elements_from_input_module_new_population:
+            new_population.append(inputs_instance.get_another_input())
+
         # Select best children
-        for reward, idx in sorted(zip(rewards, range(len(rewards))), reverse=True):
-            if len(new_population) < self.elitism:
+        for _, idx in sorted(zip(rewards, range(len(rewards))), reverse=True):
+            if len(new_population) - self.elements_from_input_module_new_population < self.elitism:
                 new_population.append(population[idx])
             else:
                 break
@@ -93,7 +146,17 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
         return new_population
 
     def mutation_replace(self, child):
-        """
+        """Mutator which replaces elements of the provided child.
+
+        Arguments:
+            child (str): element which is going to be mutated.
+
+        Returns:
+            str: *child* mutated.
+
+        Note:
+            The provided arguments and returned value will be str
+            or bytes depending on the value of *self.mutation_binary_granularity*.
         """
         new_child = b"" if self.mutation_binary_granularity else ""
 
@@ -112,7 +175,17 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
         return new_child
 
     def mutation_insert(self, child):
-        """
+        """Mutator which inserts new elements in the provided child.
+
+        Arguments:
+            child (str): element which is going to be mutated.
+
+        Returns:
+            str: *child* mutated.
+
+        Note:
+            The provided arguments and returned value will be str
+            or bytes depending on the value of *self.mutation_binary_granularity*.
         """
         new_child = b"" if self.mutation_binary_granularity else ""
         idx = 0
@@ -138,7 +211,17 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
         return new_child
 
     def mutation_swap(self, child):
-        """
+        """Mutator which swaps elements of the provided child.
+
+        Arguments:
+            child (str): element which is going to be mutated.
+
+        Returns:
+            str: *child* mutated.
+
+        Note:
+            The provided arguments and returned value will be str
+            or bytes depending on the value of *self.mutation_binary_granularity*.
         """
         new_child = [chr(c).encode("utf-8", "ignore") if self.mutation_binary_granularity else c for c in child] # List of characters
 
@@ -159,7 +242,17 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
         return (b"" if self.mutation_binary_granularity else "").join(new_child) # Return str
 
     def mutation_delete(self, child):
-        """
+        """Mutator which deletes elements of the provided child.
+
+        Arguments:
+            child (str): element which is going to be mutated.
+
+        Returns:
+            str: *child* mutated.
+
+        Note:
+            The provided arguments and returned value will be str
+            or bytes depending on the value of *self.mutation_binary_granularity*.
         """
         new_child = b"" if self.mutation_binary_granularity else ""
 
@@ -176,7 +269,16 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
         return new_child
 
     def mutation(self, population):
-        """
+        """This method performs the mutations of the provided population.
+
+        The mutator which will be used will be selected randomly for each
+        child of the population.
+
+        Arguments:
+            population (list): list of children which will be mutated.
+
+        Returns:
+            list: mutated new population based on the initial *population*.
         """
         new_population = []
         mutators = [self.mutation_replace,
@@ -234,27 +336,30 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                     instrumentation_reward = instrumentation[2]
                     fail_bool = fail[1]
 
-                    # Threat?
-                    if fail_bool:
-                        self.threats.append((self.who_i_am,
-                                             f"genetic algorithm (epoch {epoch}): the input {input_value.encode()} returned the status code {return_code}",
-                                             "FAILED",
-                                             "check if the fail is not a false positive",
-                                             None, None))
-
                     # Add values to the population (new child)
                     current_population_input.append(input_value)
                     current_population_reward.append(instrumentation_reward)
 
+                    if self.add_input_to_report:
+                        input_value = input_value.encode()
+                    else:
+                        input_value = "-"
+
+                    # Threat?
+                    if fail_bool:
+                        self.threats.append((self.who_i_am,
+                                             f"genetic algorithm (epoch {epoch}): the input {input_value} returned the status code {return_code}",
+                                             "FAILED",
+                                             "check if the fail is not a false positive",
+                                             None, None))
+
             # Crossover
-            current_population = self.crossover(current_population_input, current_population_reward)
+            current_population = self.crossover(runners_args["inputs"]["instance"], current_population_input, current_population_reward)
 
             # Mutation
             current_population = self.mutation(current_population)
 
-            logging.info("epoch %d of %d: %.2f completed", epoch + 1, self.epochs, (epoch / self.epochs) * 100.0)
-
-        logging.info("100.00% completed")
+            logging.info("epoch %d of %d: %.2f%% completed", epoch + 1, self.epochs, ((epoch + 1) / self.epochs) * 100.0)
 
     def clean(self):
         """It does nothing.

@@ -65,6 +65,8 @@
                     <element name="crossover_rate" value="0.95" />
                     <!-- <element name="mutation_regex" value="^[0-9]|[a-z]|[A-Z]|=$" /> -->
                     <element name="mutation_binary_granularity" value="true" />
+                    <element name="add_input_to_report" value="false" />
+                    <element name="elements_from_input_module_new_population" value="2" />
                 </dict>
             </args>
 

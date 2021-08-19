@@ -1,5 +1,11 @@
 
-# TODO docstrings
+"""BOA module which implements an input module which uses grammars with
+optional likelihoods.
+
+This module uses Lark in order to process the grammars, and the likelihood
+for each element of the grammar is processed ad-hoc with a specific sintax
+(there are examples explaining all in the already defined grammars).
+"""
 
 # Std libs
 import random
@@ -15,11 +21,20 @@ import utils
 from exceptions import BOARunnerModuleError
 
 class BOAIMGrammarLark(BOAInputModuleAbstract):
-    """
+    """BOAIMGrammarLark class. It implements the class BOAInputModuleAbstract.
+
+    This class implements the general behaviour necessary to generate inputs
+    based on a provided grammar.
     """
 
     def initialize(self):
-        """
+        """It initializes the module.
+
+        It process the provided grammar and it generates different data structures
+        to work with (e.g. graph).
+
+        Raises:
+            BOARunnerModuleError: if the rule 'start' is not defined (is the entry rule).
         """
         # Parameters from rules file
         self.soft_limit_rules = 100
@@ -82,7 +97,7 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
             depth (int): depth which we are going to recursive in order to
                 minimize the number of *NonTerminal* symbols.
             first_call (bool): variable which must not be set, since is used
-                to know when the used called this function
+                to know when the used called this function.
 
         Returns:
             tuple: element of *self.index["graph"]*.
@@ -119,11 +134,23 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
         return self.index["graph"][rule][rules_non_terminal_symbols.index(min(rules_non_terminal_symbols))]
 
     def check_there_are_rules(self, rule):
+        """This method checks if there are rules defined for the provided rule.
+
+        Arguments:
+            rule (str): rule which will be checked on if there are rules defined in.
+
+        Raises:
+            BOARunnerModuleError: if there are not rules in the provided *rule*.
+        """
         if len(self.index["graph"][rule]) == 0:
             raise BOARunnerModuleError(f"there was 0 dependencies in the graph for the rule '{rule}'")
 
     def generate_input(self):
-        """
+        """It generates random inputs based on the provided grammar.
+
+        The generated input will pass the provided grammar and the provided
+        likelihoods, if defined, will be used to generate each token with the
+        specific likelihood.
         """
         input = ""
         stack = []
@@ -181,6 +208,9 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
         return input
 
     def fix_partial_likelihood(self):
+        """This method assignes likelihood to all rules if the likelihoods
+        were not defined for all the rules, what is very common.
+        """
         for rule in self.index["rules_names"]:
             n_rr = len(self.index["graph"][rule])
 
@@ -223,7 +253,16 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
                     self.likelihood[rule][idx] = likelihood
 
     def get_grammar(self):
-        """
+        """It reads the grammar from the file where it is defined. Also, the defined
+        likelihoods are processed.
+
+        Returns:
+            tuple: grammar (str) and likelihoods (dict).
+
+        Raises:
+            BOARunnerModuleError: if 'lark_grammar' was not provided in the arguments,
+            the likelihood format is not correct or the likelihood is defined for the
+            same rule multiple times.
         """
         if "lark_grammar" not in self.args:
             raise BOARunnerModuleError("'lark_grammar' has not been provided in the arguments")
@@ -259,7 +298,7 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
 
                         if rule_index in likelihood[non_terminal_rule]:
                             raise BOARunnerModuleError(f"the likelihood of the rule '{non_terminal_rule}' was"
-                                                       " multiple times")
+                                                       " defined multiple times")
 
                         likelihood[non_terminal_rule][rule_index] = likelihood_of_rule
                     else:
@@ -271,7 +310,12 @@ class BOAIMGrammarLark(BOAInputModuleAbstract):
         return grammar, likelihood
 
     def index_grammar(self):
-        """
+        """It creates an index which will contain all the useful information
+        which we will use to work with.
+
+        Returns:
+            dict: index with the rules names, terminal symbols, type of the symbols,
+            and a graph of the grammar.
         """
         index = {"rules_names": set(),
                  "terminals_names": set(),

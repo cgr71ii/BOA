@@ -3,8 +3,6 @@
 from terminal.
 """
 
-# TODO finish and check docstrings
-
 # Std libs
 import re
 import os
@@ -27,6 +25,8 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
 
     def initialize(self):
         """It initializes the module.
+
+        It handles the arguments, envvars and logging messages of the initialization.
         """
         self.iterations = 1 if not utils.is_key_in_dict(self.args, "iterations") else int(self.args["iterations"])
         self.pipe = False
@@ -126,7 +126,28 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             logging.debug("using instrumentation (path: '%s') with pintool '%s'", self.path_to_pin_binary, self.pintool)
 
     def process_worker(self, return_id, input, binary_path):
-        """
+        """Worker for multiprocessing. This worker executes with subprocess
+        a process with the provided input. It handles all the necessary about
+        the different parts of the calling (e.g. sandboxing binary and args,
+        instrumentation binary and args).
+
+        Arguments:
+            return_id (int): id which is returned as it was provided and is
+                useful just to differentiate one worker from the others.
+            input (str): input which is going to be provided to the target
+                binary.
+            binary_path (str): path to the target binary.
+
+        Returns:
+            tuple: *return_id*, return code of the execution and instrumentation
+            result as *float*.
+
+        Note:
+            The subprocess module returns a negative return code when the execution
+            has been finished by a signal. The return code which we return fixes
+            this situation in order to have the same behaviour than other shells
+            (e.g. /usr/bin/bash) and it returns 128 + return_code * -1, which is
+            the same return code which others shells would return in case of signals.
         """
         instrumentation_tmp_file = tempfile.NamedTemporaryFile().name if self.instrumentation else None
         instrumentation = [ self.path_to_pin_binary, "-t",
@@ -196,11 +217,28 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         return return_id, returncode, instrumentation_result
 
     def process_worker_results(self, fails_instance, worker_return_list, worker_args):
-        """
+        """Method which should be invoked by the main thread instead of by every
+        individually worker. This method has been implemented apart of the main
+        worker method because when multiprocessing is being run, every process
+        have its own memory, and the results which would store in *self.threats*,
+        they will be lost when the worker process finishes the execution.
+
+        This method stores the found threats reported by every worker.
+
+        Arguments:
+            fails_instance (BOAFailModuleAbstract): fails module instance which
+                will allow us to know if an execution failed or not.
+            worker_return_list (list): list of tuples which contains the results
+                from every worker (i.e. the return value of *self.process_worker*).
+            worker_args (list): list with the arguments which were provided
+                to the workers.
+
+        Returns:
+            list: list which contains if the execution of the workers failed or not.
         """
         fails = []
 
-        for multiprocessing_idx, return_code, instrumentation_result in worker_return_list:
+        for multiprocessing_idx, return_code, _ in worker_return_list:
             # Has the execution failed?
             fail = fails_instance.execution_has_failed(return_code)
 
@@ -221,7 +259,28 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         return fails
 
     def process_wrapper(self, runners_args, input_list=None):
-        """
+        """Wrapper which contains all the behaviour which should contain
+        *self.process*. This wrapper has been done since it might be necessary
+        by other modules to run this module as dependency.
+
+        This generator contains all the necessary behaviour to run the fuzzer.
+        It is the main workflow of the module.
+
+        Arguments:
+            runners_args (dict): dict which contains data about the defined
+                runner modules (e.g. fails module, inputs module).
+            input_list (list): list of *str* which, if provided (default value
+            is *None*), will be used as inputs for the execution of the target
+            binary. If not defined, module from *runners_args* will be used to
+            generate inputs.
+
+        Returns:
+            tuple: the tuple contains the arguments which were provided to every
+            worker, the result of the execution of every worker and information
+            about if the execution failed or not.
+
+        Note:
+            This method is a *generator*.
         """
         binary_path = runners_args["binary"]
         fails_instance = runners_args["fails"]["instance"]
@@ -255,7 +314,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
 
                 worker_args = []
 
-                logging.info("iteration %d of %d: %.2f completed", iteration + 1, self.iterations, (iteration / self.iterations) * 100.0)
+                logging.info("iteration %d of %d: %.2f%% completed", iteration + 1, self.iterations, ((iteration + 1) / self.iterations) * 100.0)
             else:
                 logging.info("iteration %d of %d: multiprocessing", iteration + 1, self.iterations)
 
@@ -270,7 +329,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
 
             worker_args = []
 
-        logging.info("100.00% completed")
+            logging.info("iteration %d of %d: %.2f%% completed", self.iterations, self.iterations, (self.iterations / self.iterations) * 100.0)
 
         # Close pool
         pool.close()

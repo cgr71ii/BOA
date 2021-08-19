@@ -146,7 +146,7 @@ class BOALifeCycleManager:
                 to be invoked if possible.
             method_name (str): method which is going to be invoked.
             args: args to be given to the invoked method.
-            force_invocation (bool): force a method invokation
+            force_invocation (bool): force a method invocation
                 despite something failed in the past (if *False*, when
                 a failure happens, a method will not be invoked).
 

@@ -113,6 +113,7 @@ class Error:
 
     # Other errors
     error_other_reserved_keyword_being_used = 1001
+    error_other_only_static_or_dynamic_analysis_is_allowed = 1002
 
 class Regex:
     """Regex class.

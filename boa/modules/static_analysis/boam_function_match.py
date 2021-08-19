@@ -72,9 +72,13 @@ class BOAModuleFunctionMatch(BOAModuleAbstract):
         """
 
     def pycparser_funccall(self, token):
+        """Method which checks if the provided token is a function
+        invocation. In that case, it adds a new threat if the function
+        which is being invoked is defined as dangerous.
+
+        Arguments:
+            token: AST node.
         """
-        """
-        # TODO docstring
         # Get the calling function name
         function_name = token.name.name
 
