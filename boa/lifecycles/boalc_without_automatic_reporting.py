@@ -1,18 +1,14 @@
-"""This file contains the class which defines the, possibly,
-most basic BOA lifecycle. It defines a lifecycle which just
-invokes the methods defined in *BOAParserModuleAbstract* in
-the expected order defined in the same file.
-
-This class has 2 main goals:
-    1. Be used when a user do not want to define its own lifecycle.
-    2. Be an example of how to define a custom lifecycle.
+"""This lifecycle is exactly the same that the basic one, but
+the *save* method of the module will not be executed and the
+report instance will be provided to the *process* method in
+a dictionary with the arguments.
 """
 
 # Own libs
 from boalc_abstract import BOALifeCycleAbstract
 
-class BOALCBasic(BOALifeCycleAbstract):
-    """BOALCBasic class.
+class BOALCWithoutAutomaticReporting(BOALifeCycleAbstract):
+    """BOALCWithoutAutomaticReporting class.
 
     It inherits from *BOALifeCycleAbstract* and implements
     the necessary methods.
@@ -26,10 +22,9 @@ class BOALCBasic(BOALifeCycleAbstract):
         """It invokes the following methods:
 
             1. *initialize()*
-            2. *process(self.args)*
+            2. *process({'__args__': self.args, '__report_instance__': self.report})*
             3. *clean()*
-            4. *save(self.report)*
-            5. *finish()*
+            4. *finish()*
 
         In case an unexpected error happens, only the method
         *finish* will be executed (its execution is forces), but
@@ -40,13 +35,11 @@ class BOALCBasic(BOALifeCycleAbstract):
         self.execute_method(self.instance, "initialize", None, False)
 
         # Process
-        self.execute_method(self.instance, "process", self.args, False)
+        self.execute_method(self.instance, "process", {"__args__": self.args,
+                                                       "__report_instance__": self.report}, False)
 
         # Clean
         self.execute_method(self.instance, "clean", None, False)
-
-        # Save
-        self.execute_method(self.instance, "save", self.report, False)
 
         # Finish
         self.execute_method(self.instance, "finish", None, True)

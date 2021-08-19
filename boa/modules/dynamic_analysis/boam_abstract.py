@@ -172,6 +172,20 @@ class BOAModuleAbstract:
         """
         return self._threats
 
+    @threats.setter
+    def threats(self, value):
+        """Threats property: setter.
+
+        Arguments:
+            value (list): value to set to the threats.
+        """
+        if value is None:
+            logging.error("not expected value in 'threats' property")
+        elif not isinstance(value, list):
+            logging.error("expected type in 'threats' property is 'list' and the actual type is '%s'", type(value))
+        else:
+            self._threats = value
+
     @stop.setter
     def stop(self, value):
         """Stop property: setter.

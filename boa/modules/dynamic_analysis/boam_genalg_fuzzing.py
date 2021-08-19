@@ -49,6 +49,8 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
         self.mutation_binary_granularity = False
         self.add_input_to_report = True
         self.elements_from_input_module_new_population = 0 if not utils.is_key_in_dict(self.args, "elements_from_input_module_new_population") else int(self.args["elitism"])
+        self.report_instance = None # It will set in the process method (maybe)
+        self.print_threats_while_running = False
 
         if "mutation_binary_granularity" in self.args:
             mutation_binary_granularity = self.args["mutation_binary_granularity"].lower().strip()
@@ -59,6 +61,13 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
                 logging.debug("working with binary instead of char granularity")
                 logging.warning("provided mutation regex will be treated as binary due to the binary granularity")
+        if "print_threats_while_running" in self.args:
+            print_threats_while_running = self.args["print_threats_while_running"].lower().strip()
+
+            if print_threats_while_running == "true":
+                self.print_threats_while_running = True
+
+                logging.warning("threats will be displayed while running, but this option will 'fake' the reporting numbers since the found threats of this module will not be taked into account")
         if "add_input_to_report" in self.args:
             add_input_to_report = self.args["add_input_to_report"].lower().strip()
 
@@ -308,6 +317,17 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
         """
         current_population = None
 
+        # Check if the args were provided coded
+        if utils.is_key_in_dict(runners_args, "__args__"):
+            self.report_instance = runners_args["__report_instance__"] if utils.is_key_in_dict(runners_args, "__report_instance__") \
+                                                                       else self.report_instance
+            runners_args = runners_args["__args__"]
+        # Check if is possible to print the threats while running (report instance is mandatory for this option)
+        if (self.report_instance is None and self.print_threats_while_running):
+            self.print_threats_while_running = False
+
+            logging.warning("the report instance was not provided and you set the printing of the threats while running, but this is not possible because the report instance is mandatory (this problema might be related to the selected lifecycle module)")
+
         for epoch in range(self.epochs):
             current_population_input = []
             current_population_reward = []
@@ -358,6 +378,25 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
             # Mutation
             current_population = self.mutation(current_population)
+
+            # Check if we have available the report instance
+            if self.report_instance is not None:
+                # Save current threats in order to avoid filling up the memory
+                self.save(self.report_instance)
+
+                # Print all threats?
+                if self.print_threats_while_running:
+                    # WARNING: this option will 'fake' the counts of the final report, since the threats of this module will not be taken into account
+
+                    if self.who_i_am in self.report_instance.summary:
+                        for t in self.report_instance.summary[self.who_i_am]:
+                            self.report_instance.pretty_print_tuple(t)
+
+                        # Remove threats of the final report in order to avoid printing the threats twice
+                        del self.report_instance.summary[self.who_i_am]
+
+                # Remove current threats
+                self.threats = []
 
             logging.info("epoch %d of %d: %.2f%% completed", epoch + 1, self.epochs, ((epoch + 1) / self.epochs) * 100.0)
 

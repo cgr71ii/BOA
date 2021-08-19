@@ -56,7 +56,7 @@
             <module_name>boam_genalg_fuzzing</module_name>
             <class_name>BOAModuleGenAlgFuzzing</class_name>
             <severity_enum>severity_fuzzing.SeverityFuzzing</severity_enum>
-            <lifecycle_handler>boalc_basic.BOALCBasic</lifecycle_handler>
+            <lifecycle_handler>boalc_without_automatic_reporting.BOALCWithoutAutomaticReporting</lifecycle_handler>
             <args>
                 <dict>
                     <element name="epochs" value="1000" />
@@ -67,6 +67,7 @@
                     <element name="mutation_binary_granularity" value="true" />
                     <element name="add_input_to_report" value="false" />
                     <element name="elements_from_input_module_new_population" value="2" />
+                    <element name="print_threats_while_running" value="true" />
                 </dict>
             </args>
 
