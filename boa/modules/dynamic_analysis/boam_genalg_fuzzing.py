@@ -116,9 +116,16 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
             list: new population.
         """
         new_population = []
+        generate_n_children = self.elements_from_input_module_new_population
+
+        # Check if no children were provided
+        if len(rewards) == 0:
+            logging.warning("no children were provided for the crossover: generating all of them")
+
+            generate_n_children = self.population
 
         # Add elements from input module
-        while len(new_population) < self.elements_from_input_module_new_population:
+        while len(new_population) < generate_n_children:
             new_population.append(inputs_instance.get_another_input())
 
         # Select best children
@@ -374,8 +381,6 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                             self.execution_ids.add(instrumentation_id[0])
                         else:
                             # This input is not useful (same path execution)
-
-                            # TODO check what happens if len(current_population_input) == 0 or len(current_population_input) < self.population!!
 
                             current_population_input.pop()
                             current_population_reward.pop()
