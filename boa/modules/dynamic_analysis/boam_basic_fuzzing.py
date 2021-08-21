@@ -15,6 +15,7 @@ import multiprocessing
 from boam_abstract import BOAModuleAbstract
 from constants import Regex, Other
 import utils
+from exceptions import BOAModuleException
 
 class BOAModuleBasicFuzzing(BOAModuleAbstract):
     """BOAModuleBasicFuzzing class. It implements the class BOAModuleAbstract.
@@ -207,9 +208,21 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         # Instrumentation results
         if instrumentation_tmp_file is not None:
             with open(instrumentation_tmp_file) as f:
-                instrumentation_result = float(f.read().strip())
+                instrumentation_result = list(map(lambda v: float(v), f.read().strip().split("\t")))
 
-            logging.debug("process %s: instrumentation result: %.2f", os.getpid(), instrumentation_result)
+            if len(instrumentation_result) == 0:
+                raise BOAModuleException(f"wrong instrumentation format: {len(instrumentation_result)} elements")
+            if len(instrumentation_result) == 1:
+                # Fake id of the execution
+                instrumentation_result.append((int(instrumentation_result[0]), True))
+            elif len(instrumentation_result) > 2:
+                raise BOAModuleException(f"wrong instrumentation format: {len(instrumentation_result)} elements and max. is 2")
+            else:
+                # We are saying that the id has not been faked
+                instrumentation_result[1] = (int(instrumentation_result[1]), False)
+
+            logging.debug("process %d: instrumentation result (format: reward<tab>(id, id_faked)): %s", os.getpid(),
+                          " ".join(map(lambda v: str(v), instrumentation_result)))
 
             # Remove file
             os.remove(instrumentation_tmp_file)
@@ -238,7 +251,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         """
         fails = []
 
-        for multiprocessing_idx, return_code, _ in worker_return_list:
+        for multiprocessing_idx, return_code, instrumentation in worker_return_list:
             # Has the execution failed?
             fail = fails_instance.execution_has_failed(return_code)
 
@@ -249,7 +262,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
                     input = "-"
 
                 self.threats.append((self.who_i_am,
-                                     f"the input {input} returned the status code {return_code}",
+                                     f"the input {input} returned the status code {return_code} (instrumentation: {' '.join(map(lambda v: str(v), instrumentation))})",
                                      "FAILED",
                                      "check if the fail is not a false positive",
                                      None, None))
@@ -295,6 +308,8 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             else:
                 logging.warning("too many inputs were provided, and not all of them are going to be used:"
                                 " only the %d first elements are going to be used", self.iterations)
+
+        worker_args = []
 
         for idx, iteration in enumerate(range(self.iterations)):
             if (input_list is not None and idx < len(input_list)):

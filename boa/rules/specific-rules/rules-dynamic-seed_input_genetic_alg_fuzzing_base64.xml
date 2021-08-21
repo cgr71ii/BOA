@@ -43,7 +43,8 @@
                     <element name="log_args_and_input_and_output" value="false" />
                     <element name="add_additional_args" value="true" />
                     <element name="additional_args" value="-d" />
-                    <element name="pintool" value="obj-intel64/bb_count_once.so" />
+                    <!-- <element name="pintool" value="obj-intel64/bb_count_once.so" /> -->
+                    <element name="pintool" value="obj-intel64/branch_coverage_numeric_hash.so" />
                     <element name="subprocess_shell" value="false" />
                     <element name="processes" value="5" />
                     <element name="skip_process" value="true" />
@@ -61,12 +62,13 @@
                 <dict>
                     <element name="epochs" value="1000" />
                     <element name="elitism" value="2" />
-                    <element name="mutation_rate" value="0.15" />
+                    <!-- <element name="mutation_rate" value="0.75" /> This value found LAVA-M base64 bugs! Because too much random? -->
+                    <element name="mutation_rate" value="0.2" />
                     <element name="crossover_rate" value="0.95" />
                     <!-- <element name="mutation_regex" value="^[0-9]|[a-z]|[A-Z]|=$" /> -->
                     <element name="mutation_binary_granularity" value="true" />
                     <element name="add_input_to_report" value="false" />
-                    <element name="elements_from_input_module_new_population" value="2" />
+                    <element name="elements_from_input_module_new_population" value="20" />
                     <element name="print_threats_while_running" value="true" />
                 </dict>
             </args>

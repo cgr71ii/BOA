@@ -51,6 +51,7 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
         self.elements_from_input_module_new_population = 0 if not utils.is_key_in_dict(self.args, "elements_from_input_module_new_population") else int(self.args["elitism"])
         self.report_instance = None # It will set in the process method (maybe)
         self.print_threats_while_running = False
+        self.execution_ids = set()
 
         if "mutation_binary_granularity" in self.args:
             mutation_binary_granularity = self.args["mutation_binary_granularity"].lower().strip()
@@ -331,6 +332,7 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
         for epoch in range(self.epochs):
             current_population_input = []
             current_population_reward = []
+            current_population_id = []
 
             for yield_return in self.genalg_child_instance.process_wrapper(runners_args, input_list=current_population):
                 if yield_return is None:
@@ -351,14 +353,35 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                         continue
 
                     # Relevant values
+                    # TODO use time which the execution took to finish and use it in the final reward (the faster, the better!)
                     input_value = input[1]
                     return_code = instrumentation[1]
-                    instrumentation_reward = instrumentation[2]
+                    instrumentation_reward = instrumentation[2][0]
+                    instrumentation_id = instrumentation[2][1] # TODO power schedules AFLFast?
+                    instrumentation_id_value = instrumentation_id[0]
+                    instrumentation_id_faked = instrumentation_id[1]
                     fail_bool = fail[1]
 
                     # Add values to the population (new child)
                     current_population_input.append(input_value)
                     current_population_reward.append(instrumentation_reward)
+
+                    if not instrumentation_id_faked:
+                        # Check if the input is useful
+
+                        if (instrumentation_id_value not in current_population_id and instrumentation_id_value not in self.execution_ids):
+                            current_population_id.append(instrumentation_id[0])
+                            self.execution_ids.add(instrumentation_id[0])
+                        else:
+                            # This input is not useful (same path execution)
+
+                            # TODO check what happens if len(current_population_input) == 0 or len(current_population_input) < self.population!!
+
+                            current_population_input.pop()
+                            current_population_reward.pop()
+
+                            # Do not report threat since should has been reported earlier
+                            continue
 
                     if self.add_input_to_report:
                         input_value = input_value.encode()
@@ -367,8 +390,11 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
                     # Threat?
                     if fail_bool:
+                        instrumentation_info = "" if instrumentation_id_faked else f" (id: {current_population_id[-1]})"
+
                         self.threats.append((self.who_i_am,
-                                             f"genetic algorithm (epoch {epoch}): the input {input_value} returned the status code {return_code}",
+                                             f"genetic algorithm (epoch {epoch + 1}): the input {input_value} "
+                                             f"returned the status code {return_code}{instrumentation_info}",
                                              "FAILED",
                                              "check if the fail is not a false positive",
                                              None, None))
