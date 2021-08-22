@@ -407,6 +407,20 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                     alpha = instrumentation_reward * (2 if fail_bool else 1) # base reward
                     alpha *= 1.0 + (1.0 if time_it_took_secs < average_time else -1.0) * (average_time / time_it_took_secs - 1.0) # alpha(i)
 
+                    # Is it available an ID of the executed path?
+                    if not instrumentation_id_faked:
+                        # Check if the input is useful
+
+                        if instrumentation_id_value not in current_population_id:
+                            current_population_id.append(instrumentation_id[0])
+                        else:
+                            # This input is not useful (same path execution)
+
+                            total_inputs_processed += 1
+
+                            # Do not report threat since should has been reported earlier
+                            continue
+
                     # Update reward
                     ## The more path coverage, the better!
                     #reward += instrumentation_reward * (2 if fail_bool else 1)
@@ -421,14 +435,37 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                     ##  but this might be consider similar since a higher reward in a genetic algorithm means
                     ##  a higer likelihood of be selected across epochs and mutation will be applied to this seed
                     if self.power_schedule == "fast":
-                        reward = (alpha / beta) * \
-                                 ((2 ** inputs_which_have_been_executed_n_times[input_value_hash]) / \
-                                  inputs_with_same_path_executed_n_times[instrumentation_id_value])
+                        ok = False
+                        fix = 0
+
+                        while not ok:
+                            try:
+                                reward = (alpha / beta) * \
+                                         ((2 ** (inputs_which_have_been_executed_n_times[input_value_hash] - fix)) / \
+                                          inputs_with_same_path_executed_n_times[instrumentation_id_value])
+                                ok = True
+                            except OverflowError:
+                                if fix == 0:
+                                    logging.warning("overflow detected while calculating the reward: trying to fix it...")
+
+                                fix += 1
+
                     elif self.power_schedule == "coe":
                         if inputs_with_same_path_executed_n_times[instrumentation_id_value] > mu:
                             reward = 0.0
                         else:
-                            reward = (alpha / beta) * (2 ** inputs_which_have_been_executed_n_times[input_value_hash])
+                            ok = False
+                            fix = 0
+
+                            try:
+                                reward = (alpha / beta) * (2 ** (inputs_which_have_been_executed_n_times[input_value_hash] - fix))
+                                ok = True
+                            except OverflowError:
+                                if fix == 0:
+                                    logging.warning("overflow detected while calculating the reward: trying to fix it...")
+
+                                fix += 1
+
                     elif self.power_schedule == "explore":
                         reward = (alpha / beta)
                     elif self.power_schedule == "quad":
@@ -445,22 +482,6 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                     # Add values to the population (new child)
                     current_population_input.append(input_value)
                     current_population_reward.append(reward)
-
-                    if not instrumentation_id_faked:
-                        # Check if the input is useful
-
-                        if instrumentation_id_value not in current_population_id:
-                            current_population_id.append(instrumentation_id[0])
-                        else:
-                            # This input is not useful (same path execution)
-
-                            current_population_input.pop()
-                            current_population_reward.pop()
-
-                            total_inputs_processed += 1
-
-                            # Do not report threat since should has been reported earlier
-                            continue
 
                     if self.add_input_to_report:
                         input_value = input_value.encode()
