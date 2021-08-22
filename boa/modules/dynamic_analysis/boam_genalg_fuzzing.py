@@ -447,7 +447,8 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                 # Remove current threats
                 self.threats = []
 
-            logging.info("epoch %d of %d: %.2f%% completed", epoch + 1, self.epochs, ((epoch + 1) / self.epochs) * 100.0)
+            logging.debug("average time of execution: %.4f", average_time)
+            logging.info("epoch %d of %d finished: %.2f%% completed", epoch + 1, self.epochs, ((epoch + 1) / self.epochs) * 100.0)
 
     def clean(self):
         """It does nothing.

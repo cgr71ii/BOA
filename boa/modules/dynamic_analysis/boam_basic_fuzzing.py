@@ -206,8 +206,11 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
 
         # Output without decoding in order to avoid the backslashes preprocessing
         if self.log_args_and_input_and_output:
-            logging.debug("process %s: args: %s", os.getpid(), args)
-            logging.debug("process %s: (return code, time, input, (stdout, stderr)): (%d, %.4f, %s, %s)", os.getpid(), returncode, time_it_took_secs, input.encode(), output)
+            logging.debug("process %d: args: %s", os.getpid(), args)
+            logging.debug("process %d: input: %s", os.getpid(), input.encode())
+            logging.debug("process %d: (stdout, stderr): %s", os.getpid(), output)
+
+        logging.debug("process %d: (return code, time): (%d, %.4f)", os.getpid(), returncode, time_it_took_secs)
 
         # Format: reward, (id, id_faked)
         instrumentation_result = [0.0, (random.randint(0, 0xFFFFFFFF), True)]
@@ -337,7 +340,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
 
                 worker_args = []
 
-                logging.info("iteration %d of %d: %.2f%% completed", iteration + 1, self.iterations, ((iteration + 1) / self.iterations) * 100.0)
+                logging.info("iteration %d of %d finished: %.2f%% completed", iteration + 1, self.iterations, ((iteration + 1) / self.iterations) * 100.0)
             else:
                 logging.info("iteration %d of %d: multiprocessing", iteration + 1, self.iterations)
 
