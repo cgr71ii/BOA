@@ -145,7 +145,7 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
             if r < self.crossover_rate:
                 # Crossover
-                offset = random.randint(0, max(len(father), len(mother)) - 1)
+                offset = random.randint(0, max(max(len(father), len(mother)) - 1, 0))
                 child = father[:offset] + mother[offset:]
 
                 new_population.append(child)
@@ -336,6 +336,9 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
             logging.warning("the report instance was not provided and you set the printing of the threats while running, but this is not possible because the report instance is mandatory (this problema might be related to the selected lifecycle module)")
 
+        average_time = 0.0
+        total_executions = 0
+
         for epoch in range(self.epochs):
             current_population_input = []
             current_population_reward = []
@@ -348,37 +351,50 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                 # Process all results or part of them (multiprocessing)
                 worker_args, worker_results, output_status = yield_return
 
+                # Sort in order to avoid problems with possible misordering from multiprocessing
                 worker_args = sorted(worker_args)
                 worker_results = sorted(worker_results)
                 output_status = sorted(output_status)
 
                 # Get relevant values for the genalg
-                for idx, (input, instrumentation, fail) in enumerate(zip(worker_args, worker_results, output_status)):
-                    if (input[0] != instrumentation[0] or input[0] != fail[0]):
+                for idx, (input, results, fail) in enumerate(zip(worker_args, worker_results, output_status)):
+                    if (input[0] != results[0] or input[0] != fail[0]):
                         logging.warning("epoch %d child unk. idx %d: mismatch of child idxs (%d vs %d vs %d): skipping",
-                                        idx, epoch, input[0], instrumentation[0], fail[0])
+                                        idx, epoch, input[0], results[0], fail[0])
                         continue
 
+                    total_executions += 1
+
                     # Relevant values
-                    # TODO use time which the execution took to finish and use it in the final reward (the faster, the better!)
                     input_value = input[1]
-                    return_code = instrumentation[1]
-                    instrumentation_reward = instrumentation[2][0]
-                    instrumentation_id = instrumentation[2][1] # TODO power schedules AFLFast?
+                    return_code = results[1]
+                    instrumentation_reward = results[2][0]
+                    instrumentation_id = results[2][1] # TODO power schedules AFLFast?
                     instrumentation_id_value = instrumentation_id[0]
                     instrumentation_id_faked = instrumentation_id[1]
+                    time_it_took_secs = results[3]
                     fail_bool = fail[1]
+                    reward = 0.0
+
+                    # Update average value iteratively
+                    average_time = (average_time * (total_executions - 1) + time_it_took_secs) / total_executions
+
+                    # Update reward
+                    ## The more path coverage, the better!
+                    reward += instrumentation_reward * (2 if fail_bool else 1)
+                    ## Update based on the time it took the execution (relative): the faster, the better!
+                    ### 1.0 + 1.0 if better time than avg else -1.0 * times better or worse
+                    reward *= 1.0 + (1.0 if time_it_took_secs < average_time else -1.0) * (average_time / time_it_took_secs - 1.0)
 
                     # Add values to the population (new child)
                     current_population_input.append(input_value)
-                    current_population_reward.append(instrumentation_reward)
+                    current_population_reward.append(reward)
 
                     if not instrumentation_id_faked:
                         # Check if the input is useful
 
-                        if (instrumentation_id_value not in current_population_id and instrumentation_id_value not in self.execution_ids):
+                        if instrumentation_id_value not in current_population_id:
                             current_population_id.append(instrumentation_id[0])
-                            self.execution_ids.add(instrumentation_id[0])
                         else:
                             # This input is not useful (same path execution)
 
@@ -393,9 +409,9 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                     else:
                         input_value = "-"
 
-                    # Threat?
-                    if fail_bool:
-                        instrumentation_info = "" if instrumentation_id_faked else f" (id: {current_population_id[-1]})"
+                    # Threat? Add only if not had not been observed before
+                    if (fail_bool and instrumentation_id_value not in self.execution_ids):
+                        instrumentation_info = "" if instrumentation_id_faked else f" (id: {instrumentation_id_value})"
 
                         self.threats.append((self.who_i_am,
                                              f"genetic algorithm (epoch {epoch + 1}): the input {input_value} "
@@ -403,6 +419,8 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                                              "FAILED",
                                              "check if the fail is not a false positive",
                                              None, None))
+
+                        self.execution_ids.add(instrumentation_id[0])
 
             # Crossover
             current_population = self.crossover(runners_args["inputs"]["instance"], current_population_input, current_population_reward)

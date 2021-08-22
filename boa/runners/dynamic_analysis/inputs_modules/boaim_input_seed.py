@@ -64,7 +64,7 @@ class BOAIMInputSeed(BOAInputModuleAbstract):
         """
         r = random.random()
 
-        if r < self.random_likelihood and (self.max_random_inputs is None or self.generated_inputs < self.max_random_inputs):
+        if (r < self.random_likelihood and (self.max_random_inputs is None or self.generated_inputs < self.max_random_inputs)):
             length = random.randint(0, self.random_max_length)
             self.max_random_inputs = self.max_random_inputs + 1 if self.max_random_inputs is not None else None
             self.generated_inputs += 1

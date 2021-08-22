@@ -30,7 +30,7 @@ class BOADynamicBasicFuzzing(unittest.TestCase):
 
         # Remove the dynamic input
         actual_stdout_grep_stdout = actual_stdout_grep.stdout
-        actual_stdout_grep_stdout_after = re.sub(r'the input b\'[^\']*\' returned', 'the input b\'\' returned', actual_stdout_grep_stdout)
+        actual_stdout_grep_stdout_after = re.sub(r"the input b\'[^\']*\' returned the status code ([-]{0,1}[0-9]+) [^\n]*[.]\n", r"the input b'' returned the status code \g<1>.\n", actual_stdout_grep_stdout)
 
         self.assertEqual(expected_stdout, actual_stdout_grep_stdout_after)
 

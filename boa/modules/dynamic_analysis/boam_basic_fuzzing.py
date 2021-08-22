@@ -6,6 +6,8 @@ from terminal.
 # Std libs
 import re
 import os
+import time
+import random
 import logging
 import tempfile
 import subprocess
@@ -163,6 +165,9 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         if not self.add_additional_args:
             additional_args = []
 
+        # Measure time
+        start = time.time()
+
         if not self.pipe:
             # Split taking into account quotes (doing this we avoid using "shell=True", which is not safe and
             #  might end up in unexpected behaviour; e.g. '|' as argument might be interpreted as pipe)
@@ -190,6 +195,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
 
             output = run.communicate(input=input.encode())
 
+        time_it_took_secs = time.time() - start
         returncode = run.returncode
 
         if returncode < 0:
@@ -201,9 +207,10 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         # Output without decoding in order to avoid the backslashes preprocessing
         if self.log_args_and_input_and_output:
             logging.debug("process %s: args: %s", os.getpid(), args)
-            logging.debug("process %s: (input, (stdout, stderr), return code): (%s, %s, %d)", os.getpid(), input.encode(), output, returncode)
+            logging.debug("process %s: (return code, time, input, (stdout, stderr)): (%d, %.4f, %s, %s)", os.getpid(), returncode, time_it_took_secs, input.encode(), output)
 
-        instrumentation_result = 0.0
+        # Format: reward, (id, id_faked)
+        instrumentation_result = [0.0, (random.randint(0, 0xFFFFFFFF), True)]
 
         # Instrumentation results
         if instrumentation_tmp_file is not None:
@@ -227,7 +234,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             # Remove file
             os.remove(instrumentation_tmp_file)
 
-        return return_id, returncode, instrumentation_result
+        return return_id, returncode, instrumentation_result, time_it_took_secs
 
     def process_worker_results(self, fails_instance, worker_return_list, worker_args):
         """Method which should be invoked by the main thread instead of by every
@@ -251,7 +258,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
         """
         fails = []
 
-        for multiprocessing_idx, return_code, instrumentation in worker_return_list:
+        for multiprocessing_idx, return_code, instrumentation, time_it_took_secs in worker_return_list:
             # Has the execution failed?
             fail = fails_instance.execution_has_failed(return_code)
 
@@ -262,7 +269,8 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
                     input = "-"
 
                 self.threats.append((self.who_i_am,
-                                     f"the input {input} returned the status code {return_code} (instrumentation: {' '.join(map(lambda v: str(v), instrumentation))})",
+                                     f"the input {input} returned the status code {return_code} (time: {time_it_took_secs:.4f} secs; "
+                                     f"instrumentation: {' '.join(map(lambda v: str(v), instrumentation))})",
                                      "FAILED",
                                      "check if the fail is not a false positive",
                                      None, None))
