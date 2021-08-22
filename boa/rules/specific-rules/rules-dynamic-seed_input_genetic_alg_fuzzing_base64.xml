@@ -70,6 +70,8 @@
                     <element name="add_input_to_report" value="false" />
                     <element name="elements_from_input_module_new_population" value="20" />
                     <element name="print_threats_while_running" value="true" />
+                    <element name="power_schedule" value="fast" />
+                    <element name="power_schedule_beta" value="1.0" />
                 </dict>
             </args>
 

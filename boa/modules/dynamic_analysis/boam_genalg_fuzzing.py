@@ -52,6 +52,8 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
         self.report_instance = None # It will set in the process method (maybe)
         self.print_threats_while_running = False
         self.execution_ids = set()
+        self.power_schedule = "exploit" if not utils.is_key_in_dict(self.args, "power_schedule") else self.args["power_schedule"]
+        self.power_schedule_beta = 1.0 if not utils.is_key_in_dict(self.args, "power_schedule_beta") else float(self.args["power_schedule_beta"])
 
         if "mutation_binary_granularity" in self.args:
             mutation_binary_granularity = self.args["mutation_binary_granularity"].lower().strip()
@@ -99,6 +101,14 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                             "elements based on rewards and random mutations: it is highly recommended to increase the "
                             "population size or decrease either elitism or elements_from_input_module_new_population",
                             self.elitism + self.elements_from_input_module_new_population, self.population)
+        if self.power_schedule not in ("fast", "coe", "explore", "quad", "lin", "exploit"):
+            raise BOAModuleException(f"unknown power schedule ('{self.power_schedule}'); allowed power schedules are: "
+                                     "'fast', 'coe', 'explore', 'quad', 'lin', 'exploit'")
+
+        logging.info("using power schedule '%s' (beta value: %.2f)", self.power_schedule, self.power_schedule_beta)
+
+        if self.power_schedule_beta < 1.0:
+            logging.warning("you set a beta value lower than 1.0, and this might break the expected behaviour of the power schedule")
 
     def crossover(self, inputs_instance, population, rewards):
         """It performs the crossover operation using the Roulette Wheel Selection
@@ -338,6 +348,9 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
         average_time = 0.0
         total_executions = 0
+        inputs_which_have_been_executed_n_times = {}
+        inputs_with_same_path_executed_n_times = {}
+        total_inputs_processed = 0
 
         for epoch in range(self.epochs):
             current_population_input = []
@@ -369,7 +382,7 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                     input_value = input[1]
                     return_code = results[1]
                     instrumentation_reward = results[2][0]
-                    instrumentation_id = results[2][1] # TODO power schedules AFLFast?
+                    instrumentation_id = results[2][1]
                     instrumentation_id_value = instrumentation_id[0]
                     instrumentation_id_faked = instrumentation_id[1]
                     time_it_took_secs = results[3]
@@ -379,12 +392,55 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                     # Update average value iteratively
                     average_time = (average_time * (total_executions - 1) + time_it_took_secs) / total_executions
 
+                    # Update values
+                    input_value_hash = hash(input_value)
+
+                    if input_value_hash not in inputs_which_have_been_executed_n_times:
+                        inputs_which_have_been_executed_n_times[input_value_hash] = 0
+                    if instrumentation_id_value not in inputs_with_same_path_executed_n_times:
+                        inputs_with_same_path_executed_n_times[instrumentation_id_value] = 0
+
+                    inputs_which_have_been_executed_n_times[input_value_hash] += 1 # s(i)
+                    inputs_with_same_path_executed_n_times[instrumentation_id_value] += 1 # f(i)
+                    mu = (total_inputs_processed + 1) / (len(self.execution_ids) + (1 if instrumentation_id_value not in self.execution_ids else 0))
+                    beta = self.power_schedule_beta
+                    alpha = instrumentation_reward * (2 if fail_bool else 1) # base reward
+                    alpha *= 1.0 + (1.0 if time_it_took_secs < average_time else -1.0) * (average_time / time_it_took_secs - 1.0) # alpha(i)
+
                     # Update reward
                     ## The more path coverage, the better!
-                    reward += instrumentation_reward * (2 if fail_bool else 1)
+                    #reward += instrumentation_reward * (2 if fail_bool else 1)
                     ## Update based on the time it took the execution (relative): the faster, the better!
                     ### 1.0 + 1.0 if better time than avg else -1.0 * times better or worse
-                    reward *= 1.0 + (1.0 if time_it_took_secs < average_time else -1.0) * (average_time / time_it_took_secs - 1.0)
+                    #reward *= 1.0 + (1.0 if time_it_took_secs < average_time else -1.0) * (average_time / time_it_took_secs - 1.0) # alpha(i)
+                    ## Reward the new paths
+                    #reward *= 2.0 if instrumentation_id_value not in self.execution_ids else 1.0
+
+                    # Power schedules
+                    ## We are using power schedules for reward instead of number of mutations for a specific input
+                    ##  but this might be consider similar since a higher reward in a genetic algorithm means
+                    ##  a higer likelihood of be selected across epochs and mutation will be applied to this seed
+                    if self.power_schedule == "fast":
+                        reward = (alpha / beta) * \
+                                 ((2 ** inputs_which_have_been_executed_n_times[input_value_hash]) / \
+                                  inputs_with_same_path_executed_n_times[instrumentation_id_value])
+                    elif self.power_schedule == "coe":
+                        if inputs_with_same_path_executed_n_times[instrumentation_id_value] > mu:
+                            reward = 0.0
+                        else:
+                            reward = (alpha / beta) * (2 ** inputs_which_have_been_executed_n_times[input_value_hash])
+                    elif self.power_schedule == "explore":
+                        reward = (alpha / beta)
+                    elif self.power_schedule == "quad":
+                        reward = (alpha / beta) * \
+                                 ((inputs_which_have_been_executed_n_times[input_value_hash] ** 2) / \
+                                  inputs_with_same_path_executed_n_times[instrumentation_id_value])
+                    elif self.power_schedule == "lin":
+                        reward = (alpha / beta) * \
+                                 (inputs_which_have_been_executed_n_times[input_value_hash] / \
+                                  inputs_with_same_path_executed_n_times[instrumentation_id_value])
+                    elif self.power_schedule == "explore":
+                        reward = alpha
 
                     # Add values to the population (new child)
                     current_population_input.append(input_value)
@@ -400,6 +456,8 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
                             current_population_input.pop()
                             current_population_reward.pop()
+
+                            total_inputs_processed += 1
 
                             # Do not report threat since should has been reported earlier
                             continue
@@ -421,6 +479,8 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                                              None, None))
 
                         self.execution_ids.add(instrumentation_id[0])
+
+                    total_inputs_processed += 1
 
             # Crossover
             current_population = self.crossover(runners_args["inputs"]["instance"], current_population_input, current_population_reward)

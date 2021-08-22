@@ -192,7 +192,7 @@ VOID Fini(INT32 code, VOID* v)
     // Write to a file since cout and cerr maybe closed by the application
     OutFile.setf(std::ios::showbase);
 
-    uint32_t seed = 333;
+    uint32_t seed = 0x726f7373;
     uint32_t branch_sources_hash = MurmurHash2(&branch_sources[0], branch_sources.size() * sizeof(ADDRINT), seed);
     std::string branch_jumps_instr_concatenation = std::accumulate(branch_jumps_instr.begin(), branch_jumps_instr.end(), std::string(""));
     uint32_t branch_jumps_instr_hash = MurmurHash2(&branch_jumps_instr_concatenation[0], branch_jumps_instr_concatenation.size(), seed);
