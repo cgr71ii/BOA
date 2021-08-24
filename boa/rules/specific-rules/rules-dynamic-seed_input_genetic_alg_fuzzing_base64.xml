@@ -60,10 +60,10 @@
             <lifecycle_handler>boalc_without_automatic_reporting.BOALCWithoutAutomaticReporting</lifecycle_handler>
             <args>
                 <dict>
-                    <element name="epochs" value="1000" />
+                    <element name="epochs" value="10000" />
                     <element name="elitism" value="2" />
                     <!-- <element name="mutation_rate" value="0.75" /> This value found LAVA-M base64 bugs! Because too much random? -->
-                    <element name="mutation_rate" value="0.2" />
+                    <element name="mutation_rate" value="0.5" />
                     <element name="crossover_rate" value="0.95" />
                     <!-- <element name="mutation_regex" value="^[0-9]|[a-z]|[A-Z]|=$" /> -->
                     <element name="mutation_binary_granularity" value="true" />

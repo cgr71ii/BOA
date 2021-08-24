@@ -476,7 +476,7 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
                         reward = (alpha / beta) * \
                                  (inputs_which_have_been_executed_n_times[input_value_hash] / \
                                   inputs_with_same_path_executed_n_times[instrumentation_id_value])
-                    elif self.power_schedule == "explore":
+                    elif self.power_schedule == "exploit":
                         reward = alpha
 
                     # Add values to the population (new child)
