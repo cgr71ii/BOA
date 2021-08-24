@@ -17,7 +17,7 @@ class Meta:
 
     It contains information about BOA like the version, the description, ...
     """
-    version = 0.3
+    version = 1.0
     name = "BOA"
     description = "Static and dynamic analyzer of general purpose written in Python"
     ok_code = 0
