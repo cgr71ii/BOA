@@ -222,4 +222,4 @@ The output of the previous execution should be:
 
 ## Documentation
 
-Full documentation may be found at `boa/docs`.
+Full documentation may be found at [Read the Docs](https://boa-docs.readthedocs.io/en/latest/).
