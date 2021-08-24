@@ -1,6 +1,6 @@
 # BOA - Buffer Overflow Annihilator
 
-![BOA](media/boa.png | width=350)
+<img src="media/boa.png" width="350">
 
 `BOA` is a software analyzer which attempts to search software vulnerabilities. This tool has been developed trying to maximize the modularity in order to write new modules which might, for instance, add support for unsupported programming languages, add new techniques in order to search vulnerabilities, use other parsers, etc.
 
