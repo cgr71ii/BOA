@@ -153,24 +153,7 @@ There are modules which can only be used when the analysis is dynamic analysis:
 
 ## Input file format
 
-TODO
-
-### Dependencies
-
-TODO: only a few notes have been added (these notes are not about the format, but about the behaviour of the dependencies, and maybe these notes might be set elsewhere like in the internal documentation):
-
-* The dependencies are security modules which can be a dependency of other security module. These dependencies have to be defined as a security module and as dependency.
-* The execution order will be resolved creating a DAG (if is not acyclic, it will be detected and the execution stopped), and the dependencies will be executed before of the security modules which have these dependencies.
-* The dependencies can also be directly executed by the security modules if liked. In this case, you will need to get the instance of the dependency from the security module.
-* When a dependency is defined also as module, is in the module definition where the arguments have to be set. In the dependency definition is where a callback is set and this callback is what the security module which have this module as dependency will call in order to interact with the dependency.
-
-### Static analysis
-
-TODO
-
-### Dynamic analysis
-
-TODO
+There is a rules file available where the format is well explained: [check it out](https://github.com/cgr71ii/BOA/blob/master/boa/rules/EXAMPLE-static_or_dynamic-verbose_name.xml) if needed.
 
 ## Implementing new modules
 
