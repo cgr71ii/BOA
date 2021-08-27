@@ -6,6 +6,7 @@ one of the provided seed inputs.
 """
 
 # Std libs
+import base64
 import random
 import logging
 
@@ -50,6 +51,13 @@ class BOAIMInputSeed(BOAInputModuleAbstract):
 
         if len(self.input_seed) == 0:
             raise BOARunnerModuleError("length of seed inputs is 0")
+
+        # Check if we have to preprocess
+        for idx in range(len(self.input_seed)):
+            if self.input_seed[idx][:19] == "boa:base64_encoded:":
+                # Decode BASE64 value
+                self.input_seed[idx] = self.input_seed[idx][19:] # Remove prefix
+                self.input_seed[idx] = base64.b64decode(self.input_seed[idx]).decode("utf-8")
 
         logging.debug("random inputs max. length: %d", self.random_max_length)
         logging.debug("random inputs likelihood: %.2f", self.random_likelihood)

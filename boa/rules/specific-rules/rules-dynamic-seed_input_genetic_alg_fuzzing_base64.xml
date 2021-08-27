@@ -43,7 +43,6 @@
                     <element name="log_args_and_input_and_output" value="false" />
                     <element name="add_additional_args" value="true" />
                     <element name="additional_args" value="-d" />
-                    <!-- <element name="pintool" value="obj-intel64/bb_count_once.so" /> -->
                     <element name="pintool" value="obj-intel64/branch_coverage_numeric_hash.so" />
                     <element name="subprocess_shell" value="false" />
                     <element name="processes" value="5" />
@@ -60,10 +59,10 @@
             <lifecycle_handler>boalc_without_automatic_reporting.BOALCWithoutAutomaticReporting</lifecycle_handler>
             <args>
                 <dict>
-                    <element name="epochs" value="10000" />
+                    <element name="epochs" value="5000" />
                     <element name="elitism" value="2" />
                     <!-- <element name="mutation_rate" value="0.75" /> This value found LAVA-M base64 bugs! Because too much random? -->
-                    <element name="mutation_rate" value="0.5" />
+                    <element name="mutation_rate" value="0.2" />
                     <element name="crossover_rate" value="0.95" />
                     <!-- <element name="mutation_regex" value="^[0-9]|[a-z]|[A-Z]|=$" /> -->
                     <element name="mutation_binary_granularity" value="true" />
