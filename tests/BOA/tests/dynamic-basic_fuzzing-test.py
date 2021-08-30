@@ -23,10 +23,7 @@ class BOADynamicBasicFuzzing(unittest.TestCase):
  + Threat (-1, -1): the input b'' returned the status code 1.
    Severity: FAILED.
    Advice: check if the fail is not a false positive.
- + Threat (-1, -1): the input b'' returned the status code 1.
-   Severity: FAILED.
-   Advice: check if the fail is not a false positive.
-"""
+""" * 10
 
         # Remove the dynamic input
         actual_stdout_grep_stdout = actual_stdout_grep.stdout
