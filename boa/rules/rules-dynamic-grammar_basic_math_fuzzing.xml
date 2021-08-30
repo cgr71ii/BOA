@@ -43,7 +43,8 @@
                     <element name="add_additional_args" value="false" />    <!-- additional args will not be added -->
                     <!-- <element name="additional_args" value="-v" /> -->
                     <!-- <element name="pintool" value="obj-intel64/inst_count.so" /> -->
-                    <element name="pintool" value="obj-intel64/bb_count_once.so" />
+                    <!-- <element name="pintool" value="obj-intel64/bb_count.so" /> -->
+                    <element name="pintool" value="obj-intel64/branch_coverage_numeric_hash.so" />
                     <element name="subprocess_shell" value="false" />
                     <element name="processes" value="1" />
                 </dict>

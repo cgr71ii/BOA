@@ -12,6 +12,6 @@ expr: NUM
 
 // BOA will ignore this comment due to "// "
 // BOA will process comments with "~" after "//"
-// Likelihood of a rule -> BOA:non-terminal_rule:index:likelihood_of_rule
-// Next BOA rule will assign a likelihood of 0.005 of select "expr: NUM" over the other options of the rule "expr"
+// Likelihood of a rule -> BOA:non_terminal_rule:alternative_index:likelihood_of_alternative
+// Next, BOA will assign a likelihood of 0.005 to "expr: NUM" over the other alternatives of the rule "expr"
 //~ BOA:expr:0:0.005

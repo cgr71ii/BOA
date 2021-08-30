@@ -20,9 +20,17 @@ class BOAIMRandomString(BOAInputModuleAbstract):
         """It initializes the necessary variables.
         """
         self.length = 10
+        self.randomize_length = False
 
         if "length" in self.args:
             self.length = int(self.args["length"])
+        if "randomize_length" in self.args:
+            randomize_length = self.args["randomize_length"].lower().strip()
+
+            if randomize_length == "true":
+                self.randomize_length = True
+
+                logging.debug("randomizing length from 0 to %d", self.length)
 
         logging.debug("inputs length: %d", self.length)
 
@@ -34,4 +42,9 @@ class BOAIMRandomString(BOAInputModuleAbstract):
         Returns:
             str: random string.
         """
-        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=self.length))
+        length = self.length
+
+        if self.randomize_length:
+            length = random.randint(0, length)
+
+        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))

@@ -182,7 +182,9 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
             args = sandboxing_command + instrumentation + [binary_path] + binary_args + additional_args
             args = ' '.join(args) if self.subprocess_shell else args    # Str if shell=True
 
-            run = subprocess.run(args, capture_output=self.log_args_and_input_and_output, shell=self.subprocess_shell)
+            run = subprocess.run(args, capture_output=self.log_args_and_input_and_output, shell=self.subprocess_shell,
+                                 stdout=None if self.log_args_and_input_and_output else subprocess.DEVNULL,
+                                 stderr=None if self.log_args_and_input_and_output else subprocess.DEVNULL,)
 
             output = (run.stdout, run.stderr)
         else:
@@ -206,7 +208,7 @@ class BOAModuleBasicFuzzing(BOAModuleAbstract):
 
         # Output without decoding in order to avoid the backslashes preprocessing
         if self.log_args_and_input_and_output:
-            logging.debug("process %d: args: %s", os.getpid(), args)
+            logging.debug("process %d: args: %s", os.getpid(), list(map(lambda arg: arg.encode(), args)))
             logging.debug("process %d: input: %s", os.getpid(), input.encode())
             logging.debug("process %d: (stdout, stderr): %s", os.getpid(), output)
 

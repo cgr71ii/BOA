@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <boa_rules analysis="dynamic">
-    <!--
     <env_vars>
+        <env_var mandatory="false">PIN_BIN</env_var>
     </env_vars>
-    -->
     <runners>
         <inputs>
             <module_name>boaim_random_string</module_name>
             <class_name>BOAIMRandomString</class_name>
             <args>
                 <dict>
-                    <element name="length" value="5" />
+                    <element name="length" value="30" />
+                    <element name="randomize_length" value="true" />
                 </dict>
             </args>
         </inputs>
@@ -32,7 +32,9 @@
             <lifecycle_handler>boalc_basic.BOALCBasic</lifecycle_handler>
             <args>
                 <dict>
-                    <element name="iterations" value="2" />
+                    <element name="pintool" value="obj-intel64/branch_coverage_numeric_hash.so" />
+                    <element name="iterations" value="10" />
+                    <element name="sandboxing_command" value="" />  <!-- https://github.com/netblue30/firejail/issues/4474 -->
                 </dict>
             </args>
         </module>

@@ -5,10 +5,9 @@ This file contains constant information about BOA.
 
 It contains multiple classes:\n
 1. Meta class: it contains information about BOA.
-2. Args class: it contains the mandatory and optional BOA arguments.
-3. Error class: it contains status code with a descriptive name.
-4. Regex class: it contains regex strings.
-5. Other class: it contains all the constants whose goal does not
+2. Error class: it contains status code with a descriptive name.
+3. Regex class: it contains regex strings.
+4. Other class: it contains all the constants whose goal does not
    match with the other classes.
 """
 

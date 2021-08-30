@@ -503,6 +503,8 @@ class BOAModuleGenAlgFuzzing(BOAModuleAbstract):
 
                     total_inputs_processed += 1
 
+            # TODO multiprocessing? problem with mutator choice becuse same will be always selected?
+
             # Crossover
             current_population = self.crossover(runners_args["inputs"]["instance"], current_population_input, current_population_reward)
 

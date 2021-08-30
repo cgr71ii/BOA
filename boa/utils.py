@@ -367,7 +367,6 @@ def get_random_byte_seq(length, regex=b"^.$", regex_max_tries=1000000):
         char = None
         tries = 0
         regex_obj = re.compile(regex)
-        exrex_available = False
 
         try:
             import exrex
