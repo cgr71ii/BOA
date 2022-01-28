@@ -208,3 +208,7 @@ The output of the previous execution should be:
 ## Documentation
 
 Full documentation may be found at [Read the Docs](https://boa-docs.readthedocs.io/en/latest/).
+
+Additional documentation may be found at (available in spanish):
+1. http://rua.ua.es/dspace/handle/10045/107803 (Final year project in Computer Engineering bachelor's degree)
+2. http://rua.ua.es/dspace/handle/10045/118146 (Final year project in Cybersecurity master)
